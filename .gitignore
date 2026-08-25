@@ -1,0 +1,26 @@
+# Backend
+backend/venv/
+backend/.env
+backend/instagram.db
+backend/media/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# E2E
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+node_modules/
