@@ -62,6 +62,10 @@ else
   # 'curl' package on top of it fails with a package conflict. curl-minimal
   # already provides the curl command, so only install curl if it's missing.
   command -v curl >/dev/null 2>&1 || $PKG install -y curl
+  # Some Python deps (bcrypt, cryptography, Pillow) fall back to compiling
+  # from source if no prebuilt wheel matches this Python/arch. Have a
+  # compiler ready so that doesn't hard-fail; harmless if wheels are used.
+  $PKG install -y gcc python3-devel libffi-devel openssl-devel || true
   if ! $PKG install -y certbot python3-certbot-nginx; then
     CERTBOT_VIA_PIP=1
   fi
@@ -79,6 +83,11 @@ fi
 
 echo "==> [2/8] Fetching the code..."
 if [[ -d "$DEPLOY_PATH/.git" ]]; then
+  # Fix ownership FIRST if the repo was originally created with a plain
+  # `sudo git clone` (owned by root) — otherwise `sudo -u $DEPLOY_USER git
+  # pull` fails with a permission error, and modern git also refuses to
+  # touch a repo owned by a different user ("dubious ownership").
+  chown -R "$DEPLOY_USER":"$DEPLOY_USER" "$DEPLOY_PATH"
   sudo -u "$DEPLOY_USER" git -C "$DEPLOY_PATH" pull --ff-only
 else
   mkdir -p "$(dirname "$DEPLOY_PATH")"
