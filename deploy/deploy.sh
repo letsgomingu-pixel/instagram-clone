@@ -153,6 +153,16 @@ systemctl restart instagram-backend
 sleep 1
 systemctl --no-pager --full status instagram-backend | head -n 8
 
+# nginx runs as its own system user (nginx/www-data), not $DEPLOY_USER, and
+# only has "other" permission bits to go on. A restrictive umask on the
+# account that ran git clone/npm build can leave files unreadable to it —
+# that shows up as nginx logging "rewrite or internal redirection cycle"
+# while trying to serve /index.html. Make sure the served tree is at least
+# world-readable/traversable no matter what umask created it.
+chmod o+rx "$(dirname "$DEPLOY_PATH")" "$DEPLOY_PATH" 2>/dev/null || true
+find "$DEPLOY_PATH/frontend/dist" -type d -exec chmod o+rx {} + 2>/dev/null || true
+find "$DEPLOY_PATH/frontend/dist" -type f -exec chmod o+r {} + 2>/dev/null || true
+
 echo "==> [7/8] nginx site config..."
 if [[ "$OS_FAMILY" == "debian" ]]; then
   mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
