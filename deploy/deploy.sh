@@ -98,6 +98,37 @@ if [[ "$NODE_CURRENT_MAJOR" -lt "$NODE_MIN_MAJOR" ]]; then
   echo "    Installed $(node -v) to /usr/local/bin"
 fi
 
+# ---- Python: find (or install) an interpreter that's actually new enough --
+# The app uses `Mapped[str | None]`-style annotations (PEP 604), which crash
+# at import time on Python < 3.10 with "unsupported operand type(s) for |:
+# 'type' and 'NoneType'". Amazon Linux 2023's default `python3` is 3.9, so
+# don't just assume `python3` is good enough — find one that qualifies, or
+# install one, and use that exact interpreter for the venv.
+PYTHON_BIN=""
+for cand in python3.12 python3.11 python3.10 python3; do
+  if command -v "$cand" >/dev/null 2>&1; then
+    ver="$("$cand" -c 'import sys; print(sys.version_info[0]*100+sys.version_info[1])' 2>/dev/null || echo 0)"
+    if [[ "$ver" -ge 310 ]]; then
+      PYTHON_BIN="$cand"
+      break
+    fi
+  fi
+done
+if [[ -z "$PYTHON_BIN" ]]; then
+  echo "==> No Python >=3.10 found — installing python3.11..."
+  if [[ "$OS_FAMILY" == "debian" ]]; then
+    apt-get install -y python3.11 python3.11-venv || true
+  else
+    $PKG install -y python3.11 python3.11-pip || true
+  fi
+  command -v python3.11 >/dev/null 2>&1 && PYTHON_BIN=python3.11
+fi
+if [[ -z "$PYTHON_BIN" ]]; then
+  echo "Could not find or install a Python 3.10+ interpreter — the app needs one." >&2
+  exit 1
+fi
+echo "==> Using $("$PYTHON_BIN" --version) ($(command -v "$PYTHON_BIN")) for the backend venv"
+
 echo "==> [2/8] Fetching the code..."
 if [[ -d "$DEPLOY_PATH/.git" ]]; then
   # Fix ownership FIRST if the repo was originally created with a plain
@@ -114,11 +145,19 @@ chown -R "$DEPLOY_USER":"$DEPLOY_USER" "$DEPLOY_PATH"
 
 echo "==> [3/8] Backend: virtualenv + dependencies..."
 cd "$DEPLOY_PATH/backend"
+if [[ -d venv ]]; then
+  EXISTING_VER="$(venv/bin/python -c 'import sys; print(sys.version_info[0]*100+sys.version_info[1])' 2>/dev/null || echo 0)"
+  if [[ "$EXISTING_VER" -lt 310 ]]; then
+    echo "    Existing venv was built with a Python <3.10 (crashes on this app's"
+    echo "    'X | None' type hints) — deleting it so it gets rebuilt with $PYTHON_BIN."
+    rm -rf venv
+  fi
+fi
 if [[ ! -d venv ]]; then
-  if ! sudo -u "$DEPLOY_USER" python3 -m venv venv; then
-    echo "    python3 -m venv failed, falling back to the 'virtualenv' package..."
-    python3 -m pip install --upgrade virtualenv
-    sudo -u "$DEPLOY_USER" python3 -m virtualenv venv
+  if ! sudo -u "$DEPLOY_USER" "$PYTHON_BIN" -m venv venv; then
+    echo "    $PYTHON_BIN -m venv failed, falling back to the 'virtualenv' package..."
+    "$PYTHON_BIN" -m pip install --upgrade virtualenv
+    sudo -u "$DEPLOY_USER" "$PYTHON_BIN" -m virtualenv venv
   fi
 fi
 sudo -u "$DEPLOY_USER" venv/bin/pip install --upgrade pip
