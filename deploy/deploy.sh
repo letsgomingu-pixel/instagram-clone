@@ -43,18 +43,13 @@ else
 fi
 echo "==> Detected OS family: $OS_FAMILY"
 
-echo "==> [1/8] Installing system packages (nginx, python3, node 20, certbot, git)..."
+echo "==> [1/8] Installing system packages (nginx, python3, certbot, git)..."
 CERTBOT_VIA_PIP=0
 if [[ "$OS_FAMILY" == "debian" ]]; then
   apt-get update -y
   apt-get install -y nginx python3 python3-venv python3-pip git curl ufw
   if ! apt-get install -y certbot python3-certbot-nginx; then
     CERTBOT_VIA_PIP=1
-  fi
-  if ! command -v node >/dev/null 2>&1 || [[ "$(node -v | sed 's/v//;s/\..*//')" -lt 18 ]]; then
-    echo "==> Installing Node.js 20.x via NodeSource..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-    apt-get install -y nodejs
   fi
 else
   $PKG install -y nginx python3 python3-pip git
@@ -69,16 +64,38 @@ else
   if ! $PKG install -y certbot python3-certbot-nginx; then
     CERTBOT_VIA_PIP=1
   fi
-  if ! command -v node >/dev/null 2>&1 || [[ "$(node -v | sed 's/v//;s/\..*//')" -lt 18 ]]; then
-    echo "==> Installing Node.js 20.x via NodeSource..."
-    curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
-    $PKG install -y nodejs
-  fi
 fi
 if [[ "$CERTBOT_VIA_PIP" == "1" ]]; then
   echo "    certbot package unavailable from the system repo — installing via pip instead."
   python3 -m pip install --upgrade pip
   python3 -m pip install certbot certbot-nginx
+fi
+
+# ---- Node.js: install the official binary directly into /usr/local -----
+# This project's frontend build tooling (Vite 8 / rolldown) needs Node
+# >=20.19 or >=22.12 — newer than what distro package managers ship, and
+# NodeSource's setup scripts are unreliable on Amazon Linux 2023 (its own
+# 'nodejs' module stream can silently win and install an old v18 instead).
+# A plain tarball from nodejs.org sidesteps all of that and works the same
+# way on every distro. Node is only needed here to build the frontend once;
+# the running site doesn't need it at all.
+NODE_MIN_MAJOR=20
+NODE_CURRENT_MAJOR=0
+if command -v node >/dev/null 2>&1; then
+  NODE_CURRENT_MAJOR="$(node -v | sed 's/^v//; s/\..*//')"
+fi
+if [[ "$NODE_CURRENT_MAJOR" -lt "$NODE_MIN_MAJOR" ]]; then
+  echo "==> Installing a current Node.js LTS build from nodejs.org (found: ${NODE_CURRENT_MAJOR:-none})..."
+  NODE_FILENAME="$(curl -fsSL https://nodejs.org/dist/latest-v22.x/ | grep -oE 'node-v22\.[0-9]+\.[0-9]+-linux-x64\.tar\.xz' | head -1)"
+  if [[ -z "$NODE_FILENAME" ]]; then
+    echo "Could not determine the latest Node 22.x release from nodejs.org." >&2
+    exit 1
+  fi
+  curl -fsSL "https://nodejs.org/dist/latest-v22.x/${NODE_FILENAME}" -o /tmp/node.tar.xz
+  tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1
+  rm -f /tmp/node.tar.xz
+  hash -r
+  echo "    Installed $(node -v) to /usr/local/bin"
 fi
 
 echo "==> [2/8] Fetching the code..."
@@ -120,8 +137,10 @@ fi
 
 echo "==> [5/8] Frontend: install + production build..."
 cd "$DEPLOY_PATH/frontend"
-sudo -u "$DEPLOY_USER" npm install
-sudo -u "$DEPLOY_USER" npm run build
+# Force /usr/local/bin first on PATH so the Node we just installed there is
+# what runs, even if an older distro-packaged node also sits on /usr/bin.
+sudo -u "$DEPLOY_USER" env PATH="/usr/local/bin:$PATH" npm install
+sudo -u "$DEPLOY_USER" env PATH="/usr/local/bin:$PATH" npm run build
 
 echo "==> [6/8] systemd service for the backend..."
 sed \
