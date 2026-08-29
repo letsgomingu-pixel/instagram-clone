@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # One-shot deploy/redeploy script for iamnotafishmonger.com.
+# Supports Debian/Ubuntu (apt-get) and Amazon Linux/RHEL/CentOS (dnf or yum).
 #
 # Run this ON THE SERVER (not here), as a user with sudo rights:
 #   sudo bash deploy.sh
@@ -29,15 +30,47 @@ fi
 echo "==> Deploying as system user: $DEPLOY_USER"
 echo "==> Target path: $DEPLOY_PATH"
 
-echo "==> [1/8] Installing system packages (nginx, python3, node 20, certbot, git)..."
-apt-get update -y
-apt-get install -y nginx python3 python3-venv python3-pip git curl ufw \
-  certbot python3-certbot-nginx
+# ---- detect OS family / package manager --------------------------------
+if command -v apt-get >/dev/null 2>&1; then
+  OS_FAMILY="debian"
+elif command -v dnf >/dev/null 2>&1; then
+  OS_FAMILY="rhel"; PKG=dnf
+elif command -v yum >/dev/null 2>&1; then
+  OS_FAMILY="rhel"; PKG=yum
+else
+  echo "Unsupported OS: no apt-get, dnf, or yum found." >&2
+  exit 1
+fi
+echo "==> Detected OS family: $OS_FAMILY"
 
-if ! command -v node >/dev/null 2>&1 || [[ "$(node -v | sed 's/v//;s/\..*//')" -lt 18 ]]; then
-  echo "==> Installing Node.js 20.x via NodeSource..."
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-  apt-get install -y nodejs
+echo "==> [1/8] Installing system packages (nginx, python3, node 20, certbot, git)..."
+CERTBOT_VIA_PIP=0
+if [[ "$OS_FAMILY" == "debian" ]]; then
+  apt-get update -y
+  apt-get install -y nginx python3 python3-venv python3-pip git curl ufw
+  if ! apt-get install -y certbot python3-certbot-nginx; then
+    CERTBOT_VIA_PIP=1
+  fi
+  if ! command -v node >/dev/null 2>&1 || [[ "$(node -v | sed 's/v//;s/\..*//')" -lt 18 ]]; then
+    echo "==> Installing Node.js 20.x via NodeSource..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+  fi
+else
+  $PKG install -y nginx python3 python3-pip git curl
+  if ! $PKG install -y certbot python3-certbot-nginx; then
+    CERTBOT_VIA_PIP=1
+  fi
+  if ! command -v node >/dev/null 2>&1 || [[ "$(node -v | sed 's/v//;s/\..*//')" -lt 18 ]]; then
+    echo "==> Installing Node.js 20.x via NodeSource..."
+    curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+    $PKG install -y nodejs
+  fi
+fi
+if [[ "$CERTBOT_VIA_PIP" == "1" ]]; then
+  echo "    certbot package unavailable from the system repo — installing via pip instead."
+  python3 -m pip install --upgrade pip
+  python3 -m pip install certbot certbot-nginx
 fi
 
 echo "==> [2/8] Fetching the code..."
@@ -52,7 +85,11 @@ chown -R "$DEPLOY_USER":"$DEPLOY_USER" "$DEPLOY_PATH"
 echo "==> [3/8] Backend: virtualenv + dependencies..."
 cd "$DEPLOY_PATH/backend"
 if [[ ! -d venv ]]; then
-  sudo -u "$DEPLOY_USER" python3 -m venv venv
+  if ! sudo -u "$DEPLOY_USER" python3 -m venv venv; then
+    echo "    python3 -m venv failed, falling back to the 'virtualenv' package..."
+    python3 -m pip install --upgrade virtualenv
+    sudo -u "$DEPLOY_USER" python3 -m virtualenv venv
+  fi
 fi
 sudo -u "$DEPLOY_USER" venv/bin/pip install --upgrade pip
 sudo -u "$DEPLOY_USER" venv/bin/pip install -r requirements.txt
@@ -85,27 +122,54 @@ sleep 1
 systemctl --no-pager --full status instagram-backend | head -n 8
 
 echo "==> [7/8] nginx site config..."
-cp "$DEPLOY_PATH/deploy/nginx.iamnotafishmonger.conf" "/etc/nginx/sites-available/${DOMAIN}"
-ln -sf "/etc/nginx/sites-available/${DOMAIN}" "/etc/nginx/sites-enabled/${DOMAIN}"
-[[ -e /etc/nginx/sites-enabled/default ]] && rm -f /etc/nginx/sites-enabled/default
+if [[ "$OS_FAMILY" == "debian" ]]; then
+  mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
+  cp "$DEPLOY_PATH/deploy/nginx.iamnotafishmonger.conf" "/etc/nginx/sites-available/${DOMAIN}"
+  ln -sf "/etc/nginx/sites-available/${DOMAIN}" "/etc/nginx/sites-enabled/${DOMAIN}"
+  [[ -e /etc/nginx/sites-enabled/default ]] && rm -f /etc/nginx/sites-enabled/default
+else
+  # Amazon Linux / RHEL nginx has no sites-available convention — nginx.conf
+  # already includes /etc/nginx/conf.d/*.conf, so drop the site config there.
+  mkdir -p /etc/nginx/conf.d
+  cp "$DEPLOY_PATH/deploy/nginx.iamnotafishmonger.conf" "/etc/nginx/conf.d/${DOMAIN}.conf"
+fi
 nginx -t
-systemctl reload nginx
+systemctl enable nginx
+systemctl restart nginx
 
-echo "==> [8/8] Firewall (ufw)..."
-ufw allow OpenSSH >/dev/null 2>&1 || true
-ufw allow 'Nginx Full' >/dev/null 2>&1 || true
-ufw --force enable >/dev/null 2>&1 || true
+# SELinux (enforcing on some RHEL/Amazon Linux images) blocks nginx from
+# proxying to the backend unless this boolean is allowed.
+if command -v getenforce >/dev/null 2>&1 && [[ "$(getenforce)" == "Enforcing" ]]; then
+  echo "    SELinux is enforcing — allowing nginx to reach the backend over the network..."
+  setsebool -P httpd_can_network_connect 1 2>/dev/null || true
+fi
+
+echo "==> [8/8] Firewall..."
+if [[ "$OS_FAMILY" == "debian" ]]; then
+  ufw allow OpenSSH >/dev/null 2>&1 || true
+  ufw allow 'Nginx Full' >/dev/null 2>&1 || true
+  ufw --force enable >/dev/null 2>&1 || true
+elif systemctl is-active --quiet firewalld 2>/dev/null; then
+  firewall-cmd --permanent --add-service=http >/dev/null 2>&1 || true
+  firewall-cmd --permanent --add-service=https >/dev/null 2>&1 || true
+  firewall-cmd --reload >/dev/null 2>&1 || true
+else
+  echo "    No local firewall active (normal on a default Amazon Linux AMI) —"
+  echo "    filtering relies entirely on the AWS Security Group, see below."
+fi
 
 cat <<EOF
 
 ============================================================
 Backend & frontend are deployed and running over plain HTTP.
 
-IMPORTANT — this is an AWS EC2-style host. ufw alone is not enough:
-also open inbound TCP 80 and 443 in the instance's Security Group
-in the AWS console, or the site will be unreachable from outside.
+IMPORTANT — this is an AWS EC2 host. The local firewall is not enough:
+also open inbound TCP 80 and 443 (source 0.0.0.0/0) in the instance's
+Security Group in the AWS console, or the site will be unreachable
+from outside no matter how correctly everything above ran.
 
-Next step — HTTPS (run once DNS + port 80 are confirmed reachable):
+Next step — HTTPS (run once DNS + port 80 are confirmed reachable
+from outside):
 
     sudo certbot --nginx -d ${DOMAIN} -d ${WWW_DOMAIN} \\
         --agree-tos -m YOUR_EMAIL@example.com --redirect

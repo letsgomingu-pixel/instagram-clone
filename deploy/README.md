@@ -19,8 +19,8 @@ DNS는 이미 `iamnotafishmonger.com` → `52.78.54.32` 로 연결되어 있는 
 - **AWS 보안 그룹**: 서버 방화벽(ufw)만 열어서는 부족합니다. AWS 콘솔 → EC2 → 보안 그룹에서
   인바운드 규칙에 **80번(HTTP), 443번(HTTPS)** 포트가 0.0.0.0/0으로 열려 있는지 꼭 확인하세요.
   이게 안 열려 있으면 스크립트가 다 성공해도 외부에서 사이트에 접속이 안 됩니다.
-- **가정하는 서버 환경**: Ubuntu 22.04/24.04 계열. Amazon Linux 등 다른 배포판이면
-  `apt-get` 대신 `dnf`/`yum` 명령으로 바꿔야 합니다.
+- **서버 환경**: Ubuntu/Debian(`apt-get`)과 Amazon Linux/RHEL 계열(`dnf`/`yum`)을 `deploy.sh`가
+  자동으로 감지해서 알맞은 명령을 씁니다. 프롬프트가 `ec2-user@...`라면 Amazon Linux입니다.
 
 ---
 
@@ -60,7 +60,8 @@ sudo bash deploy.sh
    자동 시작되도록 설정 (127.0.0.1:8001 에서만 대기 — 외부에 직접 노출 안 됨)
 7. nginx를 리버스 프록시로 설정: `/` 는 프론트엔드 정적 파일, `/api`·`/media`·`/docs` 는
    백엔드로 전달
-8. 방화벽(ufw)에서 80/443 포트 허용
+8. 방화벽 설정: Ubuntu는 ufw에서 80/443 허용, Amazon Linux는 보통 로컬 방화벽이 아예 꺼져
+   있으므로(정상) AWS 보안 그룹만 확인하면 됩니다
 
 재실행해도 안전합니다 — DB나 업로드된 미디어 파일은 건드리지 않습니다. 코드를
 수정하고 `git pull` 한 뒤 다시 `sudo bash deploy/deploy.sh` 하면 재빌드·재시작됩니다.
@@ -105,7 +106,7 @@ sudo journalctl -u instagram-backend -f
 | 증상 | 확인할 것 |
 |---|---|
 | 브라우저에서 아예 접속 안 됨 | AWS 보안 그룹에 80/443 열려 있는지, DNS가 이 서버 IP를 가리키는지 |
-| 502 Bad Gateway | `sudo systemctl status instagram-backend` 로 백엔드가 죽어있는지 확인, `journalctl -u instagram-backend` 로 에러 로그 확인 |
+| 502 Bad Gateway | `sudo systemctl status instagram-backend` 로 백엔드가 죽어있는지 확인, `journalctl -u instagram-backend` 로 에러 로그 확인. Amazon Linux/RHEL이고 백엔드는 멀쩡한데 계속 502라면 SELinux 때문일 수 있음 — `sudo setsebool -P httpd_can_network_connect 1` (deploy.sh가 SELinux enforcing이면 자동으로 적용하지만, 안 됐다면 수동 실행) |
 | API 호출은 되는데 화면이 이상함 | `frontend/dist` 가 최신 빌드인지 (`npm run build` 다시) |
 | certbot 발급 실패 | 80번 포트가 실제로 외부에서 열려 있는지 먼저 확인 (`curl http://iamnotafishmonger.com` 외부에서) |
 
