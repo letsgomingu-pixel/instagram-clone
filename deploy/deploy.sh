@@ -57,7 +57,11 @@ if [[ "$OS_FAMILY" == "debian" ]]; then
     apt-get install -y nodejs
   fi
 else
-  $PKG install -y nginx python3 python3-pip git curl
+  $PKG install -y nginx python3 python3-pip git
+  # Amazon Linux 2023 ships curl-minimal by default; installing the full
+  # 'curl' package on top of it fails with a package conflict. curl-minimal
+  # already provides the curl command, so only install curl if it's missing.
+  command -v curl >/dev/null 2>&1 || $PKG install -y curl
   if ! $PKG install -y certbot python3-certbot-nginx; then
     CERTBOT_VIA_PIP=1
   fi
