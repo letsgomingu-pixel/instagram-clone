@@ -1,0 +1,25 @@
+[Unit]
+Description=Instagram clone FastAPI backend (iamnotafishmonger.com)
+After=network.target
+
+[Service]
+Type=simple
+User=__DEPLOY_USER__
+Group=__DEPLOY_USER__
+WorkingDirectory=__DEPLOY_PATH__/backend
+Environment=PATH=__DEPLOY_PATH__/backend/venv/bin
+EnvironmentFile=__DEPLOY_PATH__/backend/.env
+# Single worker: the app uses SQLite, which does not handle concurrent
+# writers well. Move to Postgres first if you need to raise this.
+ExecStart=__DEPLOY_PATH__/backend/venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --workers 1
+Restart=always
+RestartSec=3
+
+# Light sandboxing — the service can only write inside its own working directory.
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=__DEPLOY_PATH__/backend
+
+[Install]
+WantedBy=multi-user.target

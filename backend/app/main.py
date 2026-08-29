@@ -12,8 +12,9 @@ from app.utils.media import ensure_media_dirs
 
 init_db()
 ensure_media_dirs()
-ensure_admin_user()
-ensure_seed_test_user()
+if settings.seed_demo_users:
+    ensure_admin_user()
+    ensure_seed_test_user()
 
 app = FastAPI(
     title="Instagram Clone API",
