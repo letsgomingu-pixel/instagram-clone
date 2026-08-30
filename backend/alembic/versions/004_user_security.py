@@ -20,10 +20,10 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     with op.batch_alter_table("user_settings") as batch_op:
         batch_op.add_column(
-            sa.Column("login_email_alerts", sa.Boolean(), nullable=False, server_default=sa.text("1"))
+            sa.Column("login_email_alerts", sa.Boolean(), nullable=False, server_default=sa.text("true"))
         )
         batch_op.add_column(
-            sa.Column("two_factor_enabled", sa.Boolean(), nullable=False, server_default=sa.text("0"))
+            sa.Column("two_factor_enabled", sa.Boolean(), nullable=False, server_default=sa.text("false"))
         )
         batch_op.add_column(sa.Column("two_factor_secret", sa.String(length=64), nullable=True))
 
@@ -35,7 +35,7 @@ def upgrade() -> None:
         sa.Column("user_agent", sa.String(length=500), nullable=False),
         sa.Column("device_name", sa.String(length=100), nullable=False),
         sa.Column("location", sa.String(length=120), nullable=True),
-        sa.Column("is_trusted", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+        sa.Column("is_trusted", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
