@@ -65,7 +65,7 @@ if [[ -z "$PG_SERVICE" ]]; then
     exit 1
   fi
   PG_BIN_DIR="$(dirname "$(command -v pg_ctl)")"
-  PGDATA_DIR="$(find /var/lib/pgsql -maxdepth 2 -name PG_VERSION 2>/dev/null | head -1 | xargs -r dirname)"
+  PGDATA_DIR="$(find /var/lib/pgsql -maxdepth 2 -name PG_VERSION 2>/dev/null | head -1 | xargs -r dirname || true)"
   PGDATA_DIR="${PGDATA_DIR:-/var/lib/pgsql/data}"
   cat > /etc/systemd/system/postgresql.service <<UNIT
 [Unit]
@@ -95,7 +95,7 @@ echo "==> [3/4] Allowing password auth for local TCP connections..."
 # 127.0.0.1/::1 to 'ident' auth, which needs an identd daemon nothing here
 # runs — connecting with a password would fail with "ident authentication
 # failed" until this is switched to md5/password auth.
-PG_HBA="$(find /var/lib/pgsql /etc/postgresql -maxdepth 4 -name pg_hba.conf 2>/dev/null | head -1)"
+PG_HBA="$(find /var/lib/pgsql /etc/postgresql -maxdepth 4 -name pg_hba.conf 2>/dev/null | head -1 || true)"
 if [[ -n "$PG_HBA" ]]; then
   cp "$PG_HBA" "${PG_HBA}.bak.$(date +%s)"
   sed -i -E 's/^(host[[:space:]]+all[[:space:]]+all[[:space:]]+127\.0\.0\.1\/32[[:space:]]+)ident/\1md5/' "$PG_HBA"
