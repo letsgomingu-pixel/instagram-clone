@@ -48,15 +48,44 @@ fi
 echo "==> [2/4] Starting PostgreSQL..."
 PG_SERVICE=""
 for svc in postgresql postgresql-15 postgresql-16 postgresql15 postgresql16; do
-  if systemctl list-unit-files 2>/dev/null | grep -q "^${svc}\.service"; then
+  if systemctl list-unit-files 2>/dev/null | grep -qi "^${svc}\.service"; then
     PG_SERVICE="$svc"
     break
   fi
 done
 if [[ -z "$PG_SERVICE" ]]; then
-  echo "Could not find a postgresql systemd service. Run 'systemctl list-unit-files | grep -i postgres'" >&2
-  echo "and adapt this script, or start/enable it manually, then re-run." >&2
-  exit 1
+  # Amazon Linux 2023's postgresql15-server package doesn't ship a systemd
+  # unit at all (pg_ctl/postgresql-setup exist, but nothing wires them into
+  # systemd) — write a minimal one ourselves instead of guessing OS-provided
+  # names further.
+  echo "    No packaged systemd service found for PostgreSQL — writing one."
+  if ! id postgres >/dev/null 2>&1; then
+    echo "System user 'postgres' doesn't exist — something about the install is unexpected." >&2
+    echo "Run 'rpm -qa | grep -i postgres' and share the output." >&2
+    exit 1
+  fi
+  PG_BIN_DIR="$(dirname "$(command -v pg_ctl)")"
+  PGDATA_DIR="$(find /var/lib/pgsql -maxdepth 2 -name PG_VERSION 2>/dev/null | head -1 | xargs -r dirname)"
+  PGDATA_DIR="${PGDATA_DIR:-/var/lib/pgsql/data}"
+  cat > /etc/systemd/system/postgresql.service <<UNIT
+[Unit]
+Description=PostgreSQL database server
+After=network.target
+
+[Service]
+Type=forking
+User=postgres
+Environment=PGDATA=${PGDATA_DIR}
+ExecStart=${PG_BIN_DIR}/pg_ctl start -D \${PGDATA} -s -w -t 300
+ExecStop=${PG_BIN_DIR}/pg_ctl stop -D \${PGDATA} -s -m fast
+ExecReload=${PG_BIN_DIR}/pg_ctl reload -D \${PGDATA} -s
+TimeoutSec=300
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+  systemctl daemon-reload
+  PG_SERVICE="postgresql"
 fi
 systemctl enable --now "$PG_SERVICE"
 echo "    Using service: $PG_SERVICE"
