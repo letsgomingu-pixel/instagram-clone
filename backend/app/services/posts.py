@@ -123,21 +123,23 @@ def build_post_out(db: Session, post: Post, viewer: User | None, *, comments_map
 
 
 def get_home_feed_posts(db: Session, user: User, page: int, limit: int) -> tuple[list[Post], int]:
-    """Following posts first, then others; pages wrap for infinite scroll."""
+    """Following posts first, then others."""
     following_ids = get_following_ids(db, user.id)
     following_ids.add(user.id)
     priority = case((Post.user_id.in_(following_ids), 0), else_=1)
-    ordered = db.scalars(
-        select(Post)
-        .options(joinedload(Post.user))
-        .order_by(priority, desc(Post.created_at))
-    ).all()
-    total = len(ordered)
+    total = db.scalar(select(func.count()).select_from(Post)) or 0
     if total == 0:
         return [], 0
 
-    start = ((page - 1) * limit) % total
-    return [ordered[(start + i) % total] for i in range(limit)], total
+    offset = (page - 1) * limit
+    posts = db.scalars(
+        select(Post)
+        .options(joinedload(Post.user))
+        .order_by(priority, desc(Post.created_at))
+        .offset(offset)
+        .limit(limit)
+    ).all()
+    return list(posts), total
 
 
 def build_posts_out(db: Session, posts: list[Post], viewer: User | None) -> list[PostOut]:
