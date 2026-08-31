@@ -203,16 +203,32 @@ find "$DEPLOY_PATH/frontend/dist" -type d -exec chmod o+rx {} + 2>/dev/null || t
 find "$DEPLOY_PATH/frontend/dist" -type f -exec chmod o+r {} + 2>/dev/null || true
 
 echo "==> [7/8] nginx site config..."
+# certbot --nginx edits this exact file in place to add the port-443 server
+# block + SSL cert paths + the HTTP->HTTPS redirect. Blindly overwriting it
+# on every redeploy (as this used to do) silently deletes that HTTPS setup
+# the moment deploy.sh is run again — the site keeps working over plain
+# HTTP/80 but port 443 stops having a listener, so https:// requests start
+# failing with connection-refused until someone notices and re-runs certbot.
+# Only lay down the plain-HTTP template when nothing certbot-managed exists
+# yet; once it does, leave the file alone.
+overwrite_nginx_conf() {
+  local target="$1"
+  if [[ -f "$target" ]] && grep -q "ssl_certificate" "$target"; then
+    echo "    $target already has HTTPS (certbot) configured — leaving it as-is."
+    return
+  fi
+  cp "$DEPLOY_PATH/deploy/nginx.iamnotafishmonger.conf" "$target"
+}
 if [[ "$OS_FAMILY" == "debian" ]]; then
   mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled
-  cp "$DEPLOY_PATH/deploy/nginx.iamnotafishmonger.conf" "/etc/nginx/sites-available/${DOMAIN}"
+  overwrite_nginx_conf "/etc/nginx/sites-available/${DOMAIN}"
   ln -sf "/etc/nginx/sites-available/${DOMAIN}" "/etc/nginx/sites-enabled/${DOMAIN}"
   [[ -e /etc/nginx/sites-enabled/default ]] && rm -f /etc/nginx/sites-enabled/default
 else
   # Amazon Linux / RHEL nginx has no sites-available convention — nginx.conf
   # already includes /etc/nginx/conf.d/*.conf, so drop the site config there.
   mkdir -p /etc/nginx/conf.d
-  cp "$DEPLOY_PATH/deploy/nginx.iamnotafishmonger.conf" "/etc/nginx/conf.d/${DOMAIN}.conf"
+  overwrite_nginx_conf "/etc/nginx/conf.d/${DOMAIN}.conf"
 fi
 nginx -t
 systemctl enable nginx
@@ -239,7 +255,21 @@ else
   echo "    filtering relies entirely on the AWS Security Group, see below."
 fi
 
-cat <<EOF
+if [[ -d "/etc/letsencrypt/live/${DOMAIN}" ]]; then
+  cat <<EOF
+
+============================================================
+Backend & frontend are deployed. HTTPS was already configured
+(certbot) from a previous run and was left untouched.
+
+Useful commands:
+  sudo systemctl status instagram-backend   # backend health
+  sudo journalctl -u instagram-backend -f   # backend logs (live)
+  sudo nginx -t && sudo systemctl reload nginx   # after editing nginx config
+============================================================
+EOF
+else
+  cat <<EOF
 
 ============================================================
 Backend & frontend are deployed and running over plain HTTP.
@@ -261,3 +291,4 @@ Useful commands:
   sudo nginx -t && sudo systemctl reload nginx   # after editing nginx config
 ============================================================
 EOF
+fi
