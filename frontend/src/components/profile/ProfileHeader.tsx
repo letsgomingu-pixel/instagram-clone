@@ -8,6 +8,8 @@ import { Avatar } from '@/components/common/Avatar';
 
 import { formatCount } from '@/utils/formatDate';
 
+import { useApp } from '@/contexts/AppContext';
+
 import { useAuth } from '@/hooks/useAuth';
 
 import type { User } from '@/types';
@@ -56,6 +58,15 @@ export function ProfileHeader({ user, activeTab, onTabChange, onFollow }: Profil
 
   const isOwn = isAuthenticated && (user.is_own_profile || user.username === currentUser?.username);
 
+  // Real Instagram only rings the profile avatar when that person actually
+  // has an active, unexpired story — not just because you're viewing your
+  // own profile. Match against the same `stories` list the story tray uses.
+  const { stories, setActiveStoryIndex } = useApp();
+
+  const storyIndex = stories.findIndex((story) => story.user.username === user.username);
+
+  const hasActiveStory = storyIndex >= 0;
+
 
 
   return (
@@ -68,19 +79,51 @@ export function ProfileHeader({ user, activeTab, onTabChange, onFollow }: Profil
 
           <div className="flex justify-center md:justify-start shrink-0">
 
-            <Avatar
+            {hasActiveStory ? (
 
-              src={user.avatar_url}
+              <button
 
-              alt={user.username}
+                type="button"
 
-              size="xl"
+                onClick={() => setActiveStoryIndex(storyIndex)}
 
-              hasStory={isOwn}
+                aria-label={`${user.username}의 스토리 보기`}
 
-              className="h-[77px] w-[77px] md:h-[150px] md:w-[150px]"
+              >
 
-            />
+                <Avatar
+
+                  src={user.avatar_url}
+
+                  alt={user.username}
+
+                  size="xl"
+
+                  hasStory
+
+                  viewed={stories[storyIndex]?.viewed}
+
+                  className="h-[77px] w-[77px] md:h-[150px] md:w-[150px]"
+
+                />
+
+              </button>
+
+            ) : (
+
+              <Avatar
+
+                src={user.avatar_url}
+
+                alt={user.username}
+
+                size="xl"
+
+                className="h-[77px] w-[77px] md:h-[150px] md:w-[150px]"
+
+              />
+
+            )}
 
           </div>
 
