@@ -21,7 +21,7 @@ export function AdminLayout() {
     <div className="min-h-screen bg-[#f0f2f5] flex">
       <aside className="w-[240px] shrink-0 bg-[#1a1d21] text-white flex flex-col">
         <div className="px-6 py-6 border-b border-white/10">
-          <p className="text-lg font-semibold">Instagram Admin</p>
+          <p className="text-sm font-semibold leading-snug">i am not a fishmonger Admin</p>
           <p className="text-xs text-white/60 mt-1">관리자 콘솔</p>
         </div>
 

@@ -15,7 +15,7 @@ export function SignupPage() {
             ),
           )}
         </div>
-        <p className="text-center text-xs text-ig-text-secondary">© 2026 Instagram · 메타</p>
+        <p className="text-center text-xs text-ig-text-secondary">© 2026 i am not a fishmonger · 메타</p>
       </footer>
     </div>
   );

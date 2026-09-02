@@ -23,7 +23,7 @@ export function SuggestionsPanel() {
         </div>
       ) : (
         <div className="bg-white border border-ig-border rounded-lg p-4 mb-6">
-          <p className="text-sm font-semibold mb-1">Instagram에 오신 것을 환영합니다</p>
+          <p className="text-sm font-semibold mb-1">i am not a fishmonger에 오신 것을 환영합니다</p>
           <p className="text-xs text-ig-text-secondary mb-3">
             로그인하고 친구들의 사진과 동영상을 확인해보세요.
           </p>

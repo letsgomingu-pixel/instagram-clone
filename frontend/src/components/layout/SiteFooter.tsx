@@ -29,7 +29,7 @@ export function SiteFooter({ className }: SiteFooterProps) {
           </span>
         ))}
       </p>
-      <p className="mt-4">© 2026 Instagram</p>
+      <p className="mt-4">© 2026 i am not a fishmonger</p>
     </footer>
   );
 }

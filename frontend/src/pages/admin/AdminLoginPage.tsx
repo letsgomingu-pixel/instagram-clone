@@ -39,7 +39,7 @@ export function AdminLoginPage() {
     <div className="min-h-screen bg-[#1a1d21] flex items-center justify-center px-4">
       <div className="w-full max-w-[400px] bg-white rounded-xl border border-ig-border p-8 shadow-lg">
         <h1 className="text-2xl font-semibold mb-1">관리자 로그인</h1>
-        <p className="text-sm text-ig-text-secondary mb-6">Instagram Clone Admin Console</p>
+        <p className="text-sm text-ig-text-secondary mb-6">i am not a fishmonger Admin Console</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

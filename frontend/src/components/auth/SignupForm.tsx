@@ -140,7 +140,7 @@ export function SignupForm() {
         </form>
 
         <p className="text-xs text-ig-text-secondary text-center mt-4 leading-4">
-          가입하면 Instagram의{' '}
+          가입하면 i am not a fishmonger의{' '}
           <a href="#" className="text-ig-link">약관</a>,{' '}
           <a href="#" className="text-ig-link">데이터 정책</a> 및{' '}
           <a href="#" className="text-ig-link">쿠키 정책</a>에 동의하게 됩니다.

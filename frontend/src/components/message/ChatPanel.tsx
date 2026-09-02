@@ -109,7 +109,7 @@ export function ChatPanel({ conversation, loading = false, onSend, onBack, showB
           <div className="flex flex-col items-center justify-center h-full text-center">
             <Avatar src={participant.avatar_url} alt={participant.username} size="xl" className="mb-4" />
             <p className="font-semibold">{participant.username}</p>
-            <p className="text-sm text-ig-text-secondary mt-1">Instagram · {participant.full_name}</p>
+            <p className="text-sm text-ig-text-secondary mt-1">i am not a fishmonger · {participant.full_name}</p>
             <Link
               to={`/profile/${participant.username}`}
               className="mt-4 text-sm text-ig-primary font-semibold hover:underline"
