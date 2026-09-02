@@ -1,7 +1,7 @@
 export function InstagramLogo({ className = 'text-3xl' }: { className?: string }) {
   return (
     <span className={`font-instagram text-ig-text select-none ${className}`}>
-      Instagram
+      i am not a fishmonger
     </span>
   );
 }

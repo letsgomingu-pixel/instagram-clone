@@ -38,8 +38,8 @@ export function MobileHeader({ config }: MobileHeaderProps) {
       <div className="flex items-center justify-between px-4 h-[44px]">
         {config.headerVariant === 'home' && (
           <>
-            <Link to="/" aria-label="Instagram 홈">
-              <InstagramLogo className="text-[22px] leading-none" />
+            <Link to="/" aria-label="홈" className="min-w-0">
+              <InstagramLogo className="text-[13px] leading-none truncate block max-w-[190px]" />
             </Link>
             <div className="flex items-center gap-[18px]">
               <Link to="/notifications" className="relative p-0.5" aria-label="알림">

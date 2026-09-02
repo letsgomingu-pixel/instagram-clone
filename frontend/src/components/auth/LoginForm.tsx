@@ -59,7 +59,7 @@ export function LoginForm() {
     <div className="w-full max-w-[350px]">
       <div className="bg-white border border-ig-border rounded-sm px-10 py-10 mb-3">
         <div className="flex justify-center mb-6">
-          <InstagramLogo className="text-5xl" />
+          <InstagramLogo className="text-[28px] leading-tight text-center" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-2">

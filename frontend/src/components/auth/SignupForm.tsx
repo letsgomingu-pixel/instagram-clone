@@ -77,7 +77,7 @@ export function SignupForm() {
     <div className="w-full max-w-[350px]">
       <div className="bg-white border border-ig-border rounded-sm px-10 py-10 mb-3">
         <div className="flex justify-center mb-3">
-          <InstagramLogo className="text-5xl" />
+          <InstagramLogo className="text-[28px] leading-tight text-center" />
         </div>
         <p className="text-ig-text-secondary text-base font-semibold text-center mb-4">
           친구들의 사진과 동영상을 보려면 가입하세요.

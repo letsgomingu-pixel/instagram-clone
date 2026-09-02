@@ -76,11 +76,11 @@ export function Sidebar() {
 
       <NavLink to="/" className="px-3 mb-6">
 
-        <InstagramLogo className="text-[28px] hidden lg:block" />
+        <InstagramLogo className="text-[16px] leading-tight text-center hidden lg:block" />
 
         <div className="lg:hidden flex justify-center">
 
-          <InstagramLogo className="text-[28px]" />
+          <InstagramLogo className="text-[16px] leading-tight text-center" />
 
         </div>
 

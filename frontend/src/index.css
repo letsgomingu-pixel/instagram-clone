@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-instagram: "Grand Hotel", cursive;
+  --font-instagram: "Fredoka", sans-serif;
   --color-ig-primary: #0095f6;
   --color-ig-primary-hover: #1877f2;
   --color-ig-secondary: #efefef;
@@ -31,6 +31,7 @@ body {
 
 .font-instagram {
   font-family: var(--font-instagram);
+  font-weight: 600;
 }
 
 .story-ring {
