@@ -35,7 +35,7 @@ def feed(
     page, limit, _ = pagination_params(page, limit)
     posts, total = get_home_feed_posts(db, current_user, page, limit)
     items = build_posts_out(db, posts, current_user)
-    next_page = page + 1 if total > 0 else None
+    next_page = page + 1 if page * limit < total else None
     return PaginatedResponse(items=items, total=total, page=page, limit=limit, next_page=next_page)
 
 

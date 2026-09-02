@@ -28,6 +28,12 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
   const isMessages = location.pathname.startsWith('/messages');
   const isNotifications = location.pathname.startsWith('/notifications');
   const isSettings = location.pathname.startsWith('/settings');
+  // Real Instagram's profile page is a wide, grid-heavy layout with no right
+  // "suggested for you" rail — same treatment as explore/reels, not the
+  // narrow single-column feed. (Only matches /profile/:username; the
+  // /profile/edit route uses its own <MainLayout showSuggestions={false}/>
+  // instance and never reaches this check with that literal pathname.)
+  const isProfile = location.pathname.startsWith('/profile/');
   const showSidebar =
     showSuggestions &&
     !isExplore &&
@@ -35,7 +41,8 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
     !isMessages &&
     !isNotifications &&
     !isSettings &&
-    !isSuggested;
+    !isSuggested &&
+    !isProfile;
 
   const {
     selectedPost,
@@ -71,7 +78,7 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
             className={`w-full ${
               isHome ? 'pt-0 md:pt-[30px]' : 'md:pt-8'
             } ${
-              isExplore || isReels || isMessages || isSettings
+              isExplore || isReels || isMessages || isSettings || isProfile
                 ? 'max-w-[935px]'
                 : isNotifications
                   ? 'max-w-[600px]'

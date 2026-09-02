@@ -15,6 +15,12 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
+# "Batch" mode works around SQLite's inability to ALTER TABLE (Alembic
+# recreates the table instead) — only needed for SQLite; on Postgres it's
+# unnecessary and best left off. check_same_thread is a SQLite-only
+# pysqlite connect arg that psycopg2 doesn't understand.
+IS_SQLITE = settings.is_sqlite
+
 
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
@@ -23,7 +29,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        render_as_batch=True,
+        render_as_batch=IS_SQLITE,
     )
 
     with context.begin_transaction():
@@ -35,14 +41,14 @@ def run_migrations_online() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
-        connect_args={"check_same_thread": False},
+        connect_args={"check_same_thread": False} if IS_SQLITE else {},
     )
 
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            render_as_batch=True,
+            render_as_batch=IS_SQLITE,
         )
 
         with context.begin_transaction():

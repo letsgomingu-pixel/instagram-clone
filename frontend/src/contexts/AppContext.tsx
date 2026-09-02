@@ -295,7 +295,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     setFeedPage(1);
 
-    setFeedHasMore(data.total > 0);
+    setFeedHasMore(data.next_page !== null);
 
   }, [isAuthenticated]);
 
@@ -321,7 +321,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setFeedPage(nextPage);
 
-      setFeedHasMore(isAuthenticated ? data.total > 0 : data.next_page !== null);
+      setFeedHasMore(data.next_page !== null);
 
     } finally {
 
@@ -445,7 +445,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setExplorePage(1);
         setReels(reelsRes.items);
         setPosts(feedRes.items);
-        setFeedHasMore(isAuthenticated ? feedRes.total > 0 : feedRes.next_page !== null);
+        setFeedHasMore(feedRes.next_page !== null);
         setFeedPage(1);
         setStories(storiesRes);
         setSuggestedUsers(suggestedRes);

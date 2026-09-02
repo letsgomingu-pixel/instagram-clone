@@ -1,8 +1,13 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV ? '/api/v1' : 'http://localhost:8000/api/v1');
+// Relative by default so requests go to whatever origin served the page —
+// the Vite dev server proxy in development, nginx's /api/ proxy_pass in
+// production. A hardcoded "http://localhost:8000/api/v1" fallback here used
+// to mean every real visitor's browser tried to reach *their own* machine
+// instead of the actual server, silently breaking every single API call in
+// production (signup's "username unavailable" was really every check-
+// username request failing and defaulting to unavailable).
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
