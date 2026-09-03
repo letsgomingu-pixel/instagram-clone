@@ -1,918 +1,250 @@
-# Instagram 클론 — 데이터베이스 설계 명세서 (v2)
+# i am not a fishmonger — 데이터베이스 현황
 
-> **동기화 기준:** `backend.md` v2 · 프론트엔드 `frontend/src/types/index.ts`  
-> **DBMS:** 개발·프로덕션 모두 **SQLite 3**
+> **DBMS: PostgreSQL** (자체 호스팅, 프로덕션 EC2 서버 내 동일 인스턴스에 설치 — RDS 아님). SQLite에서 마이그레이션 완료. 이 문서는 실제 SQLAlchemy 모델(`backend/app/models/`)과 Alembic 마이그레이션(`backend/alembic/versions/`)을 기준으로 작성되었다.
+>
+> 이 저장소를 그대로 clone한 로컬 체크아웃 자체는 여전히 `sqlite:///./instagram.db`가 기본값이다(`backend/.env.example`, `app/config.py`의 기본값). 프로덕션은 `deploy/setup-postgres.sh`가 만들어준 `postgresql+psycopg2://...` URL을 서버의 (git 미포함) `backend/.env`에 넣어서 사용한다. 마이그레이션은 두 방언 모두에서 동일하게 동작하도록 작성되어 있다(Alembic이 SQLite에서만 batch mode를 사용).
 
 ---
 
 ## 1. 개요
 
 | 항목 | 내용 |
-|------|------|
-| DBMS | SQLite 3 |
-| ORM | SQLAlchemy 2.0 |
-| 마이그레이션 | Alembic (권장) |
-| 개발 DB | `./instagram.db` (`DATABASE_URL=sqlite:///./instagram.db`) |
-| 프로덕션 DB | `./data/instagram.db` |
-| 미디어 | `./media/` (개발), `./data/media/` (프로덕션) |
-| 문자 인코딩 | UTF-8 |
-| 테이블 수 | **16개** |
+|---|---|
+| DBMS | PostgreSQL(프로덕션, 자체 호스팅) / SQLite(이 체크아웃의 로컬 기본값) |
+| 드라이버 | `psycopg2-binary` |
+| ORM | SQLAlchemy 2.0 (`DeclarativeBase`, `Mapped`/`mapped_column` 스타일) |
+| 마이그레이션 | Alembic, 헤드 리비전 `006_post_media` |
+| 프로덕션 DB/롤 이름 | `instagram` / `instagram` (`deploy/setup-postgres.sh` 기본값) |
+| 테이블 수 | **18개** |
 
 ### 1.1 테이블 목록
 
-| # | 테이블 | 프론트 대응 |
-|---|--------|-------------|
-| 1 | `users` | `User`, 인증·프로필 |
-| 2 | `posts` | `Post` |
-| 3 | `comments` | `Comment` |
-| 4 | `likes` | `Post.is_liked` |
-| 5 | `follows` | `User.is_following`, 팔로우 |
-| 6 | `saved_posts` | `Post.is_saved`, 저장됨 탭 |
-| 7 | `stories` | `Story` |
-| 8 | `story_items` | `StoryItem`, `StoryOverlay` (JSON in `overlays`) |
-| 9 | `story_views` | `Story.viewed` |
-| 10 | `reels` | `Reel` |
-| 11 | `reel_likes` | `Reel.is_liked` |
-| 12 | `post_tags` | `Post.tagged_users`, 태그됨 탭 |
-| 13 | `conversations` | `Conversation` |
-| 14 | `messages` | `Message` |
-| 15 | `notifications` | `Notification` |
-| 16 | `user_settings` | 설정 (알림·개인정보·보안) |
-| 17 | `login_sessions` | 로그인 활동·저장된 로그인 |
+| # | 테이블 | 추가된 마이그레이션 |
+|---|---|---|
+| 1 | `users` | 001 |
+| 2 | `posts` | 001 |
+| 3 | `post_media` | 006 |
+| 4 | `comments` | 001 |
+| 5 | `likes` | 001 |
+| 6 | `follows` | 001 |
+| 7 | `saved_posts` | 001 |
+| 8 | `stories` | 001 |
+| 9 | `story_items` | 001 (media_type/overlays 컬럼은 002) |
+| 10 | `story_views` | 001 |
+| 11 | `reels` | 001 (video_url 컬럼은 003) |
+| 12 | `reel_likes` | 001 |
+| 13 | `post_tags` | 001 |
+| 14 | `conversations` | 001 |
+| 15 | `messages` | 001 |
+| 16 | `notifications` | 001 |
+| 17 | `user_settings` | 003 (보안 컬럼은 004) |
+| 18 | `login_sessions` | 004 |
+
+별도의 "관리자" 테이블은 없다 — 관리자 여부는 `users.is_admin`(마이그레이션 005) 불리언 컬럼 하나로 표현되고, "신뢰 기기"는 계정 단위가 아니라 `login_sessions.is_trusted`(세션 단위)로 표현된다.
 
 ---
 
-## 2. ERD (Entity Relationship Diagram)
+## 2. 테이블 상세
 
-```
-┌─────────────┐       ┌─────────────┐       ┌─────────────┐
-│    users    │       │    posts    │       │  comments   │
-├─────────────┤       ├─────────────┤       ├─────────────┤
-│ id (PK)     │──┐    │ id (PK)     │──┐    │ id (PK)     │
-│ username    │  │    │ user_id(FK) │◄─┘    │ post_id(FK) │
-│ email       │  └───►│ image_url   │       │ user_id(FK) │
-│ password_hash│      │ caption     │       │ content     │
-│ full_name   │       │ location    │       │ created_at  │
-│ bio         │       │ like_count  │       └─────────────┘
-│ website     │       │ comment_count│
-│ avatar_url  │       │ created_at  │
-│ is_active   │       └──────┬──────┘
-│ created_at  │              │
-└──────┬──────┘              │
-       │         ┌───────────┼───────────┐
-       │         │           │           │
-       │    ┌────▼────┐ ┌────▼────┐ ┌────▼────┐
-       │    │  likes  │ │post_tags│ │saved_posts│
-       │    ├─────────┤ ├─────────┤ ├───────────┤
-       │    │user_id  │ │post_id  │ │ user_id   │
-       │    │post_id  │ │user_id  │ │ post_id   │
-       │    └─────────┘ └─────────┘ └───────────┘
-       │
-       │    ┌─────────────┐       ┌─────────────┐
-       └───►│   follows   │       │   stories   │
-            ├─────────────┤       ├─────────────┤
-            │ follower_id │       │ id (PK)     │──┐
-            │ following_id│       │ user_id(FK) │  │
-            └─────────────┘       │ expires_at  │  │
-                                  └─────────────┘  │
-                                         │         │
-                                  ┌──────▼──────┐  │
-                                  │ story_items │  │
-                                  ├─────────────┤  │
-                                  │ story_id(FK)│  │
-                                  │ image_url   │  │
-                                  │ media_type  │  │
-                                  │ overlays    │  │
-                                  └─────────────┘  │
-                                                   │
-┌─────────────┐       ┌─────────────┐    ┌───────▼──────┐
-│    reels    │       │ reel_likes  │    │ story_views  │
-├─────────────┤       ├─────────────┤    ├──────────────┤
-│ id (PK)     │──┐    │ user_id(FK) │    │ user_id (FK) │
-│ user_id(FK) │  └───►│ reel_id(FK) │    │ story_id(FK)│
-│ thumbnail_url│      └─────────────┘    │ viewed_at    │
-│ caption     │                          └──────────────┘
-│ audio_name  │
-│ like_count  │       ┌─────────────┐       ┌─────────────┐
-│ comment_count│      │conversations│       │  messages   │
-│ view_count  │       ├─────────────┤       ├─────────────┤
-│ created_at  │       │ id (PK)     │──┐    │ id (PK)     │
-└─────────────┘       │ user1_id(FK)│  └───►│ conv_id(FK)│
-                      │ user2_id(FK)│       │ sender_id   │
-                      │ updated_at  │       │ content     │
-                      └─────────────┘       │ is_read     │
-                                            │ created_at  │
-                                            └─────────────┘
+모든 테이블 공통: `id`(Integer, PK, 인덱스), 대부분 `created_at TIMESTAMPTZ NOT NULL server_default=now()`.
 
-┌─────────────────────────────────────────────────────────┐
-│                     notifications                        │
-├─────────────────────────────────────────────────────────┤
-│ id (PK) │ recipient_id(FK) │ actor_id(FK) │ type       │
-│ tab │ post_id(FK, NULL) │ comment_preview │ is_read    │
-│ created_at                                               │
-└─────────────────────────────────────────────────────────┘
-```
+### `users`
+| 컬럼 | 타입 | Null | 기본값 |
+|---|---|---|---|
+| id | Integer | N | PK |
+| username | String(30) | N | UNIQUE, 인덱스 |
+| email | String(255) | N | UNIQUE, 인덱스 |
+| password_hash | String(255) | N | |
+| full_name | String(100) | N | |
+| bio | Text | Y | |
+| website | String(255) | Y | |
+| avatar_url | String(500) | Y | |
+| is_active | Boolean | N | ORM 기본값 `True` (⚠ DB server_default 없음, 아래 8장 참고) |
+| is_admin | Boolean | N | `server_default=false` (마이그레이션 005) |
+| created_at | TIMESTAMPTZ | N | `now()` |
+| updated_at | TIMESTAMPTZ | Y | `onupdate=now()` |
 
----
+관계: posts, comments, likes, reels, reel_likes, tagged_in_posts, story_views, sent_messages, notifications_received/sent, settings(1:1), login_sessions — 전부 `cascade="all, delete-orphan"`.
 
-## 3. 테이블 상세 명세
+### `posts`
+| 컬럼 | 타입 | Null | 기본값 |
+|---|---|---|---|
+| id | Integer | N | PK |
+| user_id | Integer | N | FK→users.id ON DELETE CASCADE |
+| image_url | String(500) | N | 레거시 커버 이미지(캐러셀 도입 후에도 유지) |
+| caption | Text | Y | |
+| location | String(255) | Y | |
+| like_count | Integer | N | ORM 기본값 0 (캐시) |
+| comment_count | Integer | N | ORM 기본값 0 (캐시) |
+| created_at / updated_at | TIMESTAMPTZ | | `now()` / `onupdate=now()` |
 
-### 3.1 `users` — 사용자
+### `post_media` (마이그레이션 006, 캐러셀/영상 게시물)
+| 컬럼 | 타입 | Null | 기본값 |
+|---|---|---|---|
+| id | Integer | N | PK |
+| post_id | Integer | N | FK→posts.id CASCADE |
+| media_url | String(500) | N | |
+| media_type | String(10) | N | `server_default="image"` |
+| position | Integer | N | `server_default="0"` |
+| created_at | TIMESTAMPTZ | N | `now()` |
 
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 사용자 ID |
-| `username` | VARCHAR(30) | UNIQUE, NOT NULL | 사용자명 (@handle) |
-| `email` | VARCHAR(255) | UNIQUE, NOT NULL | 이메일 |
-| `password_hash` | VARCHAR(255) | NOT NULL | bcrypt 해시 |
-| `full_name` | VARCHAR(100) | NOT NULL | 표시 이름 |
-| `bio` | TEXT | NULL | 자기소개 (최대 150자) |
-| `website` | VARCHAR(255) | NULL | 웹사이트 URL |
-| `avatar_url` | VARCHAR(500) | NULL | 프로필 사진 경로 |
-| `is_active` | BOOLEAN | DEFAULT TRUE | 계정 활성 상태 |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 가입일 |
-| `updated_at` | DATETIME | NULL | 수정일 |
+게시물당 최대 10개, `position` 순서. 마이그레이션 006이 기존 `posts.image_url`을 `post_media`에 1행씩 백필했다.
 
-**인덱스**
-```sql
-CREATE UNIQUE INDEX idx_users_username ON users(username);
-CREATE UNIQUE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_created_at ON users(created_at);
-```
+### `comments`
+`id`, `post_id`(FK CASCADE), `user_id`(FK CASCADE), `content`(Text, NOT NULL), `created_at`.
 
----
+### `likes`
+`id`, `user_id`(FK CASCADE), `post_id`(FK CASCADE), `created_at`. **`UNIQUE(user_id, post_id)`** — 사용자당 게시물당 좋아요 1개.
 
-### 3.2 `posts` — 게시물
+### `follows`
+`id`, `follower_id`/`following_id`(둘 다 FK→users.id CASCADE), `created_at`. **`UNIQUE(follower_id, following_id)`**, **`CHECK(follower_id != following_id)`**(자기 자신 팔로우 금지).
 
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 게시물 ID |
-| `user_id` | INTEGER | FK → users.id, NOT NULL | 작성자 |
-| `image_url` | VARCHAR(500) | NOT NULL | 이미지 파일 경로 |
-| `caption` | TEXT | NULL | 캡션 (최대 2,200자) |
-| `location` | VARCHAR(255) | NULL | 위치 태그 |
-| `like_count` | INTEGER | DEFAULT 0 | 좋아요 수 (캐시) |
-| `comment_count` | INTEGER | DEFAULT 0 | 댓글 수 (캐시) |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 작성일 |
-| `updated_at` | DATETIME | NULL | 수정일 |
+### `saved_posts`
+`id`, `user_id`(FK CASCADE), `post_id`(FK CASCADE), `created_at`. **`UNIQUE(user_id, post_id)`**.
 
-**인덱스**
-```sql
-CREATE INDEX idx_posts_user_id ON posts(user_id);
-CREATE INDEX idx_posts_created_at ON posts(created_at DESC);
-```
+### `stories`
+`id`, `user_id`(FK CASCADE), `expires_at`(TIMESTAMPTZ, 인덱스), `created_at`. 관계: `items`, `views`(둘 다 cascade delete-orphan).
 
-**외래키**
-```sql
-FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-```
+### `story_items`
+`id`, `story_id`(FK CASCADE), `image_url`, `media_type`(String(10), `server_default="image"`, 마이그레이션 002), `overlays`(Text, nullable, JSON 직렬화 문자열, 마이그레이션 002), `created_at`.
+
+### `story_views`
+`id`, `user_id`(FK CASCADE), `story_id`(FK CASCADE), `viewed_at`. **`UNIQUE(user_id, story_id)`**.
+
+### `reels`
+`id`, `user_id`(FK CASCADE), `thumbnail_url`, `video_url`(nullable, 마이그레이션 003), `caption`, `audio_name`, `like_count`/`comment_count`/`view_count`(ORM 기본값 0, 캐시), `created_at`.
+
+> `reels.comment_count` 컬럼은 존재하지만 `comments` 테이블에는 `reel_id` 컬럼이 없다 — 릴스 댓글을 저장할 관계형 테이블이 스키마에 없다(모델 인벤토리 시점 기준 알려진 불일치). `view_count`도 `story_views`처럼 사용자별 기록 테이블 없이 집계 숫자만 증가한다.
+
+### `reel_likes`
+`id`, `user_id`(FK CASCADE), `reel_id`(FK CASCADE), `created_at`. **`UNIQUE(user_id, reel_id)`**.
+
+### `post_tags`
+`id`, `post_id`(FK CASCADE), `user_id`(FK CASCADE), `created_at`. **`UNIQUE(post_id, user_id)`** — 게시물당 동일 사용자 태그 1회.
+
+### `conversations`
+`id`, `user1_id`/`user2_id`(FK CASCADE), `updated_at`(`now()`, `onupdate=now()`). **`UNIQUE(user1_id, user2_id)`**, **`CHECK(user1_id < user2_id)`** — 항상 작은 id를 user1로 정규화(앱 레벨에서도 `conversation_pair()` 헬퍼로 정렬해서 삽입).
+
+### `messages`
+`id`, `conversation_id`(FK CASCADE), `sender_id`(FK CASCADE), `content`(Text NOT NULL), `is_read`(ORM 기본값 False), `created_at`.
+
+### `notifications`
+`id`, `recipient_id`/`actor_id`(FK CASCADE), `type`(String(20): "like"/"comment"/"follow"), `tab`(String(20), ORM 기본값 "you"), `post_id`(FK→posts.id, **ON DELETE SET NULL** — 게시물이 삭제돼도 알림 자체는 남고 링크만 끊어짐), `comment_preview`(Text, nullable), `is_read`(ORM 기본값 False), `created_at`.
+
+### `user_settings` (1:1, PK=FK)
+| 컬럼 | 타입 | 기본값 |
+|---|---|---|
+| user_id | Integer | **PK이자 FK**→users.id CASCADE |
+| notify_likes / notify_comments / notify_follows / notify_mentions | Boolean | `server_default=true` |
+| is_private | Boolean | `server_default=false` |
+| show_activity_status / allow_story_replies | Boolean | `server_default=true` |
+| comments_privacy / mentions_privacy | String(20) | `server_default="everyone"` (앱 레벨 enum: everyone/followers/off, DB CHECK 없음) |
+| login_email_alerts | Boolean | `server_default=true` (마이그레이션 004) |
+| two_factor_enabled | Boolean | `server_default=false` (마이그레이션 004) |
+| two_factor_secret | String(64) | nullable, TOTP secret (마이그레이션 004) |
+| updated_at | TIMESTAMPTZ | `now()` / `onupdate=now()` |
+
+### `login_sessions` (마이그레이션 004)
+`id`, `user_id`(FK CASCADE), `ip_address`(String(45)), `user_agent`(String(500)), `device_name`(String(100), User-Agent에서 파싱), `location`(String(120), nullable — 현재 코드상 항상 "Unknown"으로 채워짐), `is_trusted`(`server_default=false`), `created_at`, `last_active_at`. 명시적 인덱스 `idx_login_sessions_user_id`.
 
 ---
 
-### 3.3 `comments` — 댓글
+## 3. 관계 요약
 
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 댓글 ID |
-| `post_id` | INTEGER | FK → posts.id, NOT NULL | 게시물 |
-| `user_id` | INTEGER | FK → users.id, NOT NULL | 작성자 |
-| `content` | TEXT | NOT NULL | 댓글 내용 (최대 1,000자) |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 작성일 |
-
-**인덱스**
-```sql
-CREATE INDEX idx_comments_post_id ON comments(post_id);
-CREATE INDEX idx_comments_user_id ON comments(user_id);
-```
-
-**외래키**
-```sql
-FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
-FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-```
+- **User는 거의 모든 것의 루트**: 삭제되면 게시물/댓글/좋아요/릴스/스토리 조회기록/보낸 메시지/받거나 보낸 알림/설정/로그인세션이 전부 CASCADE로 함께 삭제된다.
+- **Post 삭제** → comments/likes/tags/post_media CASCADE 삭제. 단, 그 게시물을 참조하던 **notification은 삭제되지 않고 `post_id`만 NULL**이 된다.
+- **Story 삭제** → items/views CASCADE. **Reel 삭제** → reel_likes CASCADE. **Conversation 삭제** → messages CASCADE.
+- 팔로우/좋아요/저장/스토리조회/릴스좋아요/게시물태그/대화는 모두 "쌍(pair) 유일성"을 UNIQUE 제약으로 DB가 직접 보장한다(멱등 토글 API의 기반).
 
 ---
 
-### 3.4 `likes` — 게시물 좋아요
+## 4. Alembic 마이그레이션 히스토리
 
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 좋아요 ID |
-| `user_id` | INTEGER | FK → users.id, NOT NULL | 좋아요한 사용자 |
-| `post_id` | INTEGER | FK → posts.id, NOT NULL | 게시물 |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 좋아요 일시 |
+체인: `001_initial_schema_v2` → `002_story_media_overlays` → `003_user_settings_reel_video` → `004_user_security` → `005_admin_role` → `006_post_media`(헤드).
 
-**제약**
-```sql
-UNIQUE (user_id, post_id)
-```
+| # | 리비전 | 내용 |
+|---|---|---|
+| 001 | `initial_schema_v2` | 15개 기본 테이블 전체 생성(FK, unique/check 제약, 인덱스 포함). `down_revision=None`(루트). |
+| 002 | `story_media_overlays` | `story_items`에 `media_type`, `overlays` 추가 — 영상 스토리 + 텍스트/스티커 오버레이 지원. |
+| 003 | `user_settings_reel_video` | `user_settings` 테이블 신설(알림/공개범위 설정), `reels.video_url` 추가. |
+| 004 | `user_security` | `user_settings`에 `login_email_alerts`/`two_factor_enabled`/`two_factor_secret` 추가, `login_sessions` 테이블 신설. |
+| 005 | `admin_role` | `users.is_admin` 추가. |
+| 006 | `post_media` | `post_media` 테이블 신설 + 기존 `posts.image_url`을 1행씩 백필하는 데이터 마이그레이션 포함(헤드). |
 
-**인덱스**
-```sql
-CREATE INDEX idx_likes_post_id ON likes(post_id);
-CREATE INDEX idx_likes_user_id ON likes(user_id);
-```
+`alembic/env.py`는 SQLite에서만 `render_as_batch=True`를 켠다 — 002~005의 `batch_alter_table` 블록은 SQLite에서는 테이블 재생성 방식으로, PostgreSQL에서는 평범한 `ALTER TABLE ADD COLUMN`으로 동작해 결과는 동일하다.
+
+> **불리언 기본값 표기법**: `user_settings`/`login_sessions`/`users.is_admin`의 불리언 컬럼들은 모두 처음부터 `sa.text("true")`/`sa.text("false")` 형태로 작성되어 있어 PostgreSQL에서도 문제없이 적용된다. 반면 001에서 만들어진 `users.is_active`, `messages.is_read`, `notifications.is_read`는 **DB server_default가 아예 없고** ORM의 Python 레벨 `default=`에만 의존한다 — 앱을 거치지 않는 직접 INSERT를 한다면 NOT NULL 위반이 날 수 있는 잠재적 포인트다.
 
 ---
 
-### 3.5 `follows` — 팔로우 관계
+## 5. 엔진 설정 (`backend/app/database.py`)
 
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 관계 ID |
-| `follower_id` | INTEGER | FK → users.id, NOT NULL | 팔로우하는 사용자 |
-| `following_id` | INTEGER | FK → users.id, NOT NULL | 팔로우 대상 |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 팔로우 일시 |
-
-**제약**
-```sql
-UNIQUE (follower_id, following_id)
-CHECK (follower_id != following_id)
-```
-
-**인덱스**
-```sql
-CREATE INDEX idx_follows_follower_id ON follows(follower_id);
-CREATE INDEX idx_follows_following_id ON follows(following_id);
-```
-
----
-
-### 3.6 `saved_posts` — 저장된 게시물
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 저장 ID |
-| `user_id` | INTEGER | FK → users.id, NOT NULL | 저장한 사용자 |
-| `post_id` | INTEGER | FK → posts.id, NOT NULL | 게시물 |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 저장 일시 |
-
-**제약**
-```sql
-UNIQUE (user_id, post_id)
-```
-
----
-
-### 3.7 `stories` — 스토리
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 스토리 ID |
-| `user_id` | INTEGER | FK → users.id, NOT NULL | 작성자 |
-| `expires_at` | DATETIME | NOT NULL | 만료 시간 (생성 + 24h) |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 생성일 |
-
-**인덱스**
-```sql
-CREATE INDEX idx_stories_user_id ON stories(user_id);
-CREATE INDEX idx_stories_expires_at ON stories(expires_at);
-```
-
----
-
-### 3.8 `story_items` — 스토리 아이템 (개별 슬라이드)
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 아이템 ID |
-| `story_id` | INTEGER | FK → stories.id, NOT NULL | 스토리 |
-| `image_url` | VARCHAR(500) | NOT NULL | 미디어 경로 (`/media/stories/…`) — 이미지·동영상 공통 |
-| `media_type` | VARCHAR(10) | NOT NULL, DEFAULT `'image'` | `image` \| `video` |
-| `overlays` | TEXT | NULL | 텍스트·스티커 오버레이 JSON 배열 (`StoryOverlay[]`) |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 생성일 |
-
-**`overlays` JSON 요소 (`StoryOverlay`)**
-
-| 필드 | 타입 | 설명 |
-|------|------|------|
-| `id` | string | 클라이언트 생성 ID |
-| `type` | string | `text` \| `sticker` |
-| `content` | string | 텍스트 또는 이모지 |
-| `x`, `y` | number | 슬라이드 기준 위치 0–100 (%) |
-| `scale` | number | 기본 `1.0` |
-| `rotation` | number | 기본 `0.0` (도) |
-| `color` | string \| null | 텍스트 색상 hex (`type=text` 전용) |
-| `font_size` | int \| null | 텍스트 크기 px (`type=text` 전용) |
-
-**예시**
-```json
-[
-  {
-    "id": "overlay-abc",
-    "type": "text",
-    "content": "텍스트",
-    "x": 50,
-    "y": 50,
-    "scale": 1,
-    "rotation": 0,
-    "color": "#ffffff",
-    "font_size": 28
-  },
-  {
-    "id": "overlay-def",
-    "type": "sticker",
-    "content": "🔥",
-    "x": 50,
-    "y": 40,
-    "scale": 1,
-    "rotation": 0
-  }
-]
-```
-
-**외래키**
-```sql
-FOREIGN KEY (story_id) REFERENCES stories(id) ON DELETE CASCADE
-```
-
-> **마이그레이션:** `002_story_media_overlays` — `media_type`, `overlays` 컬럼 추가 (`backend.md` §5.2, §7.5)
-
----
-
-### 3.9 `story_views` — 스토리 조회 기록
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 조회 ID |
-| `user_id` | INTEGER | FK → users.id, NOT NULL | 조회한 사용자 |
-| `story_id` | INTEGER | FK → stories.id, NOT NULL | 스토리 |
-| `viewed_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 조회 일시 |
-
-**제약**
-```sql
-UNIQUE (user_id, story_id)
-```
-
----
-
-### 3.10 `reels` — 릴스
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 릴스 ID |
-| `user_id` | INTEGER | FK → users.id, NOT NULL | 작성자 |
-| `thumbnail_url` | VARCHAR(500) | NOT NULL | 썸네일 URL |
-| `video_url` | VARCHAR(500) | NULL | 동영상 URL (`POST /reels` 업로드) |
-| `caption` | TEXT | NULL | 캡션 |
-| `audio_name` | VARCHAR(255) | NULL | 오디오 표시명 (`Reel.audio_name`) |
-| `like_count` | INTEGER | DEFAULT 0 | 좋아요 수 (캐시) |
-| `comment_count` | INTEGER | DEFAULT 0 | 댓글 수 (표시용, UI 없음) |
-| `view_count` | INTEGER | DEFAULT 0 | 조회수 (캐시) |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 작성일 |
-
-**인덱스**
-```sql
-CREATE INDEX idx_reels_user_id ON reels(user_id);
-CREATE INDEX idx_reels_created_at ON reels(created_at DESC);
-```
-
-**외래키**
-```sql
-FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-```
-
----
-
-### 3.11 `reel_likes` — 릴스 좋아요
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 좋아요 ID |
-| `user_id` | INTEGER | FK → users.id, NOT NULL | 좋아요한 사용자 |
-| `reel_id` | INTEGER | FK → reels.id, NOT NULL | 릴스 |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 좋아요 일시 |
-
-**제약**
-```sql
-UNIQUE (user_id, reel_id)
-```
-
-**인덱스**
-```sql
-CREATE INDEX idx_reel_likes_reel_id ON reel_likes(reel_id);
-CREATE INDEX idx_reel_likes_user_id ON reel_likes(user_id);
-```
-
-**외래키**
-```sql
-FOREIGN KEY (reel_id) REFERENCES reels(id) ON DELETE CASCADE
-FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-```
-
----
-
-### 3.12 `post_tags` — 게시물 사용자 태그
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 태그 ID |
-| `post_id` | INTEGER | FK → posts.id, NOT NULL | 게시물 |
-| `user_id` | INTEGER | FK → users.id, NOT NULL | 태그된 사용자 |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 태그 일시 |
-
-**제약**
-```sql
-UNIQUE (post_id, user_id)
-```
-
-**인덱스**
-```sql
-CREATE INDEX idx_post_tags_post_id ON post_tags(post_id);
-CREATE INDEX idx_post_tags_user_id ON post_tags(user_id);
-```
-
-**외래키**
-```sql
-FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
-FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-```
-
----
-
-### 3.13 `conversations` — 1:1 대화
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 대화 ID |
-| `user1_id` | INTEGER | FK → users.id, NOT NULL | 참여자 1 (항상 `user1_id < user2_id`) |
-| `user2_id` | INTEGER | FK → users.id, NOT NULL | 참여자 2 |
-| `updated_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 마지막 메시지 시각 |
-
-**제약**
-```sql
-UNIQUE (user1_id, user2_id)
-CHECK (user1_id < user2_id)
-```
-
-**인덱스**
-```sql
-CREATE INDEX idx_conversations_user1 ON conversations(user1_id);
-CREATE INDEX idx_conversations_user2 ON conversations(user2_id);
-CREATE INDEX idx_conversations_updated_at ON conversations(updated_at DESC);
-```
-
-**애플리케이션 규칙**
-- 대화 생성·조회 시 두 user id를 정렬해 `(min_id, max_id)`로 저장·검색
-
----
-
-### 3.14 `messages` — 메시지
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 메시지 ID |
-| `conversation_id` | INTEGER | FK → conversations.id, NOT NULL | 대화 |
-| `sender_id` | INTEGER | FK → users.id, NOT NULL | 발신자 |
-| `content` | TEXT | NOT NULL | 메시지 내용 |
-| `is_read` | BOOLEAN | DEFAULT FALSE | 읽음 여부 (`Message.is_read`) |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 발신 시각 |
-
-**인덱스**
-```sql
-CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
-CREATE INDEX idx_messages_created_at ON messages(created_at);
-CREATE INDEX idx_messages_unread ON messages(conversation_id, is_read);
-```
-
-**외래키**
-```sql
-FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
-FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
-```
-
----
-
-### 3.15 `notifications` — 알림
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK, AUTOINCREMENT | 알림 ID |
-| `recipient_id` | INTEGER | FK → users.id, NOT NULL | 수신자 |
-| `actor_id` | INTEGER | FK → users.id, NOT NULL | 행위자 (`Notification.actor`) |
-| `type` | VARCHAR(20) | NOT NULL | `like` \| `follow` \| `comment` |
-| `tab` | VARCHAR(20) | DEFAULT 'you' | `you` \| `following` |
-| `post_id` | INTEGER | FK → posts.id, NULL | like/comment 시 |
-| `comment_preview` | TEXT | NULL | comment 시 미리보기 |
-| `is_read` | BOOLEAN | DEFAULT FALSE | 읽음 여부 |
-| `created_at` | DATETIME | DEFAULT CURRENT_TIMESTAMP | 생성 시각 |
-
-**인덱스**
-```sql
-CREATE INDEX idx_notifications_recipient ON notifications(recipient_id, tab, created_at DESC);
-CREATE INDEX idx_notifications_unread ON notifications(recipient_id, is_read);
-```
-
-**외래키**
-```sql
-FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
-FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE CASCADE
-FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE SET NULL
-```
-
-**알림 생성 규칙**
-| 이벤트 | `type` | `recipient_id` | `post_id` |
-|--------|--------|----------------|-----------|
-| 게시물 좋아요 | `like` | 게시물 작성자 | 해당 post |
-| 댓글 작성 | `comment` | 게시물 작성자 | 해당 post |
-| 팔로우 | `follow` | 팔로우 대상 | NULL |
-
-- `recipient_id == actor_id` 인 알림은 생성하지 않음
-- `post_image_url`은 API 응답 시 `posts.image_url` JOIN으로 채움 (DB 컬럼 없음)
-
----
-
-### 3.16 `user_settings` — 사용자 설정 (1:1)
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `user_id` | INTEGER | PK, FK → users.id | 사용자 |
-| `notify_likes` | BOOLEAN | DEFAULT TRUE | 좋아요 알림 |
-| `notify_comments` | BOOLEAN | DEFAULT TRUE | 댓글 알림 |
-| `notify_follows` | BOOLEAN | DEFAULT TRUE | 팔로우 알림 |
-| `notify_mentions` | BOOLEAN | DEFAULT TRUE | 멘션 알림 |
-| `is_private` | BOOLEAN | DEFAULT FALSE | 비공개 계정 |
-| `show_activity_status` | BOOLEAN | DEFAULT TRUE | 활동 상태 표시 |
-| `allow_story_replies` | BOOLEAN | DEFAULT TRUE | 스토리 답장 허용 |
-| `comments_privacy` | VARCHAR(20) | DEFAULT `'everyone'` | `everyone` \| `followers` \| `off` |
-| `mentions_privacy` | VARCHAR(20) | DEFAULT `'everyone'` | `everyone` \| `followers` \| `off` |
-| `login_email_alerts` | BOOLEAN | DEFAULT TRUE | 새 기기 로그인 이메일 알림 |
-| `two_factor_enabled` | BOOLEAN | DEFAULT FALSE | TOTP 2FA 활성화 |
-| `two_factor_secret` | VARCHAR(64) | NULL | TOTP secret (활성화 전 setup 단계에도 임시 저장) |
-| `updated_at` | DATETIME | NULL | 수정일 |
-
-> **마이그레이션:** `003_user_settings_reel_video`, `004_user_security` (보안 컬럼)
-
----
-
-### 3.17 `login_sessions` — 로그인 세션
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| `id` | INTEGER | PK | 세션 ID (JWT `sid`) |
-| `user_id` | INTEGER | FK → users.id, INDEX | 사용자 |
-| `ip_address` | VARCHAR(45) | NOT NULL | 클라이언트 IP |
-| `user_agent` | VARCHAR(500) | NOT NULL | User-Agent |
-| `device_name` | VARCHAR(100) | NOT NULL | 파싱된 기기명 |
-| `location` | VARCHAR(120) | NULL | 위치 (현재 `Unknown`) |
-| `is_trusted` | BOOLEAN | DEFAULT FALSE | 저장된 로그인 |
-| `created_at` | DATETIME | NOT NULL | 최초 로그인 |
-| `last_active_at` | DATETIME | NOT NULL | 마지막 활동 |
-
-> **마이그레이션:** `004_user_security`
-
----
-
-## 4. SQLAlchemy 모델 예시
-
-> 실제 구현 파일: `backend/app/models/`. 아래는 v2 스키마 요약.
-
-```python
-# app/models/reel.py
-class Reel(Base):
-    __tablename__ = "reels"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    thumbnail_url: Mapped[str] = mapped_column(String(500))
-    caption: Mapped[str | None] = mapped_column(Text)
-    audio_name: Mapped[str | None] = mapped_column(String(255))
-    like_count: Mapped[int] = mapped_column(default=0)
-    comment_count: Mapped[int] = mapped_column(default=0)
-    view_count: Mapped[int] = mapped_column(default=0)
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-
-
-class ReelLike(Base):
-    __tablename__ = "reel_likes"
-    __table_args__ = (UniqueConstraint("user_id", "reel_id"),)
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    reel_id: Mapped[int] = mapped_column(ForeignKey("reels.id", ondelete="CASCADE"))
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-```
-
-```python
-# app/models/post_tag.py
-class PostTag(Base):
-    __tablename__ = "post_tags"
-    __table_args__ = (UniqueConstraint("post_id", "user_id"),)
-    id: Mapped[int] = mapped_column(primary_key=True)
-    post_id: Mapped[int] = mapped_column(ForeignKey("posts.id", ondelete="CASCADE"))
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-```
-
-```python
-# app/models/conversation.py
-class Conversation(Base):
-    __tablename__ = "conversations"
-    __table_args__ = (
-        UniqueConstraint("user1_id", "user2_id"),
-        CheckConstraint("user1_id < user2_id"),
-    )
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user1_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    user2_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
-    messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan")
-
-
-class Message(Base):
-    __tablename__ = "messages"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    conversation_id: Mapped[int] = mapped_column(ForeignKey("conversations.id", ondelete="CASCADE"))
-    sender_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    content: Mapped[str] = mapped_column(Text)
-    is_read: Mapped[bool] = mapped_column(default=False)
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-```
-
-```python
-# app/models/notification.py
-class Notification(Base):
-    __tablename__ = "notifications"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    recipient_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
-    type: Mapped[str] = mapped_column(String(20))  # like | follow | comment
-    tab: Mapped[str] = mapped_column(String(20), default="you")
-    post_id: Mapped[int | None] = mapped_column(ForeignKey("posts.id", ondelete="SET NULL"))
-    comment_preview: Mapped[str | None] = mapped_column(Text)
-    is_read: Mapped[bool] = mapped_column(default=False)
-    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
-```
-
----
-
-## 5. 주요 쿼리 패턴
-
-### 5.1 홈 피드
-```sql
-SELECT p.*, u.username, u.avatar_url
-FROM posts p
-JOIN users u ON p.user_id = u.id
-WHERE p.user_id IN (
-    SELECT following_id FROM follows WHERE follower_id = :current_user_id
-    UNION SELECT :current_user_id
-)
-ORDER BY p.created_at DESC
-LIMIT :limit OFFSET :offset;
-```
-
-### 5.2 사용자 프로필 통계
-```sql
-SELECT
-    u.*,
-    (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS post_count,
-    (SELECT COUNT(*) FROM follows WHERE following_id = u.id) AS follower_count,
-    (SELECT COUNT(*) FROM follows WHERE follower_id = u.id) AS following_count,
-    EXISTS(
-        SELECT 1 FROM follows
-        WHERE follower_id = :current_user_id AND following_id = u.id
-    ) AS is_following
-FROM users u
-WHERE u.username = :username;
-```
-
-### 5.3 게시물 + 좋아요·저장·태그
-```sql
--- is_liked, is_saved
-SELECT p.*,
-    EXISTS(SELECT 1 FROM likes WHERE user_id = :uid AND post_id = p.id) AS is_liked,
-    EXISTS(SELECT 1 FROM saved_posts WHERE user_id = :uid AND post_id = p.id) AS is_saved
-FROM posts p
-WHERE p.id = :post_id;
-
--- tagged_users (별도 조회 또는 JSON aggregate)
-SELECT u.id, u.username, u.full_name, u.avatar_url
-FROM post_tags pt
-JOIN users u ON pt.user_id = u.id
-WHERE pt.post_id = :post_id;
-```
-
-### 5.4 프로필 태그됨 탭
-```sql
-SELECT p.*
-FROM posts p
-JOIN post_tags pt ON pt.post_id = p.id
-WHERE pt.user_id = :profile_user_id
-ORDER BY p.created_at DESC;
-```
-
-### 5.5 릴스 피드 / 프로필 릴스
-```sql
-SELECT r.*,
-    EXISTS(SELECT 1 FROM reel_likes WHERE user_id = :uid AND reel_id = r.id) AS is_liked
-FROM reels r
-WHERE r.user_id = :username_user_id  -- 프로필: WHERE 필터
-ORDER BY r.created_at DESC;
-```
-
-### 5.6 대화 목록 + unread_count
-```sql
-SELECT c.*,
-    (SELECT COUNT(*) FROM messages m
-     WHERE m.conversation_id = c.id
-       AND m.is_read = FALSE
-       AND m.sender_id != :current_user_id) AS unread_count
-FROM conversations c
-WHERE c.user1_id = :uid OR c.user2_id = :uid
-ORDER BY c.updated_at DESC;
-```
-
-### 5.7 알림 목록
-```sql
-SELECT n.*,
-    u_actor.username, u_actor.avatar_url,
-    p.image_url AS post_image_url
-FROM notifications n
-JOIN users u_actor ON n.actor_id = u_actor.id
-LEFT JOIN posts p ON n.post_id = p.id
-WHERE n.recipient_id = :uid AND n.tab = :tab
-ORDER BY n.created_at DESC;
-```
-
-### 5.8 만료 스토리 정리 (Startup/Cron)
-```sql
-DELETE FROM stories WHERE expires_at < datetime('now');
-```
-
----
-
-## 6. Alembic 마이그레이션
-
-스키마 변경은 **`create_all()` 대신 Alembic** 으로 적용한다. 앱 시작·CLI·시드 모두 `upgrade head`를 사용한다.
-
-### 적용 (일반)
-```bash
-cd backend
-# 방법 1 — Alembic 직접
-.\venv\Scripts\alembic.exe upgrade head
-
-# 방법 2 — 래퍼 CLI
-.\venv\Scripts\python.exe scripts\migrate.py upgrade
-
-# 방법 3 — 초기화 + 시드
-.\venv\Scripts\python.exe scripts\init_db.py --reset --seed
-```
-
-### 상태 확인
-```bash
-.\venv\Scripts\alembic.exe current
-.\venv\Scripts\alembic.exe check    # 모델 ↔ 마이그레이션 일치 검증
-.\venv\Scripts\python.exe scripts\verify_schema.py
-.\venv\Scripts\python.exe scripts\verify_seed.py
-```
-
-### 전체 초기화
-```bash
-.\venv\Scripts\python.exe scripts\migrate.py reset --seed
-# 또는
-.\venv\Scripts\alembic.exe downgrade base
-.\venv\Scripts\alembic.exe upgrade head
-```
-
-### `alembic/env.py` import 목록
-```python
-from app.database import Base
-import app.models  # register all models
-
-target_metadata = Base.metadata
-```
-
-### 현재 마이그레이션 버전
-```
-alembic/versions/
-├── 001_initial_schema_v2.py      # 15 tables (users … notifications)
-├── 002_story_media_overlays.py   # story_items.media_type, story_items.overlays
-└── 003_user_settings_reel_video.py  # user_settings, reels.video_url
-└── 004_user_security.py             # login_sessions, user_settings 보안 컬럼
-```
-
-새 스키마 변경 시:
-```bash
-.\venv\Scripts\alembic.exe revision --autogenerate -m "describe change"
-.\venv\Scripts\alembic.exe upgrade head
-```
-
----
-
-## 7. 시드 데이터
-
-`scripts/seed.py`는 프론트 `mockData.ts` · `mockMessages.ts` · `mockNotifications.ts`와 동일 구조를 DB에 넣는다.
-
-| 항목 | 내용 |
-|------|------|
-| 테스트 계정 | `letsgomingu@gmail.com` / `letsgomingu` / `12345` |
-| 샘플 사용자 | alice_kim, bob_lee, sarah_park, mike_jung, emma_cho |
-| 게시물 | 9개 + `post_tags` (letsgomingu 태그 3건) |
-| 릴스 | 6개 + `reel_likes` |
-| 스토리 | 6명 × story_items |
-| 팔로우·좋아요·댓글·저장 | Mock 분포 |
-| 대화·메시지 | `initialConversations` 4건 |
-| 알림 | `initialNotifications` (`you` 탭 위주) |
-
-```bash
-cd backend
-python scripts/seed.py
-```
-
----
-
-## 8. 성능·SQLite 설정
-
-### 카운터 캐싱
-| 테이블 | 캐시 컬럼 | 갱신 이벤트 |
-|--------|-----------|-------------|
-| `posts` | `like_count`, `comment_count` | like, comment |
-| `reels` | `like_count`, `view_count` | reel_like, view |
-
-### SQLite PRAGMA (`database.py`)
 ```python
 engine = create_engine(
     settings.database_url,
-    connect_args={"check_same_thread": False},
+    connect_args={"check_same_thread": False} if settings.is_sqlite else {},
     echo=False,
 )
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-@event.listens_for(engine, "connect")
-def set_sqlite_pragma(dbapi_conn, connection_record):
-    cursor = dbapi_conn.cursor()
-    cursor.execute("PRAGMA journal_mode=WAL")
-    cursor.execute("PRAGMA foreign_keys=ON")
-    cursor.close()
+if settings.is_sqlite:
+    @event.listens_for(engine, "connect")
+    def set_sqlite_pragma(dbapi_conn, connection_record):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 ```
 
-### 페이지네이션
-- 1차: `LIMIT :limit OFFSET :offset` (프론트 `page`/`limit`)
-- 확장: cursor 기반 (`WHERE created_at < :cursor`)
+`is_sqlite`(=`database_url.startswith("sqlite")`)가 거짓이면(PostgreSQL) `check_same_thread` 인자와 `PRAGMA` 리스너가 완전히 스킵된다 — 코드는 남아있지만 프로덕션에서는 실행되지 않는 죽은 분기다. 별도 커넥션 풀 설정(`pool_size` 등)은 없어 SQLAlchemy 기본 `QueuePool`(size 5, overflow 10)을 그대로 쓴다.
+
+프로덕션 `DATABASE_URL` 형식: `postgresql+psycopg2://instagram:<비밀번호>@localhost:5432/instagram` — `deploy/setup-postgres.sh`가 롤/DB를 생성하고 이 값을 1회 출력한다(재실행해도 비밀번호는 바뀌지 않음). 자세한 절차는 `guide.md` 참고.
 
 ---
 
-## 9. 데이터 무결성 규칙
+## 6. 카운터 캐싱 (비정규화 컬럼)
 
-| 규칙 | 구현 |
-|------|------|
-| 사용자명·이메일 중복 방지 | UNIQUE |
-| 자기 팔로우 방지 | CHECK + 앱 검증 |
-| 중복 좋아요(게시물·릴스) | UNIQUE (user_id, post_id/reel_id) |
-| 중복 태그 | UNIQUE (post_id, user_id) |
-| 대화 쌍 중복 방지 | UNIQUE (user1_id, user2_id), user1_id < user2_id |
-| 게시물·릴스·스토리 삭제 | ON DELETE CASCADE |
-| 알림의 post 삭제 | post_id SET NULL |
-| 스토리 24h 만료 | expires_at + startup cleanup |
-| 본인 알림 미생성 | 앱 레벨 (like/comment/follow handler) |
+| 컬럼 | 갱신 시점 |
+|---|---|
+| `posts.like_count` | `POST /posts/{id}/like` 토글 시 즉시 증감 |
+| `posts.comment_count` | 댓글 작성/삭제 시 즉시 증감 |
+| `reels.like_count` | `POST /reels/{id}/like` 토글 시 |
+| `reels.view_count` | `POST /reels/{id}/view` 시 증가만 |
+| `reels.comment_count` | 컬럼은 있으나 릴스 댓글을 저장하는 테이블이 없음(위 `reels` 절 참고) |
+
+**별도 집계 배치/트리거 없음** — 전부 요청 처리 트랜잭션 안에서 직접 증감(`max(0, count-1)`로 음수 방지). `users.follower_count`/`following_count`/`post_count`는 비정규화 컬럼 자체가 없고, 매번 `follows`/`posts` 테이블을 카운트해서 계산한다.
 
 ---
 
-## 10. 백업 및 유지보수
+## 7. 데이터 무결성 규칙 정리
+
+**UNIQUE**: `users.username`, `users.email`, `likes(user_id,post_id)`, `reel_likes(user_id,reel_id)`, `saved_posts(user_id,post_id)`, `follows(follower_id,following_id)`, `story_views(user_id,story_id)`, `post_tags(post_id,user_id)`, `conversations(user1_id,user2_id)`.
+
+**CHECK**: `follows`의 `follower_id != following_id`, `conversations`의 `user1_id < user2_id`.
+
+**앱 레벨에서만 강제**(DB 제약 없음): `user_settings.comments_privacy`/`mentions_privacy`의 3값 enum, `notifications.type`/`tab`의 허용값, 각종 `media_type` 필드의 허용값("image"/"video").
+
+**FK 삭제 정책**: 대부분 `ON DELETE CASCADE`. 유일한 예외는 `notifications.post_id → posts.id`가 `ON DELETE SET NULL`인 것.
+
+---
+
+## 8. 시드 데이터 (`backend/scripts/seed.py`)
 
 ```bash
-# 개발 DB 백업
-sqlite3 instagram.db ".backup backup/instagram_dev_$(date +%Y%m%d).db"
-
-# 프로덕션 DB 백업
-sqlite3 data/instagram.db ".backup backup/instagram_prod_$(date +%Y%m%d).db"
-
-# VACUUM
-sqlite3 instagram.db "VACUUM;"
+cd backend
+python -m scripts.seed          # users 테이블이 비어있을 때만 실행
+python -m scripts.seed --reset  # 전체 삭제 후 재시드
 ```
 
----
+내부적으로 `init_db()`(Alembic upgrade head)를 먼저 호출하므로 빈 DB에 바로 실행해도 안전하다. 생성 내용: 사용자 6명(`letsgomingu` 포함, bcrypt 해시, pravatar.cc 아바타), 팔로우 3건, 게시물 9개(+태그), 댓글 6개, 좋아요/저장 일부, 릴스 6개, 스토리 6개(아이템 1~3개씩) + 조회기록, 대화 4개 + 메시지 다수(`user1_id < user2_id` 제약을 만족하도록 정렬하는 `conversation_pair()` 헬퍼 사용), 알림 14건.
 
-## 11. 프론트 타입 ↔ DB 매핑
-
-| TypeScript | DB / 쿼리 |
-|------------|-------------|
-| `User.post_count` | `COUNT(posts)` |
-| `User.follower_count` | `COUNT(follows WHERE following_id=)` |
-| `User.following_count` | `COUNT(follows WHERE follower_id=)` |
-| `User.is_following` | `EXISTS(follows)` |
-| `Post.is_liked` | `EXISTS(likes)` |
-| `Post.is_saved` | `EXISTS(saved_posts)` |
-| `Post.tagged_users[]` | `JOIN post_tags → users` |
-| `Reel.is_liked` | `EXISTS(reel_likes)` |
-| `Reel.view_count` | `reels.view_count` |
-| `Story.viewed` | `EXISTS(story_views)` |
-| `StoryItem.image_url` | `story_items.image_url` (이미지·동영상 URL) |
-| `StoryItem.media_type` | `story_items.media_type` (`image` \| `video`) |
-| `StoryItem.overlays` | `story_items.overlays` JSON → `StoryOverlay[]` |
-| `StoryOverlay.*` | `overlays` JSON 필드 (§3.8) |
-| `Conversation.unread_count` | `COUNT(messages WHERE is_read=0 AND sender≠me)` |
-| `Message.is_read` | `messages.is_read` |
-| `Notification.type` | `notifications.type` |
-| `Notification.tab` | `notifications.tab` |
-| `Notification.post_image_url` | `JOIN posts.image_url` (computed) |
-| `Notification.target_username` | `JOIN posts → users.username` (팔로잉 탭, computed) |
-| `Notification.actor` | `JOIN users ON actor_id` |
+별도로 `app/config.py`의 `SEED_DEMO_USERS=true`(로컬 기본값)는 **매 서버 시작마다** `admin`/`pass123`, `letsgomingu`/`12345` 두 계정만 자동 생성/복구한다(이 시드 스크립트와는 별개 경로) — 공개 도메인에 배포할 때는 반드시 `false`로 둬야 한다(`guide.md` 8장 참고).
 
 ---
 
-## 12. 문서 동기화
+## 9. 알려진 스키마 이슈 (문서화 목적)
 
-| 문서 | 역할 |
-|------|------|
-| `db.md` (본 문서) | 테이블·ERD·쿼리·무결성 |
-| `backend.md` | API 엔드포인트·비즈니스 로직·구현 우선순위 |
-
-스키마 변경 시 **두 문서를 함께 수정**한다.
+- `users.is_active`, `messages.is_read`, `notifications.is_read` — DB server_default 없음, ORM 기본값에만 의존.
+- `reels.comment_count` 컬럼은 있지만 릴스 댓글을 저장할 테이블/컬럼이 스키마에 없음.
+- `reels.view_count`는 `story_views`와 달리 사용자별 조회 기록 없이 집계 숫자만 관리 — 중복 조회 방지 로직 없음.
+- `comments_privacy`/`mentions_privacy`/`notifications.type`/각종 `media_type`은 DB CHECK나 PostgreSQL ENUM이 아닌 평범한 문자열 컬럼 — 값 유효성은 전적으로 애플리케이션 코드에 의존.
