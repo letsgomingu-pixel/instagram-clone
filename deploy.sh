@@ -34,7 +34,22 @@ log "alembic upgrade head"
 cd "$BACKEND_DIR"
 ./venv/bin/python -m alembic upgrade head
 
-log "pm2 restart all"
-pm2 restart all
+if [[ -d "$APP_DIR/frontend/package.json" || -f "$APP_DIR/frontend/package.json" ]]; then
+  log "frontend npm install + build"
+  cd "$APP_DIR/frontend"
+  env PATH="/usr/local/bin:$PATH" npm install
+  env PATH="/usr/local/bin:$PATH" npm run build
+fi
+
+log "restarting services"
+if command -v pm2 >/dev/null 2>&1; then
+  pm2 restart all
+elif [[ -f /etc/systemd/system/instagram-backend.service ]]; then
+  sudo systemctl restart instagram-backend
+  sudo nginx -t
+  sudo systemctl reload nginx
+else
+  fail "Neither pm2 nor instagram-backend.service found"
+fi
 
 log "done — $(git -C "$APP_DIR" rev-parse --short HEAD)"

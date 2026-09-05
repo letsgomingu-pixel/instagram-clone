@@ -40,7 +40,6 @@ jobs:
 
             DEPLOY_PATH="/var/www/iamnotafishmonger"
             REPO_URL="https://github.com/letsgomingu-pixel/instagram-clone.git"
-            RAW_DEPLOY_URL="https://raw.githubusercontent.com/letsgomingu-pixel/instagram-clone/main/deploy.sh"
 
             log() { echo "[gha-deploy] $*"; }
 
@@ -60,14 +59,16 @@ jobs:
 
             cd "$DEPLOY_PATH"
 
-            if [[ ! -f deploy.sh ]]; then
-              log "deploy.sh missing — downloading from main branch..."
-              curl -fsSL "$RAW_DEPLOY_URL" -o deploy.sh
-              chmod +x deploy.sh
+            if [[ -f deploy/redeploy.sh ]]; then
+              log "Running deploy/redeploy.sh (systemd + frontend build)..."
+              sudo bash deploy/redeploy.sh
+            elif [[ -f deploy.sh ]]; then
+              log "Running deploy.sh..."
+              bash deploy.sh
+            else
+              log "ERROR: no deploy script found in $DEPLOY_PATH"
+              exit 1
             fi
-
-            chmod +x deploy.sh
-            bash deploy.sh
 
       - name: Deployment succeeded
         if: success()
