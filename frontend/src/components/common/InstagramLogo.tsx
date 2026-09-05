@@ -32,11 +32,10 @@ export function BrandIcon({ size = 28, className }: { size?: number; className?:
   );
 }
 
-export function InstagramLogo({ className = 'text-3xl', showIcon = true }: { className?: string; showIcon?: boolean }) {
+export function InstagramLogo({ className = 'text-3xl' }: { className?: string }) {
   return (
-    <span className={cn('inline-flex items-center gap-2 select-none text-ig-text', className)}>
-      {showIcon && <BrandIcon size={26} />}
-      <span className="font-brand leading-tight">i am not a fishmonger</span>
+    <span className={cn('inline-flex items-center select-none text-ig-text font-brand leading-tight', className)}>
+      i am not a fishmonger
     </span>
   );
 }

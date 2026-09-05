@@ -75,7 +75,7 @@ export function MobileHeaderIconStrip() {
       aria-label="주요 메뉴"
       className="flex items-center justify-around border-t border-ig-border px-1 h-[48px] w-full"
     >
-      <HeaderIconLink to="/" label="시장가" active={isActivePath(pathname, '/')} requiresAuth={false}>
+      <HeaderIconLink to="/" label="현장피드" active={isActivePath(pathname, '/')} requiresAuth={false}>
         <NavHomeIcon active={isActivePath(pathname, '/')} />
       </HeaderIconLink>
 

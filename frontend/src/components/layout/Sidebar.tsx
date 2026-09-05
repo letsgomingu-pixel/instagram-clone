@@ -38,7 +38,7 @@ import { InstagramLogo } from '@/components/common/InstagramLogo';
 
 const navItems = [
 
-  { to: '/', label: '시장가', renderIcon: (active: boolean) => <NavHomeIcon active={active} /> },
+  { to: '/', label: '현장피드', renderIcon: (active: boolean) => <NavHomeIcon active={active} /> },
 
   { to: '/search', label: '검색', renderIcon: (active: boolean) => <NavSearchIcon active={active} /> },
 

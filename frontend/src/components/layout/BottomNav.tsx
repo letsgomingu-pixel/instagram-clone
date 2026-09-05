@@ -21,7 +21,7 @@ export function BottomNav() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 mobile-bottom-nav-safe bg-white/95 backdrop-blur-sm border-t border-ig-border flex items-stretch justify-around z-40">
-      <NavLink to="/" className="flex flex-1 items-center justify-center min-h-[49px]" aria-label="시장가">
+      <NavLink to="/" className="flex flex-1 items-center justify-center min-h-[49px]" aria-label="현장피드">
         {({ isActive }) => <NavHomeIcon active={isActive} />}
       </NavLink>
 
