@@ -64,7 +64,10 @@ sudo bash deploy.sh
    있으므로(정상) AWS 보안 그룹만 확인하면 됩니다
 
 재실행해도 안전합니다 — DB나 업로드된 미디어 파일은 건드리지 않습니다. 코드를
-수정하고 `git pull` 한 뒤 다시 `sudo bash deploy/deploy.sh` 하면 재빌드·재시작됩니다.
+수정하고 push 하면 GitHub Actions가 자동으로 `deploy/redeploy.sh`를 실행합니다.
+수동으로는 서버에서 `sudo bash deploy/redeploy.sh` 를 실행하세요.
+
+> GitHub Actions 설정: [GITHUB_ACTIONS.md](./GITHUB_ACTIONS.md)
 
 ## 4. HTTPS(SSL) 적용
 
@@ -112,7 +115,10 @@ sudo journalctl -u instagram-backend -f
 
 ## 7. 이 폴더의 파일들
 
-- `deploy.sh` — 전체 배포 자동화 스크립트 (서버에서 `sudo bash deploy.sh` 로 실행)
+- `deploy.sh` — 최초 전체 배포 (서버에서 `sudo bash deploy.sh`)
+- `redeploy.sh` — 코드 업데이트 후 빠른 재배포 (`git pull` + build + migrate + restart)
+- `GITHUB_ACTIONS.md` — GitHub Actions 자동 배포 Secrets 설정
 - `nginx.iamnotafishmonger.conf` — nginx 리버스 프록시 설정 (deploy.sh가 자동 설치함)
 - `instagram-backend.service` — 백엔드용 systemd 서비스 유닛 (deploy.sh가 자동 설치함)
+- `setup-postgres.sh` — PostgreSQL 설치 및 DATABASE_URL 생성
 - `../backend/.env.production.example` — 프로덕션용 환경변수 템플릿 (deploy.sh가 자동으로 `.env`로 복사)

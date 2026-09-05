@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Instagram Clone - React + FastAPI + SQLite",
+  "description": "i am not a fishmonger — React + FastAPI full-stack app",
   "scripts": {
     "setup": "node scripts/setup.js",
     "dev": "node scripts/dev.js",
