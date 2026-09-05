@@ -1,0 +1,42 @@
+name: SSH Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ssh-check:
+    name: Test SSH connection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate secrets
+        run: |
+          missing=0
+          if [ -z "${{ secrets.server_host }}" ]; then echo "::error::Missing secret: server_host"; missing=1; else echo "[OK] secret present: server_host"; fi
+          if [ -z "${{ secrets.server_user }}" ]; then echo "::error::Missing secret: server_user"; missing=1; else echo "[OK] secret present: server_user"; fi
+          if [ -z "${{ secrets.server_ssh_key }}" ]; then echo "::error::Missing secret: server_ssh_key"; missing=1; else echo "[OK] secret present: server_ssh_key"; fi
+          if [ "$missing" -ne 0 ]; then exit 1; fi
+
+      - name: Show host (non-secret)
+        run: |
+          echo "Connecting to host: ${{ secrets.server_host }}"
+          echo "Username: ${{ secrets.server_user }}"
+          echo "Port: 22"
+
+      - name: SSH handshake test
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.server_host }}
+          username: ${{ secrets.server_user }}
+          key: ${{ secrets.server_ssh_key }}
+          port: 22
+          timeout: 60s
+          debug: true
+          script: |
+            set -euo pipefail
+            echo "SSH OK — connected as $(whoami)@$(hostname)"
+            echo "Home: $HOME"
+            echo "Deploy path exists: $([ -d /var/www/iamnotafishmonger ] && echo yes || echo no)"
+            echo "Git repo: $([ -d /var/www/iamnotafishmonger/.git ] && echo yes || echo no)"
+            command -v git >/dev/null && echo "git: $(git --version)" || echo "git: missing"
+            command -v pm2 >/dev/null && echo "pm2: $(pm2 --version)" || echo "pm2: missing"
+            command -v python3 >/dev/null && echo "python3: $(python3 --version)" || echo "python3: missing"
