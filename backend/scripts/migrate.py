@@ -6,20 +6,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from alembic import command
-from alembic.config import Config
 
 from app.config import settings
-from app.db_init import drop_db, init_db
-
-
-def alembic_config() -> Config:
-    cfg = Config(str(Path(__file__).resolve().parent.parent / "alembic.ini"))
-    cfg.set_main_option("sqlalchemy.url", settings.database_url)
-    return cfg
+from app.db_init import drop_db
+from app.migrations import alembic_config, migration_target_label, upgrade
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run Alembic database migrations")
+    parser = argparse.ArgumentParser(
+        description="Run Alembic database migrations (SQLite local / PostgreSQL server via DATABASE_URL)"
+    )
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("upgrade", help="Apply migrations (upgrade head)")
@@ -34,9 +30,10 @@ def main() -> None:
     args = parser.parse_args()
     cfg = alembic_config()
 
+    print(f"[*] Target: {migration_target_label()} (dialect={settings.database_dialect})")
+
     if args.command == "upgrade":
-        init_db()
-        print("[OK] upgrade head")
+        upgrade("head")
     elif args.command == "downgrade":
         command.downgrade(cfg, "base")
         print("[OK] downgrade base")
@@ -49,8 +46,7 @@ def main() -> None:
     elif args.command == "reset":
         print("[!] Dropping all tables...")
         drop_db()
-        init_db()
-        print("[OK] Migrations re-applied (001_initial_schema_v2)")
+        upgrade("head")
         if args.seed:
             from scripts.seed import seed
 

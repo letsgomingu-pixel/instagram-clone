@@ -1,15 +1,18 @@
-"""SQLite schema initialization CLI."""
+"""Database schema initialization CLI (SQLite or PostgreSQL via DATABASE_URL)."""
 import argparse
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.db_init import drop_db, init_db  # noqa: E402
+from app.db_init import drop_db, init_db
+from app.migrations import migration_target_label
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Initialize SQLite database schema (15 tables)")
+    parser = argparse.ArgumentParser(
+        description="Initialize database schema via Alembic (uses DATABASE_URL from .env)"
+    )
     parser.add_argument(
         "--reset",
         action="store_true",
@@ -22,13 +25,14 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    print(f"[*] Database: {migration_target_label()}")
+
     if args.reset:
         print("[!] Dropping all tables...")
         drop_db()
 
     print("[*] Running Alembic migrations (upgrade head)...")
     init_db()
-    print("[OK] Migrations applied (15 tables, revision: 001_initial_schema_v2)")
 
     if args.seed:
         from scripts.seed import seed

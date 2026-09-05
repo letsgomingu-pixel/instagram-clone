@@ -33,5 +33,18 @@ class Settings(BaseSettings):
     def is_sqlite(self) -> bool:
         return self.database_url.startswith("sqlite")
 
+    @property
+    def is_postgresql(self) -> bool:
+        lowered = self.database_url.lower()
+        return lowered.startswith("postgresql") or lowered.startswith("postgres://")
+
+    @property
+    def database_dialect(self) -> str:
+        if self.is_sqlite:
+            return "sqlite"
+        if self.is_postgresql:
+            return "postgresql"
+        return "unknown"
+
 
 settings = Settings()
