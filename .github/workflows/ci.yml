@@ -10,6 +10,8 @@ jobs:
   backend-tests:
     name: Backend tests
     runs-on: ubuntu-latest
+    env:
+      SEED_DEMO_USERS: "true"
     defaults:
       run:
         working-directory: backend

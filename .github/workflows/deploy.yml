@@ -14,6 +14,15 @@ jobs:
     name: Deploy (PM2)
     runs-on: ubuntu-latest
     steps:
+      - name: Validate deploy secrets
+        run: |
+          missing=0
+          if [ -z "${{ secrets.server_host }}" ]; then echo "::error::Missing GitHub secret: server_host"; missing=1; fi
+          if [ -z "${{ secrets.server_user }}" ]; then echo "::error::Missing GitHub secret: server_user"; missing=1; fi
+          if [ -z "${{ secrets.server_ssh_key }}" ]; then echo "::error::Missing GitHub secret: server_ssh_key"; missing=1; fi
+          if [ "$missing" -ne 0 ]; then exit 1; fi
+          echo "Deploy secrets are configured."
+
       - name: Deploy via SSH
         id: ssh
         uses: appleboy/ssh-action@v1.2.0
@@ -21,6 +30,9 @@ jobs:
           host: ${{ secrets.server_host }}
           username: ${{ secrets.server_user }}
           key: ${{ secrets.server_ssh_key }}
+          port: 22
+          timeout: 60s
+          debug: true
           script_stop: true
           command_timeout: 30m
           script: |
@@ -32,7 +44,14 @@ jobs:
 
             log() { echo "[gha-deploy] $*"; }
 
-            mkdir -p "$(dirname "$DEPLOY_PATH")"
+            if [[ ! -d "$DEPLOY_PATH" ]]; then
+              log "Creating deploy directory (needs write access to $(dirname "$DEPLOY_PATH"))..."
+              mkdir -p "$(dirname "$DEPLOY_PATH")" || {
+                log "ERROR: cannot create $(dirname "$DEPLOY_PATH")."
+                log "On EC2 run once: sudo mkdir -p $DEPLOY_PATH && sudo chown -R $USER:$USER $DEPLOY_PATH"
+                exit 1
+              }
+            fi
 
             if [[ ! -d "$DEPLOY_PATH/.git" ]]; then
               log "First deploy — cloning repository..."
