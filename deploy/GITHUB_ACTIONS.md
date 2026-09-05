@@ -1,47 +1,43 @@
-# GitHub Actions 자동 배포 설정
+# GitHub Actions 자동 배포 (PM2)
 
-`main` 브랜치에 push하면 EC2 서버에서 `deploy/redeploy.sh`가 실행됩니다.
+`main` 브랜치 push 시 EC2에서 `deploy.sh`를 실행합니다.
 
-## 사전 조건
+## GitHub Secrets (등록 완료)
 
-1. 서버에 최초 1회 `sudo bash deploy/deploy.sh` 실행 완료
-2. `/var/www/iamnotafishmonger` 경로에 clone 되어 있음
-3. `backend/.env`에 PostgreSQL `DATABASE_URL` 등 프로덕션 값 설정됨
+| Secret | 설명 |
+|--------|------|
+| `server_host` | EC2 공인 IP 또는 호스트명 |
+| `server_user` | SSH 사용자 (예: `ec2-user`) |
+| `server_ssh_key` | SSH 개인키 전체 |
 
-## GitHub Secrets 등록
+## 서버 요구 사항
 
-Repository → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**
+- 경로: `/var/www/iamnotafishmonger`
+- PM2로 앱 프로세스 관리 (`pm2 restart all`)
+- `backend/venv` Python 가상환경 (없으면 `deploy.sh`가 생성)
+- `pm2`, `git`, `python3`, `curl` 설치
 
-| Secret | 예시 | 설명 |
-|--------|------|------|
-| `DEPLOY_HOST` | `52.78.54.32` 또는 `iamnotafishmonger.com` | EC2 공인 IP/호스트 |
-| `DEPLOY_USER` | `ec2-user` | SSH 로그인 사용자 |
-| `DEPLOY_SSH_KEY` | `-----BEGIN OPENSSH PRIVATE KEY-----...` | 배포용 SSH 개인키 전체 |
-| `DEPLOY_SSH_PORT` | `22` | (선택) SSH 포트 |
+## deploy.sh 동작
 
-## EC2 측 설정
+1. `git pull origin main` (실제: `fetch` + `reset --hard origin/main`)
+2. `pip install -r backend/requirements.txt`
+3. `alembic upgrade head`
+4. `pm2 restart all`
 
-1. **보안 그룹**: GitHub Actions runner IP는 고정되지 않으므로, SSH(22)는 배포용 키를 아는 IP만 허용하거나, 임시로 `0.0.0.0/0`을 열고 키 기반 인증만 사용
-2. **sudo 권限**: `DEPLOY_USER`가 비밀번호 없이 redeploy를 실행할 수 있어야 함:
+## 첫 배포
 
-```bash
-# /etc/sudoers.d/instagram-deploy (visudo -f 로 편집)
-ec2-user ALL=(ALL) NOPASSWD: /var/www/iamnotafishmonger/deploy/redeploy.sh
-```
+저장소가 없으면 Actions가 자동으로 clone합니다.  
+`deploy.sh`가 없으면 GitHub raw URL에서 내려받습니다.
 
-3. **GitHub deploy key** (선택): 서버가 private repo를 pull해야 하면 deploy key 등록
-
-## 수동 배포 / 재실행
-
-- GitHub → **Actions** → **Deploy to production** → **Run workflow**
-- 또는 서버에서 직접:
+## 수동 배포
 
 ```bash
 cd /var/www/iamnotafishmonger
-sudo bash deploy/redeploy.sh
+bash deploy.sh
 ```
 
-## 워크플로 파일
+## Actions에서 확인
 
-- `.github/workflows/deploy.yml` — 프로덕션 SSH 배포
-- `.github/workflows/ci.yml` — push/PR 시 백엔드 pytest
+- **Actions** 탭 → **Deploy to EC2** 워크플로
+- 성공: `Deployment succeeded` 단계 통과
+- 실패: `Deployment failed` + SSH 로그에 `[deploy] ERROR` 메시지

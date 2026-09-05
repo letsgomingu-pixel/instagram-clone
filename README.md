@@ -123,5 +123,7 @@ https://github.com/letsgomingu-pixel/instagram-clone
 
 ## 자동 배포
 
-`main` 브랜치 push 시 GitHub Actions가 EC2에서 `deploy/redeploy.sh`를 실행합니다.  
-Secrets 설정 방법: [deploy/GITHUB_ACTIONS.md](./deploy/GITHUB_ACTIONS.md)
+`main` 브랜치 push 시 GitHub Actions가 EC2에서 `deploy.sh`를 실행합니다 (PM2).
+
+Secrets: `server_host`, `server_user`, `server_ssh_key`  
+설정 방법: [deploy/GITHUB_ACTIONS.md](./deploy/GITHUB_ACTIONS.md)
