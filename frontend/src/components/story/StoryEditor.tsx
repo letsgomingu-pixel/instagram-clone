@@ -83,11 +83,11 @@ export function StoryEditor({
         <button onClick={onBack} className="absolute left-3 text-sm" aria-label="뒤로">
           ←
         </button>
-        <h2 className="text-base font-semibold">스토리 편집</h2>
+        <h2 className="text-base font-semibold">입고 소식 편집</h2>
         <button
           onClick={onShare}
           disabled={uploading}
-          aria-label="스토리 공유"
+          aria-label="입고 소식 공유"
           className="absolute right-3 text-ig-primary font-semibold text-sm disabled:opacity-50"
         >
           {uploading ? '공유 중...' : '공유'}
@@ -108,7 +108,7 @@ export function StoryEditor({
             loop
           />
         ) : (
-          <img src={mediaUrl} alt="스토리 미리보기" className="w-full h-full object-cover" />
+          <img src={mediaUrl} alt="입고 소식 미리보기" className="w-full h-full object-cover" />
         )}
 
         <StoryOverlayLayer

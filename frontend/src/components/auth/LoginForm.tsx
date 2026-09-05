@@ -57,18 +57,21 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-[350px]">
-      <div className="bg-white border border-ig-border rounded-sm px-10 py-10 mb-3">
+      <div className="bg-white border border-ig-border rounded-xl px-10 py-10 mb-3 shadow-sm">
         <div className="flex justify-center mb-6">
-          <InstagramLogo className="text-[28px] leading-tight text-center" />
+          <InstagramLogo className="text-[22px] leading-tight text-center" />
         </div>
+        <p className="text-center text-xs text-ig-text-secondary mb-4 leading-relaxed">
+          수산물 도·소매 거래 플랫폼
+        </p>
 
         <form onSubmit={handleSubmit} className="space-y-2">
           <input
             type="text"
-            placeholder="전화번호, 사용자 이름 또는 이메일"
+            placeholder="거래처 ID, 이메일 또는 연락처"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-2 py-2 bg-ig-secondary border border-ig-border rounded-sm text-xs placeholder:text-ig-text-secondary"
+            className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs placeholder:text-ig-text-secondary"
             aria-label="사용자명 또는 이메일"
             disabled={requires2fa}
           />
@@ -77,7 +80,7 @@ export function LoginForm() {
             placeholder="비밀번호"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-2 py-2 bg-ig-secondary border border-ig-border rounded-sm text-xs placeholder:text-ig-text-secondary"
+            className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs placeholder:text-ig-text-secondary"
             aria-label="비밀번호"
             disabled={requires2fa}
           />
@@ -89,7 +92,7 @@ export function LoginForm() {
               placeholder="6자리 인증 코드"
               value={totpCode}
               onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
-              className="w-full px-2 py-2 bg-ig-secondary border border-ig-border rounded-sm text-xs placeholder:text-ig-text-secondary"
+              className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs placeholder:text-ig-text-secondary"
               aria-label="2단계 인증 코드"
             />
           )}
@@ -98,28 +101,15 @@ export function LoginForm() {
           </Button>
         </form>
 
-        <div className="flex items-center gap-4 my-4">
-          <div className="flex-1 h-px bg-ig-border" />
-          <span className="text-sm font-semibold text-ig-text-secondary">또는</span>
-          <div className="flex-1 h-px bg-ig-border" />
-        </div>
-
-        <button className="w-full text-ig-link text-sm font-semibold flex items-center justify-center gap-2 hover:underline">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="#385185">
-            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-          </svg>
-          페이스북으로 로그인
-        </button>
-
         <Link to="#" className="block text-xs text-ig-link text-center mt-4 hover:underline">
           비밀번호를 잊으셨나요?
         </Link>
       </div>
 
-      <div className="bg-white border border-ig-border rounded-sm py-5 text-center text-sm">
+      <div className="bg-white border border-ig-border rounded-xl py-5 text-center text-sm shadow-sm">
         계정이 없으신가요?{' '}
         <Link to="/signup" className="text-ig-primary font-semibold hover:underline">
-          가입하기
+          거래처 등록
         </Link>
       </div>
 

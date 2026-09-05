@@ -69,10 +69,10 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
       }
       await storiesApi.createStory(form);
       await refreshStories();
-      toast.success('스토리가 공유되었습니다!');
+      toast.success('입고 소식가 공유되었습니다!');
       handleClose();
     } catch {
-      toast.error('스토리 업로드에 실패했습니다.');
+      toast.error('입고 소식 업로드에 실패했습니다.');
     } finally {
       setUploading(false);
     }
@@ -83,7 +83,7 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
       {!preview ? (
         <div className="w-[400px] max-w-[95vw]">
           <div className="flex items-center justify-center border-b border-ig-border h-[42px] relative">
-            <h2 className="text-base font-semibold">스토리 만들기</h2>
+            <h2 className="text-base font-semibold">입고 소식 만들기</h2>
             <button onClick={handleClose} className="absolute left-3 text-sm" aria-label="닫기">
               ✕
             </button>

@@ -128,13 +128,13 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
 
       await refreshReels();
 
-      toast.success('릴스가 공유되었습니다!');
+      toast.success('현장영상가 공유되었습니다!');
 
       handleClose();
 
     } catch {
 
-      toast.error('릴스 업로드에 실패했습니다.');
+      toast.error('현장영상 업로드에 실패했습니다.');
 
     } finally {
 
@@ -154,7 +154,7 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
 
         <div className="flex items-center justify-center border-b border-ig-border h-[42px] relative">
 
-          <h2 className="text-base font-semibold">릴스 만들기</h2>
+          <h2 className="text-base font-semibold">현장영상 만들기</h2>
 
           {preview && (
 
@@ -164,7 +164,7 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
 
               disabled={uploading}
 
-              aria-label="릴스 공유"
+              aria-label="현장영상 공유"
 
               className="absolute right-3 text-ig-primary font-semibold text-sm disabled:opacity-50"
 

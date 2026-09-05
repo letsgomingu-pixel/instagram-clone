@@ -42,7 +42,7 @@ function ReelMedia({ reel, isActive }: { reel: Reel; isActive: boolean }) {
   return (
     <MediaImage
       src={reel.thumbnail_url}
-      alt={reel.caption || '릴스'}
+      alt={reel.caption || '현장영상'}
       className={`w-full h-full object-cover transition-opacity ${isActive ? 'opacity-100' : 'opacity-90'}`}
     />
   );
@@ -171,21 +171,21 @@ export function ReelsPage() {
         type="button"
         onClick={() => requireAuth(() => setCreateOpen(true))}
         className="fixed top-16 right-4 md:right-8 z-40 rounded-full bg-white/10 text-white px-4 py-2 text-sm font-semibold hover:bg-white/20"
-        aria-label="릴스 만들기"
+        aria-label="현장영상 만들기"
       >
-        + 릴스
+        + 현장영상
       </button>
       <CreateReelModal isOpen={createOpen} onClose={() => setCreateOpen(false)} />
 
       {reels.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-white">
-          <p className="text-[16px] mb-4">아직 릴스가 없습니다.</p>
+          <p className="text-[16px] mb-4">아직 현장영상가 없습니다.</p>
           <button
             type="button"
             onClick={() => requireAuth(() => setCreateOpen(true))}
             className="rounded-lg bg-ig-primary px-4 py-2 text-sm font-semibold text-white"
           >
-            첫 릴스 만들기
+            첫 현장영상 만들기
           </button>
         </div>
       ) : (

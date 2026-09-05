@@ -191,7 +191,7 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
           className="absolute left-4 top-1/2 -translate-y-1/2 z-10 hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20"
 
-          aria-label="이전 릴스"
+          aria-label="이전 현장영상"
 
         >
 
@@ -211,7 +211,7 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
           className="absolute left-4 bottom-1/4 z-10 hidden md:flex items-center justify-center w-10 h-10 rounded-full bg-white/10 text-white hover:bg-white/20"
 
-          aria-label="다음 릴스"
+          aria-label="다음 현장영상"
 
         >
 
@@ -235,7 +235,7 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
           <MediaImage
             src={reel.thumbnail_url}
-            alt={reel.caption || '릴스'}
+            alt={reel.caption || '현장영상'}
             className="w-full h-full object-cover"
           />
 

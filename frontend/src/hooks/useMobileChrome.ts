@@ -39,7 +39,7 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
         showHeaderNav: true,
         showBottomNav: false,
         headerVariant: 'title-only',
-        title: '릴스',
+        title: '현장영상',
       };
     }
 
@@ -49,7 +49,7 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
         showHeaderNav: true,
         showBottomNav: true,
         headerVariant: 'title-only',
-        title: '메시지',
+        title: '거래문의',
       };
     }
 
@@ -113,7 +113,7 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
         showHeaderNav: true,
         showBottomNav: true,
         headerVariant: 'back-title',
-        title: '회원님을 위한 추천',
+        title: '추천 거래처',
         backTo: '/',
       };
     }

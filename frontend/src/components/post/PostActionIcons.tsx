@@ -51,7 +51,7 @@ export function PostLikeIcon({
   className,
 }: PostLikeIconProps) {
   if (liked) {
-    return <HeartSolidIcon size={size} color="#ed4956" className={className} />;
+    return <HeartSolidIcon size={size} color="#E07A5F" className={className} />;
   }
   return <HeartOutlineIcon size={size} color={inactiveStroke(tone)} className={className} />;
 }
@@ -163,7 +163,7 @@ export function DoubleTapHeartIcon({
   className?: string;
 }) {
   if (tone === 'reels') {
-    return <HeartSolidIcon size={size} color="#ed4956" className={className} />;
+    return <HeartSolidIcon size={size} color="#E07A5F" className={className} />;
   }
   return <HeartSolidIcon size={size} color="white" className={className} />;
 }

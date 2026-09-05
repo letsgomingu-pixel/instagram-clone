@@ -87,7 +87,7 @@ export function ProfileHeader({ user, activeTab, onTabChange, onFollow }: Profil
 
                 onClick={() => setActiveStoryIndex(storyIndex)}
 
-                aria-label={`${user.username}의 스토리 보기`}
+                aria-label={`${user.username}의 입고 소식 보기`}
 
               >
 
@@ -379,13 +379,13 @@ export function ProfileHeader({ user, activeTab, onTabChange, onFollow }: Profil
 
           className={tabClass(activeTab === 'reels')}
 
-          aria-label="릴스"
+          aria-label="현장영상"
 
         >
 
           <ReelsIcon size={12} filled={activeTab === 'reels'} className="md:mr-2" />
 
-          <span className="hidden md:inline text-[12px] font-semibold tracking-[1px] uppercase">릴스</span>
+          <span className="hidden md:inline text-[12px] font-semibold tracking-[1px] uppercase">현장영상</span>
 
         </button>
 

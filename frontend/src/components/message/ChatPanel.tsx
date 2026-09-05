@@ -66,7 +66,7 @@ export function ChatPanel({ conversation, loading = false, onSend, onBack, showB
         </div>
         <h2 className="text-xl font-light mb-2">내 메시지</h2>
         <p className="text-sm text-ig-text-secondary max-w-[250px]">
-          친구나 그룹에 비공개 사진과 메시지를 보내보세요
+          거래처에 거래 조건과 입고 사진을 보내보세요
         </p>
         <Link
           to="/search"

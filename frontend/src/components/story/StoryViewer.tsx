@@ -238,7 +238,7 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
 
 
-  const altText = `${story.user.username}의 스토리`;
+  const altText = `${story.user.username}의 입고 소식`;
 
 
 
@@ -388,9 +388,9 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
         <div className="absolute inset-0 flex">
 
-          <button className="flex-1" onClick={goPrev} aria-label="이전 스토리" />
+          <button className="flex-1" onClick={goPrev} aria-label="이전 입고 소식" />
 
-          <button className="flex-1" onClick={goNext} aria-label="다음 스토리" />
+          <button className="flex-1" onClick={goNext} aria-label="다음 입고 소식" />
 
         </div>
 

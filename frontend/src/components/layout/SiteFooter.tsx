@@ -1,15 +1,14 @@
 import { cn } from '@/utils/cn';
 
 const FOOTER_LINKS = [
-  '소개',
-  '도움말',
-  '홍보 센터',
-  '개발자 센터',
-  '채용 정보',
+  '회사 소개',
+  '도매 안내',
+  '소매 안내',
+  '이용약관',
   '개인정보처리방침',
-  '약관',
-  '위치',
-  '언어',
+  '고객센터',
+  '입고 안내',
+  '현장영상',
 ] as const;
 
 interface SiteFooterProps {

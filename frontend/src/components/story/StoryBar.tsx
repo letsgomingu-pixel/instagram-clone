@@ -38,7 +38,7 @@ export function StoryBar() {
                 onClick={handleViewOwnStory}
                 disabled={ownStoryIndex < 0}
                 className="disabled:cursor-default"
-                aria-label="내 스토리 보기"
+                aria-label="오늘 입고 보기"
               >
                 <Avatar
                   src={user.avatar_url}
@@ -52,14 +52,14 @@ export function StoryBar() {
               <button
                 type="button"
                 onClick={handleCreateStory}
-                aria-label="스토리 추가"
+                aria-label="입고 소식 추가"
                 className="absolute bottom-0 right-0 flex h-[20px] w-[20px] items-center justify-center rounded-full border-2 border-white bg-ig-primary text-white"
               >
                 <Plus size={12} strokeWidth={3} />
               </button>
             </div>
             <span className="text-[12px] text-ig-text truncate w-full text-center leading-[14px]">
-              내 스토리
+              오늘 입고
             </span>
           </div>
         )}
@@ -72,7 +72,7 @@ export function StoryBar() {
               type="button"
               onClick={() => setActiveStoryIndex(index)}
               className="flex flex-col items-center gap-1 shrink-0 w-[66px]"
-              aria-label={`${story.user.username}의 스토리 보기`}
+              aria-label={`${story.user.username}의 입고 소식 보기`}
             >
               <Avatar
                 src={story.user.avatar_url}

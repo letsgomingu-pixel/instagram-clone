@@ -62,7 +62,7 @@ function HeaderIconLink({ to, label, active, badge, requiresAuth, children }: Ic
   );
 }
 
-/** Instagram-style primary navigation icons in the mobile top header. */
+/** Mobile top header — seafood marketplace navigation */
 export function MobileHeaderIconStrip() {
   const { pathname } = useLocation();
   const { user, isAuthenticated } = useAuth();
@@ -75,7 +75,7 @@ export function MobileHeaderIconStrip() {
       aria-label="주요 메뉴"
       className="flex items-center justify-around border-t border-ig-border px-1 h-[48px] w-full"
     >
-      <HeaderIconLink to="/" label="홈" active={isActivePath(pathname, '/')} requiresAuth={false}>
+      <HeaderIconLink to="/" label="시장가" active={isActivePath(pathname, '/')} requiresAuth={false}>
         <NavHomeIcon active={isActivePath(pathname, '/')} />
       </HeaderIconLink>
 
@@ -83,13 +83,13 @@ export function MobileHeaderIconStrip() {
         <NavSearchIcon active={isActivePath(pathname, '/search')} />
       </HeaderIconLink>
 
-      <HeaderIconLink to="/reels" label="릴스" active={isActivePath(pathname, '/reels')} requiresAuth={false}>
+      <HeaderIconLink to="/reels" label="현장영상" active={isActivePath(pathname, '/reels')} requiresAuth={false}>
         <ReelsIcon size={24} filled={isActivePath(pathname, '/reels')} />
       </HeaderIconLink>
 
       <HeaderIconLink
         to="/messages"
-        label="메시지"
+        label="거래문의"
         active={isActivePath(pathname, '/messages')}
         badge={messageCount}
         requiresAuth
@@ -109,14 +109,14 @@ export function MobileHeaderIconStrip() {
 
       <HeaderIconLink
         to={profileTo}
-        label="프로필"
+        label="거래처"
         active={pathname.startsWith('/profile/')}
         requiresAuth={!isAuthenticated}
       >
         {isAuthenticated && user ? (
           <div
             className={cn(
-              pathname.startsWith('/profile/') && 'ring-2 ring-ig-text rounded-full p-[1px]',
+              pathname.startsWith('/profile/') && 'ring-2 ring-ig-primary rounded-full p-[1px]',
             )}
           >
             <Avatar src={user.avatar_url} alt={user.username} size="xs" />

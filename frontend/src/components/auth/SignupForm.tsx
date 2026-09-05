@@ -75,12 +75,12 @@ export function SignupForm() {
 
   return (
     <div className="w-full max-w-[350px]">
-      <div className="bg-white border border-ig-border rounded-sm px-10 py-10 mb-3">
+      <div className="bg-white border border-ig-border rounded-xl px-10 py-10 mb-3 shadow-sm">
         <div className="flex justify-center mb-3">
-          <InstagramLogo className="text-[28px] leading-tight text-center" />
+          <InstagramLogo className="text-[22px] leading-tight text-center" />
         </div>
-        <p className="text-ig-text-secondary text-base font-semibold text-center mb-4">
-          친구들의 사진과 동영상을 보려면 가입하세요.
+        <p className="text-ig-text-secondary text-sm font-medium text-center mb-4 leading-relaxed">
+          신선한 수산물 거래를 시작하려면 가입하세요.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-2">
@@ -89,7 +89,7 @@ export function SignupForm() {
             placeholder="이메일"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-2 py-2 bg-ig-secondary border border-ig-border rounded-sm text-xs"
+            className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs"
           />
           <div>
             <input
@@ -97,7 +97,7 @@ export function SignupForm() {
               placeholder="사용자 이름"
               value={username}
               onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9._]/g, ''))}
-              className="w-full px-2 py-2 bg-ig-secondary border border-ig-border rounded-sm text-xs"
+              className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs"
             />
             {debouncedUsername.length >= 3 && (
               <p className={`text-xs mt-1 ${usernameTaken ? 'text-ig-red' : 'text-green-600'}`}>
@@ -110,7 +110,7 @@ export function SignupForm() {
             placeholder="성명"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="w-full px-2 py-2 bg-ig-secondary border border-ig-border rounded-sm text-xs"
+            className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs"
           />
           <div>
             <input
@@ -118,7 +118,7 @@ export function SignupForm() {
               placeholder="비밀번호"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-2 py-2 bg-ig-secondary border border-ig-border rounded-sm text-xs"
+              className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs"
             />
             {password && (
               <div className="mt-1 flex items-center gap-2">
@@ -147,7 +147,7 @@ export function SignupForm() {
         </p>
       </div>
 
-      <div className="bg-white border border-ig-border rounded-sm py-5 text-center text-sm">
+      <div className="bg-white border border-ig-border rounded-xl py-5 text-center text-sm shadow-sm">
         계정이 있으신가요?{' '}
         <Link to="/login" className="text-ig-primary font-semibold hover:underline">
           로그인

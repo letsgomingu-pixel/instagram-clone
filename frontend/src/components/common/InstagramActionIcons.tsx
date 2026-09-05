@@ -27,7 +27,7 @@ export function HeartOutlineIcon({ size = 24, className, color = 'currentColor' 
   );
 }
 
-export function HeartSolidIcon({ size = 24, className, color = '#ed4956' }: SvgIconProps) {
+export function HeartSolidIcon({ size = 24, className, color = '#E07A5F' }: SvgIconProps) {
   return (
     <svg
       width={size}

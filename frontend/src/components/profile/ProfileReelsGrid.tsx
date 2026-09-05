@@ -16,9 +16,9 @@ export function ProfileReelsGrid({ reels, onReelClick }: ProfileReelsGridProps) 
         <div className="w-[62px] h-[62px] border-2 border-ig-text rounded-full flex items-center justify-center mb-4">
           <ReelsIcon size={24} />
         </div>
-        <h2 className="text-[28px] font-light mb-2">릴스 공유</h2>
+        <h2 className="text-[28px] font-light mb-2">현장영상 공유</h2>
         <p className="text-[14px] text-ig-text-secondary max-w-[350px]">
-          회원님의 릴스가 프로필에 표시됩니다.
+          회원님의 현장영상가 프로필에 표시됩니다.
         </p>
       </div>
     );
@@ -31,11 +31,11 @@ export function ProfileReelsGrid({ reels, onReelClick }: ProfileReelsGridProps) 
           key={reel.id}
           onClick={() => onReelClick(index)}
           className="relative aspect-[9/16] group overflow-hidden bg-ig-secondary"
-          aria-label={`${reel.user.username}의 릴스`}
+          aria-label={`${reel.user.username}의 현장영상`}
         >
           <MediaImage
             src={reel.thumbnail_url}
-            alt={reel.caption || '릴스'}
+            alt={reel.caption || '현장영상'}
             className="w-full h-full object-cover"
             loading="lazy"
           />

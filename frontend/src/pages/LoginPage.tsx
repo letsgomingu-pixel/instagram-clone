@@ -1,5 +1,14 @@
 import { LoginForm } from '@/components/auth/LoginForm';
 
+const FOOTER_LINKS = [
+  '회사 소개',
+  '도매 안내',
+  '소매 안내',
+  '이용약관',
+  '개인정보처리방침',
+  '고객센터',
+] as const;
+
 export function LoginPage() {
   return (
     <div className="min-h-full flex flex-col">
@@ -9,15 +18,15 @@ export function LoginPage() {
 
       <footer className="py-6">
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-ig-text-secondary mb-4 px-4">
-          {['메타', '소개', '블로그', '채용 정보', '도움말', '개발자 센터', '개인정보처리방침', '약관', '위치', '라이트 버전', '메타 AI'].map(
-            (item) => (
-              <a key={item} href="#" className="hover:underline">{item}</a>
-            ),
-          )}
+          {FOOTER_LINKS.map((item) => (
+            <a key={item} href="#" className="hover:underline">
+              {item}
+            </a>
+          ))}
         </div>
         <div className="flex justify-center gap-4 text-xs text-ig-text-secondary">
           <span>한국어</span>
-          <span>© 2026 i am not a fishmonger · 메타</span>
+          <span>© 2026 i am not a fishmonger</span>
         </div>
       </footer>
     </div>

@@ -1,47 +1,55 @@
 @import "tailwindcss";
 
 @theme {
-  --font-instagram: "Fredoka", sans-serif;
-  --color-ig-primary: #0095f6;
-  --color-ig-primary-hover: #1877f2;
-  --color-ig-secondary: #efefef;
-  --color-ig-border: #dbdbdb;
-  --color-ig-text: #262626;
-  --color-ig-text-secondary: #8e8e8e;
-  --color-ig-bg: #fafafa;
-  --color-ig-red: #ed4956;
-  --color-ig-link: #00376b;
+  --font-brand: "DM Serif Display", Georgia, serif;
+  --font-sans: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  /* Legacy token names — values are ocean / seafood palette */
+  --font-instagram: var(--font-brand);
+  --color-ig-primary: #0a7ea4;
+  --color-ig-primary-hover: #065a75;
+  --color-ig-secondary: #e8f6fa;
+  --color-ig-border: #b8d9e6;
+  --color-ig-text: #0b2e3d;
+  --color-ig-text-secondary: #5a8494;
+  --color-ig-bg: #f3fafc;
+  --color-ig-red: #e07a5f;
+  --color-ig-link: #087ca7;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
 }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: var(--color-ig-bg);
+  font-family: var(--font-sans);
+  background: linear-gradient(180deg, #f3fafc 0%, #e8f6fa 100%);
+  background-attachment: fixed;
   color: var(--color-ig-text);
   -webkit-font-smoothing: antialiased;
 }
 
-.font-instagram {
-  font-family: var(--font-instagram);
-  font-weight: 600;
+.font-instagram,
+.font-brand {
+  font-family: var(--font-brand);
+  font-weight: 400;
+  letter-spacing: -0.02em;
 }
 
 .story-ring {
-  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  background: linear-gradient(135deg, #0077b6, #00b4d8, #48cae4, #90e0ef);
   padding: 2px;
   border-radius: 50%;
 }
 
 .story-ring-viewed {
-  background: #dbdbdb;
+  background: #b8d9e6;
   padding: 2px;
   border-radius: 50%;
 }
@@ -57,6 +65,7 @@ body {
 .feed-card {
   background-color: white;
   border-bottom: 1px solid var(--color-ig-border);
+  box-shadow: 0 1px 3px rgba(11, 46, 61, 0.06);
 }
 
 .preserve-line-breaks {
@@ -89,18 +98,33 @@ body {
 
   .feed-card {
     border: 1px solid var(--color-ig-border);
-    border-radius: 8px;
-    margin-bottom: 12px;
+    border-radius: 12px;
+    margin-bottom: 16px;
     overflow: hidden;
   }
 }
 
 @keyframes heart-pop {
-  0% { transform: scale(0); opacity: 0; }
-  15% { transform: scale(1.2); opacity: 1; }
-  30% { transform: scale(0.95); }
-  45%, 80% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(1); opacity: 0; }
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  15% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(0.95);
+  }
+  45%,
+  80% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
 }
 
 .animate-heart-pop {
@@ -108,10 +132,18 @@ body {
 }
 
 @keyframes like-bounce {
-  0% { transform: scale(1); }
-  25% { transform: scale(1.25); }
-  50% { transform: scale(0.92); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.25);
+  }
+  50% {
+    transform: scale(0.92);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .animate-like-bounce {
@@ -119,14 +151,20 @@ body {
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .animate-fade-in {
   animation: fade-in 0.2s ease-out;
 }
 
-input:focus, textarea:focus {
+input:focus,
+textarea:focus {
   outline: none;
+  box-shadow: 0 0 0 2px rgba(10, 126, 164, 0.25);
 }

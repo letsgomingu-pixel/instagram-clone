@@ -20,8 +20,8 @@ export function BottomNav() {
   const handleCreate = () => requireAuth(() => setCreatePostOpen(true));
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 mobile-bottom-nav-safe bg-white border-t border-ig-border flex items-stretch justify-around z-40">
-      <NavLink to="/" className="flex flex-1 items-center justify-center min-h-[49px]" aria-label="홈">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 mobile-bottom-nav-safe bg-white/95 backdrop-blur-sm border-t border-ig-border flex items-stretch justify-around z-40">
+      <NavLink to="/" className="flex flex-1 items-center justify-center min-h-[49px]" aria-label="시장가">
         {({ isActive }) => <NavHomeIcon active={isActive} />}
       </NavLink>
 
@@ -37,7 +37,7 @@ export function BottomNav() {
         type="button"
         onClick={handleCreate}
         className="flex flex-1 items-center justify-center min-h-[49px]"
-        aria-label="만들기"
+        aria-label="등록"
       >
         <NavCreateIcon />
       </button>
@@ -45,7 +45,7 @@ export function BottomNav() {
       <NavLink
         to="/reels"
         className="flex flex-1 items-center justify-center min-h-[49px]"
-        aria-label="릴스"
+        aria-label="현장영상"
       >
         {({ isActive }) => <ReelsIcon size={24} filled={isActive} />}
       </NavLink>
@@ -54,11 +54,11 @@ export function BottomNav() {
         <NavLink
           to={`/profile/${user?.username}`}
           className="flex flex-1 items-center justify-center min-h-[49px]"
-          aria-label="프로필"
-        >
+          aria-label="거래처"
+          >
           {({ isActive }) => (
-            <div className={cn(isActive && 'ring-2 ring-ig-text rounded-full p-[1px]')}>
-              <Avatar src={user?.avatar_url} alt="프로필" size="xs" />
+            <div className={cn(isActive && 'ring-2 ring-ig-primary rounded-full p-[1px]')}>
+              <Avatar src={user?.avatar_url} alt="거래처" size="xs" />
             </div>
           )}
         </NavLink>

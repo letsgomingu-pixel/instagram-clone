@@ -20,7 +20,7 @@ export function Button({
 }: ButtonProps) {
   const variants = {
     primary: 'bg-ig-primary text-white hover:bg-ig-primary-hover disabled:opacity-50',
-    secondary: 'bg-ig-secondary text-ig-text hover:bg-[#dbdbdb]',
+    secondary: 'bg-ig-secondary text-ig-text hover:bg-ig-border',
     text: 'text-ig-primary hover:text-ig-primary-hover bg-transparent',
     danger: 'bg-ig-red text-white hover:opacity-90',
   };
