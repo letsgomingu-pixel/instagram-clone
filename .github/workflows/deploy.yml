@@ -59,6 +59,10 @@ jobs:
 
             cd "$DEPLOY_PATH"
 
+            log "Updating repository to latest main..."
+            git fetch origin main
+            git reset --hard origin/main
+
             if [[ -f deploy/redeploy.sh ]]; then
               log "Running deploy/redeploy.sh (systemd + frontend build)..."
               sudo bash deploy/redeploy.sh
