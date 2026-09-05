@@ -39,11 +39,16 @@ find "$DEPLOY_PATH/frontend/dist" -type f -exec chmod o+r {} + 2>/dev/null || tr
 
 echo "==> Restarting services..."
 systemctl restart instagram-backend
-sleep 1
-if ! curl -fsS "http://127.0.0.1:${BACKEND_PORT}/api/v1/health" >/dev/null; then
-  echo "Backend health check failed — see: journalctl -u instagram-backend -n 50" >&2
-  exit 1
-fi
+for i in $(seq 1 30); do
+  if curl -fsS "http://127.0.0.1:${BACKEND_PORT}/api/v1/health" >/dev/null; then
+    break
+  fi
+  if [[ "$i" -eq 30 ]]; then
+    echo "Backend health check failed — see: journalctl -u instagram-backend -n 50" >&2
+    exit 1
+  fi
+  sleep 2
+done
 nginx -t
 systemctl reload nginx
 
