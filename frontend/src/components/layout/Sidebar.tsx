@@ -72,7 +72,7 @@ export function Sidebar() {
 
   return (
 
-    <aside className="hidden md:flex fixed left-0 top-0 h-full w-[245px] border-r border-ig-border bg-white/95 backdrop-blur-sm flex-col px-3 py-8 z-40">
+    <aside className="hidden md:flex fixed left-0 top-0 h-full w-[245px] border-r border-ig-border bg-ig-surface/95 backdrop-blur-sm flex-col px-3 py-8 z-40">
 
       <NavLink to="/" className="px-3 mb-6">
 

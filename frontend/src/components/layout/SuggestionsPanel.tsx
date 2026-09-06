@@ -22,7 +22,7 @@ export function SuggestionsPanel() {
           </div>
         </div>
       ) : (
-        <div className="bg-white border border-ig-border rounded-xl p-4 mb-6 shadow-sm">
+        <div className="bg-ig-surface border border-ig-border rounded-xl p-4 mb-6 shadow-sm">
           <p className="text-sm font-semibold mb-1">i am not a fishmonger에 오신 것을 환영합니다</p>
           <p className="text-xs text-ig-text-secondary mb-3">
             도·소매 수산물 거래처와 입고 소식을 확인해 보세요.

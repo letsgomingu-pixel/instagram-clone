@@ -57,7 +57,7 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-[350px]">
-      <div className="bg-white border border-ig-border rounded-xl px-10 py-10 mb-3 shadow-sm">
+      <div className="bg-ig-surface border border-ig-border rounded-xl px-10 py-10 mb-3 shadow-sm">
         <div className="flex justify-center mb-6">
           <InstagramLogo className="text-[22px] leading-tight text-center" />
         </div>
@@ -106,7 +106,7 @@ export function LoginForm() {
         </Link>
       </div>
 
-      <div className="bg-white border border-ig-border rounded-xl py-5 text-center text-sm shadow-sm">
+      <div className="bg-ig-surface border border-ig-border rounded-xl py-5 text-center text-sm shadow-sm">
         계정이 없으신가요?{' '}
         <Link to="/signup" className="text-ig-primary font-semibold hover:underline">
           거래처 등록

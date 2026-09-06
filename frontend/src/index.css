@@ -3,17 +3,18 @@
 @theme {
   --font-brand: "DM Serif Display", Georgia, serif;
   --font-sans: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  /* Legacy token names — values are ocean / seafood palette */
   --font-instagram: var(--font-brand);
-  --color-ig-primary: #0a7ea4;
-  --color-ig-primary-hover: #065a75;
-  --color-ig-secondary: #e8f6fa;
-  --color-ig-border: #b8d9e6;
-  --color-ig-text: #0b2e3d;
-  --color-ig-text-secondary: #5a8494;
-  --color-ig-bg: #f3fafc;
-  --color-ig-red: #e07a5f;
-  --color-ig-link: #087ca7;
+  /* Brand palette — electric blue on black (favicon / OG) */
+  --color-ig-primary: #0095ff;
+  --color-ig-primary-hover: #0078cc;
+  --color-ig-secondary: #141414;
+  --color-ig-surface: #0a0a0a;
+  --color-ig-border: #262626;
+  --color-ig-text: #f5f5f5;
+  --color-ig-text-secondary: #a3a3a3;
+  --color-ig-bg: #000000;
+  --color-ig-red: #ff453a;
+  --color-ig-link: #0095ff;
 }
 
 * {
@@ -29,8 +30,7 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background: linear-gradient(180deg, #f3fafc 0%, #e8f6fa 100%);
-  background-attachment: fixed;
+  background: #000000;
   color: var(--color-ig-text);
   -webkit-font-smoothing: antialiased;
 }
@@ -43,13 +43,13 @@ body {
 }
 
 .story-ring {
-  background: linear-gradient(135deg, #0077b6, #00b4d8, #48cae4, #90e0ef);
+  background: linear-gradient(135deg, #0095ff, #0078cc, #005999, #003d66);
   padding: 2px;
   border-radius: 50%;
 }
 
 .story-ring-viewed {
-  background: #b8d9e6;
+  background: #262626;
   padding: 2px;
   border-radius: 50%;
 }
@@ -63,9 +63,9 @@ body {
 }
 
 .feed-card {
-  background-color: white;
+  background-color: var(--color-ig-surface);
   border-bottom: 1px solid var(--color-ig-border);
-  box-shadow: 0 1px 3px rgba(11, 46, 61, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .preserve-line-breaks {
@@ -166,5 +166,5 @@ body {
 input:focus,
 textarea:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(10, 126, 164, 0.25);
+  box-shadow: 0 0 0 2px rgba(0, 149, 255, 0.35);
 }
