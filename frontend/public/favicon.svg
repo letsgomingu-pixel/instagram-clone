@@ -1,5 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" fill="#000000"/>
-  <rect x="14" y="7" width="4" height="4" fill="#0095FF"/>
-  <rect x="14" y="13" width="4" height="12" rx="1" fill="#0095FF"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" fill="#000000"/>
+  <text
+    x="256"
+    y="268"
+    text-anchor="middle"
+    font-family="Georgia, 'DM Serif Display', serif"
+    font-size="38"
+    fill="#0095FF"
+  >i am not a fishmonger</text>
 </svg>
