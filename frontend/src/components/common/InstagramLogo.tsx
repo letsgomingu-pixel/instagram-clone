@@ -11,7 +11,7 @@ export function BrandIcon({ size = 28, className }: { size?: number; className?:
         className={className}
         aria-hidden="true"
       >
-        <rect width="512" height="512" fill="#000000" />
+        <rect width="512" height="512" fill="#FFFFFF" />
         <text
           x="256"
           y="228"
@@ -47,7 +47,7 @@ export function BrandIcon({ size = 28, className }: { size?: number; className?:
       className={className}
       aria-hidden="true"
     >
-      <rect width="32" height="32" fill="#000000" />
+      <rect width="32" height="32" fill="#FFFFFF" />
       <text
         x="16"
         y="14"

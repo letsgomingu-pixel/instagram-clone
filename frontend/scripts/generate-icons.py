@@ -7,14 +7,15 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 PUBLIC = ROOT / "public"
+SOURCE = PUBLIC / "brand-icon-source.png"
 MASTER = PUBLIC / "brand-icon-master.png"
 
-BRAND_BLACK = "#000000"
+BRAND_WHITE = "#FFFFFF"
 BRAND_BLUE = "#0095FF"
 SITE_ORIGIN = "https://www.iamnotafishmonger.com"
 
 SVG_TEMPLATE = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <rect width="512" height="512" fill="#000000"/>
+  <rect width="512" height="512" fill="{BRAND_WHITE}"/>
   <text
     x="256"
     y="228"
@@ -37,16 +38,37 @@ SVG_TEMPLATE = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"
 """
 
 
+def to_white_background(source: Image.Image) -> Image.Image:
+    """Black-background brand art -> white background, blue text preserved."""
+    rgba = source.convert("RGBA")
+    out = Image.new("RGBA", rgba.size, BRAND_WHITE)
+    src_px = rgba.load()
+    out_px = out.load()
+    w, h = rgba.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = src_px[x, y]
+            if a >= 32 and (r > 60 or g > 60 or b > 60):
+                out_px[x, y] = (r, g, b, 255)
+    return out
+
+
 def load_master() -> Image.Image:
-    if not MASTER.exists():
+    path = SOURCE if SOURCE.exists() else MASTER
+    if not path.exists():
         raise FileNotFoundError(
-            f"Missing {MASTER}. Place the official brand icon PNG at this path before running."
+            f"Missing brand icon at {SOURCE} or {MASTER}. Add the official PNG first."
         )
-    return Image.open(MASTER).convert("RGBA")
+    master = to_white_background(Image.open(path))
+    save_png(MASTER, master)
+    return master
 
 
 def save_png(path: Path, image: Image.Image) -> None:
-    image.save(path, format="PNG", optimize=True)
+    if image.mode == "RGBA":
+        image.save(path, format="PNG", optimize=True)
+    else:
+        image.save(path, format="PNG", optimize=True)
 
 
 def save_jpg(path: Path, image: Image.Image, *, quality: int = 92) -> None:
@@ -73,8 +95,7 @@ def _load_bold_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
 
 
 def render_favicon_mark(size: int) -> Image.Image:
-    """Single-letter favicon for tiny sizes (16/32/48)."""
-    img = Image.new("RGBA", (size, size), BRAND_BLACK)
+    img = Image.new("RGBA", (size, size), BRAND_WHITE)
     draw = ImageDraw.Draw(img)
     font = _load_bold_font(max(10, int(size * 0.72)))
     draw.text((size / 2, size / 2), "i", font=font, fill=BRAND_BLUE, anchor="mm")
@@ -83,7 +104,7 @@ def render_favicon_mark(size: int) -> Image.Image:
 
 def render_og_landscape(master: Image.Image) -> Image.Image:
     canvas_w, canvas_h = 1200, 630
-    og = Image.new("RGBA", (canvas_w, canvas_h), BRAND_BLACK)
+    og = Image.new("RGBA", (canvas_w, canvas_h), BRAND_WHITE)
 
     max_w = int(canvas_w * 0.90)
     max_h = int(canvas_h * 0.72)
@@ -98,8 +119,7 @@ def render_og_landscape(master: Image.Image) -> Image.Image:
 
 
 def render_og_square(master: Image.Image, *, size: int = 800) -> Image.Image:
-    """Square OG image — KakaoTalk renders link previews as a square thumbnail."""
-    og = Image.new("RGBA", (size, size), BRAND_BLACK)
+    og = Image.new("RGBA", (size, size), BRAND_WHITE)
 
     max_side = int(size * 0.88)
     ratio = min(max_side / master.width, max_side / master.height)
@@ -139,12 +159,13 @@ def main() -> None:
     save_png(PUBLIC / "og-image.png", landscape)
     save_jpg(PUBLIC / "og-social.jpg", landscape)
     save_jpg(PUBLIC / "og-kakao.jpg", square)
+    save_jpg(PUBLIC / "og-white.jpg", square)
 
     for name in ("favicon.svg", "brand-icon.svg", "app-icon.svg"):
         write_svg(PUBLIC / name)
 
     print(f"[OK] Brand assets generated in {PUBLIC}")
-    print(f"     OG (Kakao): {SITE_ORIGIN}/og-kakao.jpg")
+    print(f"     OG: {SITE_ORIGIN}/og-white.jpg")
 
 
 if __name__ == "__main__":
