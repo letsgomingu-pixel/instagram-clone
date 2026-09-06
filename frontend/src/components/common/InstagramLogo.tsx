@@ -1,42 +1,6 @@
 import { cn } from '@/utils/cn';
 
 export function BrandIcon({ size = 28, className }: { size?: number; className?: string }) {
-  if (size >= 48) {
-    return (
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 512 512"
-        fill="none"
-        className={className}
-        aria-hidden="true"
-      >
-        <rect width="512" height="512" fill="#000000" />
-        <text
-          x="256"
-          y="218"
-          textAnchor="middle"
-          fontFamily="Georgia, 'DM Serif Display', serif"
-          fontSize="56"
-          fill="#0095FF"
-        >
-          i am not a
-        </text>
-        <text
-          x="256"
-          y="310"
-          textAnchor="middle"
-          fontFamily="Georgia, 'DM Serif Display', serif"
-          fontSize="88"
-          fontWeight="700"
-          fill="#F5F5F5"
-        >
-          fishmonger
-        </text>
-      </svg>
-    );
-  }
-
   return (
     <svg
       width={size}
@@ -47,16 +11,8 @@ export function BrandIcon({ size = 28, className }: { size?: number; className?:
       aria-hidden="true"
     >
       <rect width="32" height="32" fill="#000000" />
-      <text
-        x="16"
-        y="23"
-        textAnchor="middle"
-        fontFamily="Georgia, 'DM Serif Display', serif"
-        fontSize="22"
-        fill="#0095FF"
-      >
-        i
-      </text>
+      <rect x="14" y="7" width="4" height="4" fill="#0095FF" />
+      <rect x="14" y="13" width="4" height="12" rx="1" fill="#0095FF" />
     </svg>
   );
 }

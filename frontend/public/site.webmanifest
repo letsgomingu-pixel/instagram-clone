@@ -1,7 +1,7 @@
 {
   "name": "i am not a fishmonger",
   "short_name": "fishmonger",
-  "description": "i am not a fishmonger — 수산물 전문 도·소매 이커머스",
+  "description": "수산물 전문 도·소매 이커머스",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
