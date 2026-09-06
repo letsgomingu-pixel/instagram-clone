@@ -24,6 +24,10 @@ def save_png(path: Path, image: Image.Image) -> None:
     image.save(path, format="PNG", optimize=True)
 
 
+def save_jpg(path: Path, image: Image.Image, *, quality: int = 92) -> None:
+    image.save(path, format="JPEG", quality=quality, optimize=True)
+
+
 def save_ico(path: Path, master: Image.Image) -> None:
     sizes = [16, 32, 48]
     frames = [master.resize((s, s), Image.Resampling.LANCZOS) for s in sizes]
@@ -34,8 +38,8 @@ def render_og(master: Image.Image) -> Image.Image:
     canvas_w, canvas_h = 1200, 630
     og = Image.new("RGBA", (canvas_w, canvas_h), BRAND_BLACK)
 
-    max_w = int(canvas_w * 0.86)
-    max_h = int(canvas_h * 0.62)
+    max_w = int(canvas_w * 0.90)
+    max_h = int(canvas_h * 0.72)
     ratio = min(max_w / master.width, max_h / master.height)
     new_size = (max(1, int(master.width * ratio)), max(1, int(master.height * ratio)))
     resized = master.resize(new_size, Image.Resampling.LANCZOS)
@@ -93,9 +97,10 @@ def main() -> None:
 
     save_ico(PUBLIC / "favicon.ico", master)
     og = render_og(master)
-    # og-brand.png — canonical OG asset (new filename busts Kakao/Facebook URL cache)
     save_png(PUBLIC / "og-brand.png", og)
     save_png(PUBLIC / "og-image.png", og)
+    # JPEG — KakaoTalk scraper handles this more reliably than PNG for previews
+    save_jpg(PUBLIC / "og-social.jpg", og)
 
     for name in ("favicon.svg", "brand-icon.svg", "app-icon.svg"):
         write_svg(PUBLIC / name)
