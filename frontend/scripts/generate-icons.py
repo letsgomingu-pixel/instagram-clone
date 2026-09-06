@@ -46,22 +46,34 @@ def render_og(master: Image.Image) -> Image.Image:
     return og.convert("RGB")
 
 
-def write_svg(path: Path) -> None:
-    path.write_text(
-        """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+BRAND_BLUE = "#0095FF"
+
+SVG_TEMPLATE = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
   <rect width="512" height="512" fill="#000000"/>
   <text
     x="256"
-    y="268"
+    y="228"
     text-anchor="middle"
-    font-family="Georgia, 'DM Serif Display', serif"
-    font-size="38"
-    fill="#0095FF"
-  >i am not a fishmonger</text>
+    font-family="'Outfit', system-ui, sans-serif"
+    font-size="52"
+    font-weight="700"
+    fill="{BRAND_BLUE}"
+  >i am not a</text>
+  <text
+    x="256"
+    y="298"
+    text-anchor="middle"
+    font-family="'Outfit', system-ui, sans-serif"
+    font-size="52"
+    font-weight="700"
+    fill="{BRAND_BLUE}"
+  >fishmonger</text>
 </svg>
-""",
-        encoding="utf-8",
-    )
+"""
+
+
+def write_svg(path: Path) -> None:
+    path.write_text(SVG_TEMPLATE, encoding="utf-8")
 
 
 def main() -> None:

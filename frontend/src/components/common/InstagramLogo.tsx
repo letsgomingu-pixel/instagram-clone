@@ -14,13 +14,25 @@ export function BrandIcon({ size = 28, className }: { size?: number; className?:
         <rect width="512" height="512" fill="#000000" />
         <text
           x="256"
-          y="268"
+          y="228"
           textAnchor="middle"
-          fontFamily="Georgia, 'DM Serif Display', serif"
-          fontSize="38"
+          fontFamily="'Outfit', system-ui, sans-serif"
+          fontSize="52"
+          fontWeight="700"
           fill="#0095FF"
         >
-          i am not a fishmonger
+          i am not a
+        </text>
+        <text
+          x="256"
+          y="298"
+          textAnchor="middle"
+          fontFamily="'Outfit', system-ui, sans-serif"
+          fontSize="52"
+          fontWeight="700"
+          fill="#0095FF"
+        >
+          fishmonger
         </text>
       </svg>
     );
@@ -38,13 +50,25 @@ export function BrandIcon({ size = 28, className }: { size?: number; className?:
       <rect width="32" height="32" fill="#000000" />
       <text
         x="16"
-        y="23"
+        y="14"
         textAnchor="middle"
-        fontFamily="Georgia, 'DM Serif Display', serif"
-        fontSize="22"
+        fontFamily="'Outfit', system-ui, sans-serif"
+        fontSize="7"
+        fontWeight="700"
         fill="#0095FF"
       >
-        i
+        i am not a
+      </text>
+      <text
+        x="16"
+        y="23"
+        textAnchor="middle"
+        fontFamily="'Outfit', system-ui, sans-serif"
+        fontSize="7"
+        fontWeight="700"
+        fill="#0095FF"
+      >
+        fishmonger
       </text>
     </svg>
   );

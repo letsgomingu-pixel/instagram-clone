@@ -2,10 +2,20 @@
   <rect width="512" height="512" fill="#000000"/>
   <text
     x="256"
-    y="268"
+    y="228"
     text-anchor="middle"
-    font-family="Georgia, 'DM Serif Display', serif"
-    font-size="38"
+    font-family="'Outfit', system-ui, sans-serif"
+    font-size="52"
+    font-weight="700"
     fill="#0095FF"
-  >i am not a fishmonger</text>
+  >i am not a</text>
+  <text
+    x="256"
+    y="298"
+    text-anchor="middle"
+    font-family="'Outfit', system-ui, sans-serif"
+    font-size="52"
+    font-weight="700"
+    fill="#0095FF"
+  >fishmonger</text>
 </svg>
