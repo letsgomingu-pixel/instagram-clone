@@ -92,7 +92,10 @@ def main() -> None:
         save_png(PUBLIC / name, master.resize((size, size), Image.Resampling.LANCZOS))
 
     save_ico(PUBLIC / "favicon.ico", master)
-    save_png(PUBLIC / "og-image.png", render_og(master))
+    og = render_og(master)
+    # og-brand.png — canonical OG asset (new filename busts Kakao/Facebook URL cache)
+    save_png(PUBLIC / "og-brand.png", og)
+    save_png(PUBLIC / "og-image.png", og)
 
     for name in ("favicon.svg", "brand-icon.svg", "app-icon.svg"):
         write_svg(PUBLIC / name)
