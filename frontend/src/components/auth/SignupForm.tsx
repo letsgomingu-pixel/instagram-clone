@@ -80,7 +80,7 @@ export function SignupForm() {
           <InstagramLogo className="text-[22px] leading-tight text-center" />
         </div>
         <p className="text-ig-text-secondary text-sm font-medium text-center mb-4 leading-relaxed">
-          신선한 수산물 거래를 시작하려면 가입하세요.
+          친구의 사진과 동영상을 보려면 가입하세요.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-2">

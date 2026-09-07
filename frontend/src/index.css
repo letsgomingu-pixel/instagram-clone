@@ -3,7 +3,7 @@
 @theme {
   --font-brand: "DM Serif Display", Georgia, serif;
   --font-sans: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  /* Legacy token names — values are ocean / seafood palette */
+  /* Legacy token names — values are ocean palette */
   --font-instagram: var(--font-brand);
   --color-ig-primary: #0a7ea4;
   --color-ig-primary-hover: #065a75;

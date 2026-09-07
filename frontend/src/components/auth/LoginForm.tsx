@@ -62,13 +62,13 @@ export function LoginForm() {
           <InstagramLogo className="text-[22px] leading-tight text-center" />
         </div>
         <p className="text-center text-xs text-ig-text-secondary mb-4 leading-relaxed">
-          수산물 도·소매 거래 플랫폼
+          사진과 동영상을 공유하는 소셜 플랫폼
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-2">
           <input
             type="text"
-            placeholder="거래처 ID, 이메일 또는 연락처"
+            placeholder="전화번호, 사용자 이름 또는 이메일"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs placeholder:text-ig-text-secondary"
@@ -109,7 +109,7 @@ export function LoginForm() {
       <div className="bg-ig-surface border border-ig-border rounded-xl py-5 text-center text-sm shadow-sm">
         계정이 없으신가요?{' '}
         <Link to="/signup" className="text-ig-primary font-semibold hover:underline">
-          거래처 등록
+          가입하기
         </Link>
       </div>
 

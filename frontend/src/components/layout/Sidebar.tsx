@@ -38,17 +38,17 @@ import { InstagramLogo } from '@/components/common/InstagramLogo';
 
 const navItems = [
 
-  { to: '/', label: '현장피드', renderIcon: (active: boolean) => <NavHomeIcon active={active} /> },
+  { to: '/', label: '홈', renderIcon: (active: boolean) => <NavHomeIcon active={active} /> },
 
   { to: '/search', label: '검색', renderIcon: (active: boolean) => <NavSearchIcon active={active} /> },
 
-  { to: '/explore', label: '카탈로그', renderIcon: (active: boolean) => <NavExploreIcon active={active} /> },
+  { to: '/explore', label: '탐색', renderIcon: (active: boolean) => <NavExploreIcon active={active} /> },
 
-  { to: '/reels', label: '현장영상', isReels: true },
+  { to: '/reels', label: '릴스', isReels: true },
 
-  { to: '/messages', label: '거래문의', renderIcon: (active: boolean) => <NavMessagesIcon active={active} /> },
+  { to: '/messages', label: '메시지', renderIcon: (active: boolean) => <NavMessagesIcon active={active} /> },
 
-  { to: '#create', label: '등록', action: 'create' as const, renderIcon: () => <NavCreateIcon /> },
+  { to: '#create', label: '만들기', action: 'create' as const, renderIcon: () => <NavCreateIcon /> },
 
   { to: '/notifications', label: '알림', renderIcon: (active: boolean) => <NavNotificationsIcon active={active} /> },
 
@@ -182,9 +182,9 @@ export function Sidebar() {
 
           >
 
-            <Avatar src={user?.avatar_url} alt="거래처" size="sm" />
+            <Avatar src={user?.avatar_url} alt="프로필" size="sm" />
 
-            <span className="text-base hidden lg:inline truncate">거래처</span>
+            <span className="text-base hidden lg:inline truncate">프로필</span>
 
           </NavLink>
 

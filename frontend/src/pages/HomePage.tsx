@@ -53,9 +53,9 @@ export function HomePage() {
               <path d="m21 15-5-5L5 21" />
             </svg>
           </div>
-          <p className="text-[22px] font-light mb-2 font-brand">현장피드에 등록된 상품이 없습니다</p>
+          <p className="text-[22px] font-light mb-2 font-brand">피드에 게시물이 없습니다</p>
           <p className="text-sm text-ig-text-secondary leading-[18px]">
-            거래처를 팔로우하거나 카탈로그에서 새로운 수산물을 찾아보세요.
+            친구를 팔로우하여 새로운 사진과 동영상을 확인해보세요.
           </p>
         </div>
       ) : (
