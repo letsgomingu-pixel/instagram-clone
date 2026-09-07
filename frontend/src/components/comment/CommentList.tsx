@@ -35,9 +35,11 @@ export function CommentList({ comments }: CommentListProps) {
               <time className="text-[10px] text-ig-text-secondary">
                 {formatRelativeTime(comment.created_at)}
               </time>
-              <button className="text-[10px] text-ig-text-secondary font-semibold hover:text-ig-text">
-                답글 달기
-              </button>
+              {/* A "답글 달기" (reply) button used to sit here with no onClick
+                  handler and no backing API — comments have no parent/reply
+                  column at all, so it did nothing when tapped. Removed rather
+                  than left as dead UI; see the QA report for what a real
+                  threaded-replies feature would need. */}
             </div>
           </div>
         </div>

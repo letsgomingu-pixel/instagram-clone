@@ -3,9 +3,11 @@ import type { Post } from '@/types';
 
 interface ProfileTaggedGridProps {
   posts: Post[];
+  /** Whether the viewer is looking at their own profile — controls the empty-state copy. */
+  isOwn?: boolean;
 }
 
-export function ProfileTaggedGrid({ posts }: ProfileTaggedGridProps) {
+export function ProfileTaggedGrid({ posts, isOwn = true }: ProfileTaggedGridProps) {
   if (posts.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-8 text-center border border-ig-border bg-white md:rounded-lg">
@@ -15,13 +17,15 @@ export function ProfileTaggedGrid({ posts }: ProfileTaggedGridProps) {
             <circle cx="12" cy="7" r="4" />
           </svg>
         </div>
-        <h2 className="text-[28px] font-light mb-2">회원님이 나온 사진</h2>
+        <h2 className="text-[28px] font-light mb-2">
+          {isOwn ? '회원님이 나온 사진' : '태그된 사진 없음'}
+        </h2>
         <p className="text-[14px] text-ig-text-secondary max-w-[350px]">
-          다른 사람이 회원님을 태그하면 여기에 표시됩니다.
+          {isOwn ? '다른 사람이 회원님을 태그하면 여기에 표시됩니다.' : '이 사용자가 태그된 사진이 없습니다.'}
         </p>
       </div>
     );
   }
 
-  return <ProfileGrid posts={posts} />;
+  return <ProfileGrid posts={posts} isOwn={isOwn} />;
 }

@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from sqlalchemy import desc, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import Conversation, Message, User
@@ -20,7 +21,14 @@ def get_or_create_conversation(db: Session, user: User, other: User) -> Conversa
         return conv
     conv = Conversation(user1_id=u1, user2_id=u2, updated_at=datetime.now(timezone.utc))
     db.add(conv)
-    db.flush()
+    try:
+        db.flush()
+    except IntegrityError:
+        # Two simultaneous first-messages between the same pair of users can
+        # both pass the SELECT above; the loser re-fetches the winner's row
+        # instead of surfacing a 500.
+        db.rollback()
+        conv = db.scalar(select(Conversation).where(Conversation.user1_id == u1, Conversation.user2_id == u2))
     return conv
 
 
@@ -72,9 +80,18 @@ def build_conversation_out(db: Session, conv: Conversation, viewer: User) -> Con
 
 
 def list_conversations(db: Session, viewer: User) -> list[ConversationOut]:
+    # Opening a chat screen (a plain GET) lazily creates the Conversation row
+    # via get_or_create_conversation even before either side has sent a
+    # message. Without this filter that empty row would immediately show up
+    # in the OTHER participant's inbox as a "start the conversation" entry —
+    # real Instagram DMs never surface a thread until a message exists.
+    has_message = select(Message.id).where(Message.conversation_id == Conversation.id).exists()
     convs = db.scalars(
         select(Conversation)
-        .where((Conversation.user1_id == viewer.id) | (Conversation.user2_id == viewer.id))
+        .where(
+            (Conversation.user1_id == viewer.id) | (Conversation.user2_id == viewer.id),
+            has_message,
+        )
         .order_by(desc(Conversation.updated_at))
     ).all()
     return [build_conversation_out(db, c, viewer) for c in convs]

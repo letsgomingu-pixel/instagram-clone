@@ -52,6 +52,15 @@ export function NotificationsPage() {
   const handleOpenPost = async (postId: number) => {
     const post = await postsApi.getPost(postId);
     setSelectedPost(post);
+    // Opening the post via its thumbnail is the normal way people consume a
+    // like/comment notification — it used to only flip the local `is_read`
+    // flag and never tell the server, so the badge came back on refresh.
+    const unreadIds = notifications
+      .filter((n) => n.post_id === postId && !n.is_read)
+      .map((n) => n.id);
+    unreadIds.forEach((id) => {
+      notificationsApi.markNotificationRead(id).catch(() => undefined);
+    });
     setNotifications((prev) =>
       prev.map((n) => (n.post_id === postId ? { ...n, is_read: true } : n)),
     );
@@ -62,6 +71,14 @@ export function NotificationsPage() {
     const action = next ? followUser(userId) : unfollowUser(userId);
     void action.then(() => {
       setFollowOverrides((prev) => ({ ...prev, [userId]: next }));
+      // Same gap as handleOpenPost: following back from the notification row
+      // never persisted the read state to the server.
+      const unreadIds = notifications
+        .filter((n) => n.actor.id === userId && n.type === 'follow' && !n.is_read)
+        .map((n) => n.id);
+      unreadIds.forEach((id) => {
+        notificationsApi.markNotificationRead(id).catch(() => undefined);
+      });
       setNotifications((prev) =>
         prev.map((n) =>
           n.actor.id === userId && n.type === 'follow' ? { ...n, is_read: true } : n,

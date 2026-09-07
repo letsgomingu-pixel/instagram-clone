@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request, status
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 
 from app.dependencies import CurrentUser, DbSession
 from app.models import User
@@ -15,9 +15,11 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/login", response_model=TokenResponse)
 def login(body: LoginRequest, request: Request, db: DbSession):
-    identifier = body.username.strip()
+    identifier = body.username.strip().lower()
     user = db.scalar(
-        select(User).where(or_(User.email == identifier, User.username == identifier))
+        select(User).where(
+            or_(func.lower(User.email) == identifier, func.lower(User.username) == identifier)
+        )
     )
     if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
@@ -37,11 +39,16 @@ def login(body: LoginRequest, request: Request, db: DbSession):
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 def register(body: RegisterRequest, request: Request, db: DbSession):
-    existing = db.scalar(
-        select(User).where(or_(User.email == body.email, User.username == body.username))
+    email_taken = db.scalar(
+        select(User.id).where(func.lower(User.email) == body.email.strip().lower())
     )
-    if existing:
-        raise HTTPException(status_code=400, detail="Email or username already taken")
+    if email_taken:
+        raise HTTPException(status_code=400, detail="Email is already registered")
+    username_taken = db.scalar(
+        select(User.id).where(func.lower(User.username) == body.username.strip().lower())
+    )
+    if username_taken:
+        raise HTTPException(status_code=400, detail="Username is already taken")
 
     user = User(
         username=body.username,

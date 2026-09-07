@@ -67,3 +67,7 @@ export async function searchUsersApi(q: string): Promise<User[]> {
   const { data } = await api.get<User[]>('/search/users', { params: { q } });
   return data;
 }
+
+export async function deactivateAccount(password: string): Promise<void> {
+  await api.post('/users/me/deactivate', { password });
+}

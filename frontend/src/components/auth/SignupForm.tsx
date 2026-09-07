@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { InstagramLogo } from '@/components/common/InstagramLogo';
 import { Button } from '@/components/common/Button';
@@ -65,7 +66,18 @@ export function SignupForm() {
       await register({ email, username, full_name: fullName, password });
       toast.success('가입을 환영합니다!');
       navigate(from, { replace: true });
-    } catch {
+    } catch (error) {
+      if (isAxiosError(error) && typeof error.response?.data?.detail === 'string') {
+        const detail = error.response.data.detail as string;
+        if (detail === 'Email is already registered') {
+          toast.error('이미 사용 중인 이메일입니다.');
+        } else if (detail === 'Username is already taken') {
+          toast.error('이미 사용 중인 사용자명입니다.');
+        } else {
+          toast.error(detail);
+        }
+        return;
+      }
       toast.error('회원가입에 실패했습니다.');
     }
   };

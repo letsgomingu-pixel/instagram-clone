@@ -118,7 +118,26 @@ def build_story_out(db: Session, story: Story, viewer: User, viewed_ids: set[int
         from fastapi import HTTPException
 
         raise HTTPException(status_code=500, detail="Story owner missing")
-    items = sorted(story.items, key=lambda i: i.created_at)
+    # Each item expires 24h after ITS OWN upload time, not 24h after the most
+    # recent upload to the group. create_story() extends story.expires_at
+    # whenever a new item is added (so the group keeps showing up in the
+    # feed query above), which previously also kept every older item in it
+    # visible far past its own 24 hours — a story item posted at t=0 stayed
+    # up until t=47h if another item was added at t=23h.
+    now = datetime.now(timezone.utc)
+    cutoff = timedelta(hours=STORY_TTL_HOURS)
+
+    def _item_age(item: StoryItem) -> timedelta:
+        created = item.created_at
+        # SQLite (used in local/dev setups) hands datetimes back naive even
+        # for a DateTime(timezone=True) column; Postgres (production) hands
+        # back aware ones. Normalize to UTC either way instead of assuming.
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        return now - created
+
+    live_items = [i for i in story.items if _item_age(i) < cutoff]
+    items = sorted(live_items, key=lambda i: i.created_at)
     return StoryOut(
         id=story.id,
         user=build_user_out(db, user, viewer),

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { ProfileHeader, type ProfileTab } from '@/components/profile/ProfileHeader';
 import { ProfileGrid } from '@/components/profile/ProfileGrid';
 import { ProfileReelsGrid } from '@/components/profile/ProfileReelsGrid';
@@ -22,6 +23,7 @@ export function ProfilePage() {
   const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [following, setFollowing] = useState<boolean | undefined>(undefined);
+  const [followBusy, setFollowBusy] = useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTab>('posts');
   const [loading, setLoading] = useState(true);
 
@@ -60,6 +62,22 @@ export function ProfilePage() {
     };
   }, [username, currentUser?.username, currentUser?.avatar_url]);
 
+  // Re-fetch the "저장됨" tab every time it's opened (not just on the initial
+  // profile load) so a post saved/unsaved elsewhere in the app while this
+  // profile page stayed mounted shows up immediately instead of only after a
+  // full remount.
+  useEffect(() => {
+    if (activeTab !== 'saved') return;
+    if (!currentUser || username !== currentUser.username) return;
+    let cancelled = false;
+    postsApi.getSavedPosts().then((saved) => {
+      if (!cancelled) setSavedPosts(saved.items);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, username, currentUser?.username]);
+
   if (loading) {
     return (
       <div className="flex justify-center py-16">
@@ -89,10 +107,34 @@ export function ProfilePage() {
 
   const handleFollow = () => {
     requireAuth(async () => {
-      const next = !(following ?? profileUser.is_following);
-      if (next) await followUser(profileUser.id);
-      else await unfollowUser(profileUser.id);
+      if (followBusy) return; // guard against double-clicks racing the same toggle
+      const wasFollowing = following ?? profileUser.is_following ?? false;
+      const next = !wasFollowing;
+
+      // Optimistic update — flip the button and the follower count
+      // immediately, matching how every other follow button in the app
+      // behaves, then roll back on failure instead of failing silently.
+      setFollowBusy(true);
       setFollowing(next);
+      setProfileUser((prev) =>
+        prev
+          ? { ...prev, follower_count: Math.max(0, prev.follower_count + (next ? 1 : -1)) }
+          : prev
+      );
+      try {
+        if (next) await followUser(profileUser.id);
+        else await unfollowUser(profileUser.id);
+      } catch {
+        setFollowing(wasFollowing);
+        setProfileUser((prev) =>
+          prev
+            ? { ...prev, follower_count: Math.max(0, prev.follower_count + (next ? -1 : 1)) }
+            : prev
+        );
+        toast.error(next ? '팔로우에 실패했습니다.' : '팔로우 취소에 실패했습니다.');
+      } finally {
+        setFollowBusy(false);
+      }
     });
   };
 
@@ -110,12 +152,12 @@ export function ProfilePage() {
         onFollow={handleFollow}
       />
 
-      {activeTab === 'posts' && <ProfileGrid posts={userPosts} />}
+      {activeTab === 'posts' && <ProfileGrid posts={userPosts} isOwn={isOwn} />}
       {activeTab === 'reels' && (
         <ProfileReelsGrid reels={userReels} onReelClick={handleReelClick} />
       )}
-      {activeTab === 'saved' && <ProfileGrid posts={savedPosts} savedOnly />}
-      {activeTab === 'tagged' && <ProfileTaggedGrid posts={taggedPosts} />}
+      {activeTab === 'saved' && <ProfileGrid posts={savedPosts} savedOnly isOwn={isOwn} />}
+      {activeTab === 'tagged' && <ProfileTaggedGrid posts={taggedPosts} isOwn={isOwn} />}
     </div>
   );
 }

@@ -51,6 +51,16 @@ export function LoginForm() {
         toast.error('서버에 연결할 수 없습니다. npm run dev 로 백엔드가 실행 중인지 확인하세요.');
         return;
       }
+      if (
+        isAxiosError(error) &&
+        error.response?.status === 403 &&
+        typeof error.response.data?.detail === 'string'
+      ) {
+        // e.g. a deactivated account — don't let the generic
+        // "wrong password" message mislead someone who typed it correctly.
+        toast.error('이 계정은 사용이 중지되었습니다.');
+        return;
+      }
       toast.error('사용자명 또는 비밀번호가 올바르지 않습니다.');
     }
   };

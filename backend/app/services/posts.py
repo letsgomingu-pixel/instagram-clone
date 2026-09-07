@@ -1,4 +1,4 @@
-from sqlalchemy import case, desc, func, select
+from sqlalchemy import case, desc, func, select, update
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import Comment, Like, Notification, Post, PostMedia, PostTag, SavedPost, User
@@ -127,14 +127,17 @@ def get_home_feed_posts(db: Session, user: User, page: int, limit: int) -> tuple
     following_ids = get_following_ids(db, user.id)
     following_ids.add(user.id)
     priority = case((Post.user_id.in_(following_ids), 0), else_=1)
-    total = db.scalar(select(func.count()).select_from(Post)) or 0
+    # A deactivated account's posts must vanish from everyone's feed, not just
+    # from that account's own profile — join to User and require is_active so
+    # `total` and the page both agree on what's actually visible.
+    base = select(Post).join(User, Post.user_id == User.id).where(User.is_active.is_(True))
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     if total == 0:
         return [], 0
 
     offset = (page - 1) * limit
     posts = db.scalars(
-        select(Post)
-        .options(joinedload(Post.user))
+        base.options(joinedload(Post.user))
         .order_by(priority, desc(Post.created_at))
         .offset(offset)
         .limit(limit)
@@ -167,8 +170,15 @@ def build_posts_out(db: Session, posts: list[Post], viewer: User | None) -> list
 
 
 def get_post_or_404(db: Session, post_id: int) -> Post:
+    # A deactivated account can't be authenticated (dependencies.py rejects
+    # inactive users), so there's no "owner viewing their own post" case to
+    # protect here — a post whose owner is deactivated is 404 for everyone,
+    # matching how it disappears from the feed/profile/explore/likes/comments.
     post = db.scalar(
-        select(Post).where(Post.id == post_id).options(joinedload(Post.user))
+        select(Post)
+        .join(User, Post.user_id == User.id)
+        .where(Post.id == post_id, User.is_active.is_(True))
+        .options(joinedload(Post.user))
     )
     if not post:
         from fastapi import HTTPException
@@ -224,7 +234,11 @@ def delete_post_comment(db: Session, post_id: int, comment_id: int, user: User) 
     if comment.user_id != user.id and post.user_id != user.id:
         raise HTTPException(status_code=403, detail="Not allowed to delete this comment")
     db.delete(comment)
-    post.comment_count = max(0, post.comment_count - 1)
+    db.execute(
+        update(Post)
+        .where(Post.id == post_id)
+        .values(comment_count=case((Post.comment_count > 0, Post.comment_count - 1), else_=0))
+    )
     db.commit()
 
 

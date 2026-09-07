@@ -1,10 +1,18 @@
 from fastapi import APIRouter, File, Form, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
 from app.dependencies import CurrentSessionId, CurrentUser, DbSession, OptionalUser
 from app.models import Follow, Post, PostTag, User
-from app.schemas.user import FollowResponse, SuggestedUserOut, UserOut, UserUpdate, UsernameCheck
+from app.schemas.user import (
+    AccountDeactivateRequest,
+    FollowResponse,
+    SuggestedUserOut,
+    UserOut,
+    UserUpdate,
+    UsernameCheck,
+)
 from app.schemas.security import (
     LoginEmailAlertsUpdate,
     LoginSessionOut,
@@ -39,7 +47,10 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/check-username", response_model=UsernameCheck)
 def check_username(db: DbSession, username: str = Query(min_length=3, max_length=30)):
-    taken = db.scalar(select(User.id).where(User.username == username)) is not None
+    taken = (
+        db.scalar(select(User.id).where(func.lower(User.username) == username.strip().lower()))
+        is not None
+    )
     return UsernameCheck(available=not taken)
 
 
@@ -88,6 +99,17 @@ def change_password(body: PasswordChangeRequest, current_user: CurrentUser, db: 
     if not verify_password(body.current_password, current_user.password_hash):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     current_user.password_hash = hash_password(body.new_password)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/me/deactivate", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+def deactivate_my_account(body: AccountDeactivateRequest, current_user: CurrentUser, db: DbSession):
+    if current_user.is_admin:
+        raise HTTPException(status_code=400, detail="Admin accounts cannot self-deactivate")
+    if not verify_password(body.password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Password is incorrect")
+    current_user.is_active = False
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -193,7 +215,14 @@ def follow_user(user_id: int, current_user: CurrentUser, db: DbSession):
         return FollowResponse(is_following=True)
     db.add(Follow(follower_id=current_user.id, following_id=user_id))
     create_follow_notification(db, current_user, target)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Two concurrent follow requests (e.g. a double-click) can both pass the
+        # existence check above; the second commit then hits the UNIQUE
+        # constraint. Treat that as the already-following state instead of
+        # bubbling up a 500.
+        db.rollback()
     return FollowResponse(is_following=True)
 
 
@@ -262,9 +291,22 @@ def user_tagged(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     page, limit, offset = pagination_params(page, limit)
-    base = select(Post).join(PostTag, PostTag.post_id == Post.id).where(PostTag.user_id == user.id)
+    # `user` (the tagged person) is already guaranteed active by
+    # get_user_by_username above, but the post's author is a different
+    # account — if they've since deactivated, the post (and this tag on it)
+    # must not surface here either.
+    base = (
+        select(Post)
+        .join(PostTag, PostTag.post_id == Post.id)
+        .join(User, Post.user_id == User.id)
+        .where(PostTag.user_id == user.id, User.is_active.is_(True))
+    )
     total = db.scalar(
-        select(func.count(func.distinct(PostTag.post_id))).where(PostTag.user_id == user.id)
+        select(func.count(func.distinct(PostTag.post_id)))
+        .select_from(Post)
+        .join(PostTag, PostTag.post_id == Post.id)
+        .join(User, Post.user_id == User.id)
+        .where(PostTag.user_id == user.id, User.is_active.is_(True))
     ) or 0
     posts = db.scalars(
         base.options(joinedload(Post.user)).order_by(Post.created_at.desc()).offset(offset).limit(limit)

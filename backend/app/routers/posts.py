@@ -1,7 +1,8 @@
 import json
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
-from sqlalchemy import desc, func, select
+from sqlalchemy import case, desc, func, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
 from app.dependencies import CurrentUser, DbSession, OptionalUser
@@ -47,9 +48,12 @@ def explore(
     limit: int = Query(10, ge=1, le=30),
 ):
     page, limit, offset = pagination_params(page, limit)
-    total = db.scalar(select(func.count()).select_from(Post)) or 0
+    # Same rule as the home feed: a deactivated account's posts must not
+    # surface in explore either.
+    base = select(Post).join(User, Post.user_id == User.id).where(User.is_active.is_(True))
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     posts = db.scalars(
-        select(Post).options(joinedload(Post.user)).order_by(desc(Post.created_at)).offset(offset).limit(limit)
+        base.options(joinedload(Post.user)).order_by(desc(Post.created_at)).offset(offset).limit(limit)
     ).all()
     items = build_posts_out(db, list(posts), viewer)
     return paginate(items, total, page, limit)
@@ -63,7 +67,14 @@ def saved_posts(
     limit: int = Query(10, ge=1, le=30),
 ):
     page, limit, offset = pagination_params(page, limit)
-    base = select(Post).join(SavedPost, SavedPost.post_id == Post.id).where(SavedPost.user_id == current_user.id)
+    # A post saved from an account that has since deactivated should drop out
+    # of "저장됨" too, the same way it disappears from the feed/explore/profile.
+    base = (
+        select(Post)
+        .join(SavedPost, SavedPost.post_id == Post.id)
+        .join(User, Post.user_id == User.id)
+        .where(SavedPost.user_id == current_user.id, User.is_active.is_(True))
+    )
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     posts = db.scalars(
         base.options(joinedload(Post.user)).order_by(desc(SavedPost.created_at)).offset(offset).limit(limit)
@@ -147,14 +158,30 @@ def toggle_like(post_id: int, current_user: CurrentUser, db: DbSession):
     )
     if existing:
         db.delete(existing)
-        post.like_count = max(0, post.like_count - 1)
+        # Atomic, DB-evaluated decrement (never below 0) instead of a Python
+        # read-modify-write — the latter loses updates when two requests for
+        # the same post commit concurrently (classic lost-update race).
+        db.execute(
+            update(Post)
+            .where(Post.id == post_id)
+            .values(like_count=case((Post.like_count > 0, Post.like_count - 1), else_=0))
+        )
         is_liked = False
+        db.commit()
     else:
         db.add(Like(user_id=current_user.id, post_id=post_id))
-        post.like_count += 1
+        try:
+            db.flush()
+        except IntegrityError:
+            # Another concurrent request already liked it (UNIQUE constraint) —
+            # treat this as idempotent success rather than a 500.
+            db.rollback()
+            db.refresh(post)
+            return LikeToggleResponse(is_liked=True, like_count=post.like_count)
+        db.execute(update(Post).where(Post.id == post_id).values(like_count=Post.like_count + 1))
         is_liked = True
         create_post_activity_notifications(db, actor=current_user, post=post, ntype="like")
-    db.commit()
+        db.commit()
     db.refresh(post)
     return LikeToggleResponse(is_liked=is_liked, like_count=post.like_count)
 
@@ -167,11 +194,17 @@ def toggle_save(post_id: int, current_user: CurrentUser, db: DbSession):
     )
     if existing:
         db.delete(existing)
+        db.commit()
         is_saved = False
     else:
         db.add(SavedPost(user_id=current_user.id, post_id=post_id))
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            is_saved = True
+            return SaveToggleResponse(is_saved=is_saved)
         is_saved = True
-    db.commit()
     return SaveToggleResponse(is_saved=is_saved)
 
 
@@ -210,8 +243,8 @@ def remove_comment(post_id: int, comment_id: int, current_user: CurrentUser, db:
 def add_comment(post_id: int, body: CommentCreate, current_user: CurrentUser, db: DbSession):
     post = get_post_or_404(db, post_id)
     comment = Comment(post_id=post_id, user_id=current_user.id, content=body.content)
-    post.comment_count += 1
     db.add(comment)
+    db.execute(update(Post).where(Post.id == post_id).values(comment_count=Post.comment_count + 1))
     create_post_activity_notifications(
         db, actor=current_user, post=post, ntype="comment", comment_preview=body.content[:200]
     )

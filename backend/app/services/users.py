@@ -7,7 +7,17 @@ from app.utils.datetime_fmt import to_iso
 
 
 def get_user_by_username(db: Session, username: str) -> User | None:
-    return db.scalar(select(User).where(User.username == username))
+    # Deactivated accounts (users.me/deactivate) must disappear from profile
+    # lookups entirely — real Instagram shows "이 페이지를 사용할 수 없습니다"
+    # for a deactivated account, not their normal profile/posts/reels/tagged.
+    # Every one of those endpoints resolves the user through this function
+    # first and 404s on None, so filtering here covers all of them at once.
+    return db.scalar(
+        select(User).where(
+            func.lower(User.username) == username.strip().lower(),
+            User.is_active.is_(True),
+        )
+    )
 
 
 def get_user_counts(db: Session, user_id: int) -> tuple[int, int, int]:

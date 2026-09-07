@@ -35,3 +35,7 @@ class UsernameCheck(BaseModel):
 
 class FollowResponse(BaseModel):
     is_following: bool
+
+
+class AccountDeactivateRequest(BaseModel):
+    password: str = Field(min_length=1)

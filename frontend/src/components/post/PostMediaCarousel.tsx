@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Volume2, VolumeX } from 'lucide-react';
 import { MediaImage } from '@/components/common/MediaImage';
 import { resolveMediaUrl } from '@/utils/media';
 import type { PostMedia } from '@/types';
@@ -21,8 +21,14 @@ export function PostMediaCarousel({
 }: PostMediaCarouselProps) {
   const items = media.length > 0 ? media : [];
   const [index, setIndex] = useState(0);
+  const [muted, setMuted] = useState(true);
   const current = items[index] ?? items[0];
   const hasMultiple = items.length > 1;
+
+  const toggleMuted = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMuted((m) => !m);
+  }, []);
 
   const goPrev = useCallback(
     (e: React.MouseEvent) => {
@@ -44,7 +50,7 @@ export function PostMediaCarousel({
 
   return (
     <div
-      className="relative aspect-square bg-black select-none touch-manipulation overflow-hidden"
+      className="relative w-full aspect-square bg-black select-none touch-manipulation overflow-hidden"
       onClick={onDoubleTap}
       role="button"
       tabIndex={0}
@@ -54,14 +60,29 @@ export function PostMediaCarousel({
       }}
     >
       {current.media_type === 'video' ? (
-        <video
-          src={resolveMediaUrl(current.media_url)}
-          className="w-full h-full object-cover pointer-events-none"
-          controls
-          playsInline
-          loop
-          muted
-        />
+        <>
+          {/* No native `controls` here: real Instagram feed videos autoplay
+              muted with a single mute/unmute toggle, not a browser scrubber —
+              and `pointer-events-none` used to make native controls visible
+              but entirely unclickable (every click fell through to the
+              double-tap-to-like handler on the wrapper). */}
+          <video
+            src={resolveMediaUrl(current.media_url)}
+            className="w-full h-full object-cover"
+            autoPlay
+            playsInline
+            loop
+            muted={muted}
+          />
+          <button
+            type="button"
+            onClick={toggleMuted}
+            className="absolute bottom-4 right-4 z-10 rounded-full bg-black/50 p-1.5 text-white hover:bg-black/70"
+            aria-label={muted ? '음소거 해제' : '음소거'}
+          >
+            {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          </button>
+        </>
       ) : (
         <MediaImage
           src={current.media_url}

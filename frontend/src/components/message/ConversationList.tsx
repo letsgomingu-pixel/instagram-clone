@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { Avatar } from '@/components/common/Avatar';
 import { formatMessageTime } from '@/utils/messages';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,6 +19,19 @@ export function ConversationList({
   onSelect,
 }: ConversationListProps) {
   const { user } = useAuth();
+  const [query, setQuery] = useState('');
+
+  const filteredConversations = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return conversations;
+    return conversations.filter((c) => {
+      const { participant } = c;
+      return (
+        participant.username.toLowerCase().includes(q) ||
+        participant.full_name.toLowerCase().includes(q)
+      );
+    });
+  }, [conversations, query]);
 
   return (
     <div className="flex flex-col h-full">
@@ -29,17 +43,19 @@ export function ConversationList({
         <input
           type="text"
           placeholder="검색"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
           className="w-full px-4 py-2 bg-ig-secondary border border-ig-border rounded-lg text-[16px] placeholder:text-ig-text-secondary"
         />
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {conversations.length === 0 ? (
+        {filteredConversations.length === 0 ? (
           <p className="px-4 py-8 text-sm text-center text-ig-text-secondary">
-            아직 대화가 없습니다. 프로필에서 메시지를 보내보세요.
+            {query.trim() ? '검색 결과가 없습니다.' : '아직 대화가 없습니다. 프로필에서 메시지를 보내보세요.'}
           </p>
         ) : (
-          conversations.map((conversation) => {
+          filteredConversations.map((conversation) => {
             const { participant, last_message, unread_count } = conversation;
             const isActive = participant.username === activeUsername;
             const isOwnLast = last_message.sender_id === currentUserId;

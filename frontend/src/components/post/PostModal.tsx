@@ -2,8 +2,8 @@ import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Modal } from '@/components/common/Modal';
 import { Avatar } from '@/components/common/Avatar';
-import { MediaImage } from '@/components/common/MediaImage';
 import { MultilineText } from '@/components/common/MultilineText';
+import { PostMediaCarousel } from '@/components/post/PostMediaCarousel';
 import { TaggedUsers } from '@/components/post/TaggedUsers';
 import {
   PostBookmarkIcon,
@@ -37,10 +37,19 @@ export function PostModal({ post, onClose }: PostModalProps) {
     <Modal isOpen onClose={onClose} size="lg" showClose={false} className="w-full max-w-[900px]">
       <div className="flex flex-col md:flex-row max-h-[90vh] md:max-h-[600px]">
         <div className="md:w-[60%] bg-black flex items-center justify-center min-h-[300px] md:min-h-0">
-          <MediaImage
-            src={post.image_url}
+          {/* Reuse the same carousel the feed uses instead of a single <img>:
+              a raw MediaImage here only ever showed the cover (media[0]) and
+              rendered a video post's URL as a broken <img>, so multi-photo
+              posts and video posts were both effectively unviewable from the
+              detail modal / permalink. */}
+          <PostMediaCarousel
+            media={
+              post.media?.length
+                ? post.media
+                : [{ id: 0, media_url: post.image_url, media_type: 'image', position: 0 }]
+            }
             alt={post.caption || '게시물'}
-            className="max-w-full max-h-[600px] object-contain"
+            onDoubleTap={() => requireAuth(() => toggleLike(post.id))}
           />
         </div>
 

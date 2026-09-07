@@ -132,9 +132,12 @@ export function MessagesPage() {
 
   const handleSend = useCallback(
     (content: string) => {
-      if (!username || !user) return;
+      // Returns a promise (and rejects on failure) so ChatPanel can keep the
+      // user's draft text in the input instead of clearing it and silently
+      // losing what they typed when the request fails.
+      if (!username || !user) return Promise.reject(new Error('No active conversation'));
 
-      void conversationsApi
+      return conversationsApi
         .sendMessage(username, content)
         .then(async (newMessage: Message) => {
           setConversations((prev) => {
@@ -158,8 +161,9 @@ export function MessagesPage() {
             // Local optimistic state is enough if refresh fails.
           }
         })
-        .catch(() => {
+        .catch((error) => {
           toast.error('메시지 전송에 실패했습니다.');
+          throw error;
         });
     },
     [username, user, refreshActiveChat],

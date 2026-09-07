@@ -6,9 +6,11 @@ import type { Post } from '@/types';
 interface ProfileGridProps {
   posts: Post[];
   savedOnly?: boolean;
+  /** Whether the viewer is looking at their own profile — controls the empty-state copy. */
+  isOwn?: boolean;
 }
 
-export function ProfileGrid({ posts, savedOnly = false }: ProfileGridProps) {
+export function ProfileGrid({ posts, savedOnly = false, isOwn = true }: ProfileGridProps) {
   const { setSelectedPost } = useApp();
 
   if (posts.length === 0) {
@@ -33,7 +35,9 @@ export function ProfileGrid({ posts, savedOnly = false }: ProfileGridProps) {
         <p className="text-[14px] text-ig-text-secondary max-w-[350px]">
           {savedOnly
             ? '저장한 사진과 동영상을 보려면 게시물 위의 아이콘을 탭하세요.'
-            : '회원님의 사진과 동영상이 프로필에 표시됩니다.'}
+            : isOwn
+              ? '회원님의 사진과 동영상이 프로필에 표시됩니다.'
+              : '게시물 없음'}
         </p>
       </div>
     );

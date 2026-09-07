@@ -579,21 +579,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 
   const toggleSave = useCallback(
-
     (postId: number) => {
-
       if (!isAuthenticated) return;
-
-      postsApi.toggleSave(postId).then(({ is_saved }) => {
-
-        updatePostInState(postId, (p) => ({ ...p, is_saved }));
-
+      let previous: boolean | null = null;
+      // Optimistic like toggleLike above: flip immediately, roll back + toast on failure,
+      // instead of waiting for the round-trip and failing silently.
+      updatePostInState(postId, (p) => {
+        previous = p.is_saved;
+        return { ...p, is_saved: !p.is_saved };
       });
-
+      postsApi
+        .toggleSave(postId)
+        .then(({ is_saved }) => {
+          updatePostInState(postId, (p) => ({ ...p, is_saved }));
+        })
+        .catch(() => {
+          if (previous !== null) {
+            updatePostInState(postId, (p) => ({ ...p, is_saved: previous! }));
+          }
+          toast.error('저장 처리에 실패했습니다.');
+        });
     },
-
     [isAuthenticated, updatePostInState],
-
   );
 
 
@@ -637,15 +644,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       const currentlyFollowing = resolveFollowing(userId);
+      const nextFollowingState = !currentlyFollowing;
+
+      // Optimistic: flip every card showing this user immediately, then
+      // revert + toast if the request fails, instead of waiting on the
+      // round-trip (matches toggleLike's pattern).
+      syncFollowState(userId, nextFollowingState);
 
       const action = currentlyFollowing ? usersApi.unfollowUser : usersApi.followUser;
 
       void action(userId)
         .then(() => {
-          syncFollowState(userId, !currentlyFollowing);
           void refreshSuggestedUsers(10);
         })
         .catch(() => {
+          syncFollowState(userId, currentlyFollowing);
           toast.error('팔로우 상태를 변경하지 못했습니다. 다시 시도해 주세요.');
         });
 

@@ -11,25 +11,36 @@ import { cn } from '@/utils/cn';
 interface ChatPanelProps {
   conversation: Conversation | null;
   loading?: boolean;
-  onSend: (content: string) => void;
+  onSend: (content: string) => Promise<void>;
   onBack?: () => void;
   showBackButton?: boolean;
 }
 
 export function ChatPanel({ conversation, loading = false, onSend, onBack, showBackButton }: ChatPanelProps) {
   const [draft, setDraft] = useState('');
+  const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [conversation?.messages.length]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = draft.trim();
-    if (!trimmed) return;
-    onSend(trimmed);
-    setDraft('');
+    if (!trimmed || sending) return;
+    setSending(true);
+    try {
+      await onSend(trimmed);
+      setDraft('');
+    } catch {
+      // Keep what the user typed instead of clearing it — onSend already
+      // surfaces the failure toast, but silently discarding the message text
+      // on top of that meant re-typing it from scratch.
+    } finally {
+      setSending(false);
+    }
   };
 
   if (loading) {
@@ -121,9 +132,23 @@ export function ChatPanel({ conversation, loading = false, onSend, onBack, showB
             </p>
           </div>
         ) : (
-          messages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
-          ))
+          (() => {
+            // Real Instagram shows "읽음" once under the last message the
+            // viewer sent, if the other person has seen it — `is_read` is a
+            // real, server-tracked value (see backend), but until now nothing
+            // in the chat window ever rendered it.
+            let lastOwnReadId: number | null = null;
+            for (let i = messages.length - 1; i >= 0; i -= 1) {
+              const m = messages[i];
+              if (user != null && m.sender_id === user.id) {
+                if (m.is_read) lastOwnReadId = m.id;
+                break;
+              }
+            }
+            return messages.map((message) => (
+              <MessageBubble key={message.id} message={message} showRead={message.id === lastOwnReadId} />
+            ));
+          })()
         )}
         <div ref={bottomRef} />
       </div>
@@ -139,10 +164,10 @@ export function ChatPanel({ conversation, loading = false, onSend, onBack, showB
           />
           <button
             type="submit"
-            disabled={!draft.trim()}
+            disabled={!draft.trim() || sending}
             className={cn(
               'text-sm font-semibold px-2',
-              draft.trim() ? 'text-ig-primary' : 'text-ig-primary/40',
+              draft.trim() && !sending ? 'text-ig-primary' : 'text-ig-primary/40',
             )}
           >
             보내기
@@ -153,12 +178,12 @@ export function ChatPanel({ conversation, loading = false, onSend, onBack, showB
   );
 }
 
-function MessageBubble({ message }: { message: Message }) {
+function MessageBubble({ message, showRead }: { message: Message; showRead?: boolean }) {
   const { user } = useAuth();
   const isOwn = user != null && message.sender_id === user.id;
 
   return (
-    <div className={cn('flex', isOwn ? 'justify-end' : 'justify-start')}>
+    <div className={cn('flex flex-col', isOwn ? 'items-end' : 'items-start')}>
       <div
         className={cn(
           'max-w-[65%] px-4 py-2 rounded-3xl text-sm',
@@ -170,6 +195,7 @@ function MessageBubble({ message }: { message: Message }) {
           {formatChatTime(message.created_at)}
         </p>
       </div>
+      {showRead && <p className="text-[11px] text-ig-text-secondary mt-1 mr-1">읽음</p>}
     </div>
   );
 }
