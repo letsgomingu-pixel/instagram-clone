@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+import secrets
+
 import pyotp
 from fastapi import HTTPException, Request, status
 from sqlalchemy import func, select
@@ -215,10 +217,28 @@ def user_requires_2fa(db: Session, user: User) -> bool:
     return bool(settings and settings.two_factor_enabled and settings.two_factor_secret)
 
 
-def verify_login_totp(db: Session, user: User, code: str | None) -> None:
+def verify_login_totp(
+    db: Session,
+    user: User,
+    code: str | None,
+    *,
+    trusted_device_token: str | None = None,
+) -> None:
     settings = db.scalar(select(UserSettings).where(UserSettings.user_id == user.id))
     if not settings or not settings.two_factor_enabled or not settings.two_factor_secret:
         return
+
+    if trusted_device_token:
+        trusted = db.scalar(
+            select(LoginSession).where(
+                LoginSession.user_id == user.id,
+                LoginSession.trust_token == trusted_device_token,
+                LoginSession.is_trusted.is_(True),
+            )
+        )
+        if trusted:
+            return
+
     if not code:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -226,3 +246,12 @@ def verify_login_totp(db: Session, user: User, code: str | None) -> None:
         )
     if not verify_totp_code(settings.two_factor_secret, code):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+
+
+def maybe_set_trust_token(session: LoginSession, *, trust_device: bool) -> str | None:
+    if not trust_device:
+        return None
+    token = secrets.token_urlsafe(32)
+    session.is_trusted = True
+    session.trust_token = token
+    return token

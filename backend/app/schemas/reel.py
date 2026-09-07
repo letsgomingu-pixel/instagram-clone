@@ -24,3 +24,10 @@ class ReelLikeResponse(BaseModel):
 
 class ReelViewResponse(BaseModel):
     view_count: int
+
+
+class ReelCommentOut(BaseModel):
+    id: int
+    user: UserOut
+    content: str
+    created_at: str

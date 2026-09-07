@@ -7,6 +7,8 @@ class LoginRequest(BaseModel):
     username: str
     password: str
     totp_code: str | None = Field(default=None, min_length=6, max_length=6)
+    trusted_device_token: str | None = None
+    trust_device: bool = False
 
 
 class RegisterRequest(BaseModel):
@@ -29,3 +31,4 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+    trust_token: str | None = None

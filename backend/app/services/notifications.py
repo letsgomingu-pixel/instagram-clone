@@ -1,11 +1,14 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
-from app.models import Follow, Notification, Post, User
+from app.models import Comment, Notification, Post, User
 from app.services.settings import user_allows_notification
+from app.utils.mentions import extract_mentions
 
 
 def _followers_of(db: Session, user_id: int) -> list[int]:
+    from app.models import Follow
+
     return list(
         db.scalars(select(Follow.follower_id).where(Follow.following_id == user_id)).all()
     )
@@ -68,6 +71,80 @@ def create_post_activity_notifications(
                 tab="following",
                 post_id=post.id,
                 comment_preview=comment_preview,
+                is_read=False,
+            )
+        )
+
+
+def create_mention_notifications(
+    db: Session,
+    *,
+    actor: User,
+    text: str,
+    post_id: int | None = None,
+    comment_preview: str | None = None,
+) -> None:
+    usernames = extract_mentions(text)
+    if not usernames:
+        return
+    for username in usernames:
+        target = db.scalar(select(User).where(User.username.ilike(username)))
+        if not target or target.id == actor.id:
+            continue
+        if not user_allows_notification(db, target.id, "notify_mentions"):
+            continue
+        db.add(
+            Notification(
+                recipient_id=target.id,
+                actor_id=actor.id,
+                type="mention",
+                tab="you",
+                post_id=post_id,
+                comment_preview=comment_preview or text[:200],
+                is_read=False,
+            )
+        )
+
+
+def create_reply_notification(
+    db: Session,
+    *,
+    actor: User,
+    parent_comment: Comment,
+    post: Post,
+    preview: str,
+) -> None:
+    if parent_comment.user_id == actor.id:
+        return
+    if not user_allows_notification(db, parent_comment.user_id, "notify_comments"):
+        return
+    db.add(
+        Notification(
+            recipient_id=parent_comment.user_id,
+            actor_id=actor.id,
+            type="reply",
+            tab="you",
+            post_id=post.id,
+            comment_preview=preview[:200],
+            is_read=False,
+        )
+    )
+
+
+def create_tag_notifications(db: Session, *, actor: User, post: Post, tagged_user_ids: list[int]) -> None:
+    for uid in tagged_user_ids:
+        if uid == actor.id:
+            continue
+        if not user_allows_notification(db, uid, "notify_mentions"):
+            continue
+        db.add(
+            Notification(
+                recipient_id=uid,
+                actor_id=actor.id,
+                type="mention",
+                tab="you",
+                post_id=post.id,
+                comment_preview="회원님을 게시물에 태그했습니다.",
                 is_read=False,
             )
         )

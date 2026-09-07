@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { ConversationList } from '@/components/message/ConversationList';
 import { ChatPanel } from '@/components/message/ChatPanel';
 import { NewGroupModal } from '@/components/message/NewGroupModal';
+import { NewMessageModal } from '@/components/message/NewMessageModal';
 import * as conversationsApi from '@/api/conversations';
 import type { Conversation, Message } from '@/types';
 import { conversationRouteKey } from '@/utils/messages';
@@ -28,6 +29,7 @@ export function MessagesPage() {
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
   const [showNewGroup, setShowNewGroup] = useState(false);
+  const [showNewMessage, setShowNewMessage] = useState(false);
 
   // A single stable key identifying "what's currently open" — either
   // `user:<username>` (1:1) or `group:<conversationId>` — used both to find
@@ -239,6 +241,7 @@ export function MessagesPage() {
               currentUserId={user?.id ?? 0}
               onSelect={handleSelect}
               onNewGroup={() => setShowNewGroup(true)}
+              onNewMessage={() => setShowNewMessage(true)}
             />
           </div>
 
@@ -262,6 +265,11 @@ export function MessagesPage() {
         isOpen={showNewGroup}
         onClose={() => setShowNewGroup(false)}
         onCreated={handleGroupCreated}
+      />
+      <NewMessageModal
+        isOpen={showNewMessage}
+        onClose={() => setShowNewMessage(false)}
+        onStarted={(uname) => navigate(`/messages/${uname}`)}
       />
     </div>
   );

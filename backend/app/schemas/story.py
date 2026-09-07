@@ -36,6 +36,11 @@ class StoryViewResponse(BaseModel):
     viewed: bool = True
 
 
+class StoryLikeResponse(BaseModel):
+    is_liked: bool
+    like_count: int
+
+
 class StoryViewerOut(BaseModel):
     user: UserOut
     viewed_at: str

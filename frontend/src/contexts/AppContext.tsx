@@ -20,7 +20,7 @@ import {
 
 import toast from 'react-hot-toast';
 
-import type { Comment, Post, Reel, Story, SuggestedUser, User } from '@/types';
+import type { Post, Reel, Story, SuggestedUser, User } from '@/types';
 
 import * as postsApi from '@/api/posts';
 
@@ -90,7 +90,7 @@ interface AppContextValue {
 
   unfollowUser: (userId: number) => Promise<void>;
 
-  addComment: (postId: number, content: string) => void;
+  addComment: (postId: number, content: string, parentId?: number | null) => void;
 
   markStoryViewed: (storyId: number) => void;
 
@@ -153,6 +153,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const [feedPage, setFeedPage] = useState(1);
+
+  const [feedCursor, setFeedCursor] = useState<string | null>(null);
 
   const [feedHasMore, setFeedHasMore] = useState(false);
 
@@ -295,7 +297,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     setFeedPage(1);
 
-    setFeedHasMore(data.next_page !== null);
+    setFeedCursor(data.next_cursor ?? null);
+
+    setFeedHasMore(data.next_cursor != null || data.next_page !== null);
 
   }, [isAuthenticated]);
 
@@ -309,19 +313,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     try {
 
-      const nextPage = feedPage + 1;
-
       const data = isAuthenticated
 
-        ? await postsApi.getFeed(nextPage, FEED_PAGE_SIZE)
+        ? await postsApi.getFeed(feedPage + 1, FEED_PAGE_SIZE, feedCursor)
 
-        : await postsApi.getExplore(nextPage, FEED_PAGE_SIZE);
+        : await postsApi.getExplore(explorePage + 1, EXPLORE_PAGE_SIZE);
 
       setPosts((prev) => [...prev, ...data.items]);
 
-      setFeedPage(nextPage);
-
-      setFeedHasMore(data.next_page !== null);
+      if (isAuthenticated) {
+        setFeedCursor(data.next_cursor ?? null);
+        setFeedHasMore(data.next_cursor != null || data.next_page !== null);
+        setFeedPage((p) => p + 1);
+      } else {
+        setExplorePage((p) => p + 1);
+        setExploreHasMore(data.next_page !== null);
+      }
 
     } finally {
 
@@ -329,7 +336,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     }
 
-  }, [isAuthenticated, feedLoadingMore, feedHasMore, feedPage]);
+  }, [isAuthenticated, feedLoadingMore, feedHasMore, feedPage, feedCursor, explorePage]);
 
 
 
@@ -708,21 +715,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addComment = useCallback(
 
-    (postId: number, content: string) => {
+    (postId: number, content: string, parentId?: number | null) => {
 
       if (!isAuthenticated || !user) return;
 
-      postsApi.addComment(postId, content).then((newComment: Comment) => {
+      postsApi.addComment(postId, content, parentId).then(() => {
 
-        updatePostInState(postId, (p) => ({
+        postsApi.getPostComments(postId).then((res) => {
 
-          ...p,
+          updatePostInState(postId, (p) => ({
 
-          comment_count: p.comment_count + 1,
+            ...p,
 
-          comments: [...(p.comments || []), newComment],
+            comments: res.items,
 
-        }));
+          }));
+
+        });
 
       });
 

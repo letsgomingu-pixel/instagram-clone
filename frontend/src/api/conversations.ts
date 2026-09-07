@@ -6,14 +6,32 @@ export async function getConversations(): Promise<Conversation[]> {
   return data;
 }
 
-export async function getMessages(username: string): Promise<Conversation> {
-  const { data } = await api.get<Conversation>(`/conversations/${username}/messages`);
+export async function getMessages(
+  username: string,
+  beforeId?: number,
+  limit = 50,
+): Promise<Conversation> {
+  const { data } = await api.get<Conversation>(`/conversations/${username}/messages`, {
+    params: { before_id: beforeId, limit },
+  });
   return data;
 }
 
 export async function sendMessage(username: string, content: string): Promise<Message> {
   const { data } = await api.post<Message>(`/conversations/${username}/messages`, { content });
   return data;
+}
+
+export async function sendMessageWithImage(username: string, file: File, content?: string): Promise<Message> {
+  const form = new FormData();
+  if (content) form.append('content', content);
+  form.append('image', file);
+  const { data } = await api.post<Message>(`/conversations/${username}/messages`, form);
+  return data;
+}
+
+export async function deleteMessage(messageId: number): Promise<void> {
+  await api.delete(`/conversations/messages/${messageId}`);
 }
 
 export async function createGroupConversation(
@@ -24,13 +42,31 @@ export async function createGroupConversation(
   return data;
 }
 
-export async function getGroupMessages(conversationId: number): Promise<Conversation> {
-  const { data } = await api.get<Conversation>(`/conversations/group/${conversationId}/messages`);
+export async function getGroupMessages(
+  conversationId: number,
+  beforeId?: number,
+  limit = 50,
+): Promise<Conversation> {
+  const { data } = await api.get<Conversation>(`/conversations/group/${conversationId}/messages`, {
+    params: { before_id: beforeId, limit },
+  });
   return data;
 }
 
 export async function sendGroupMessage(conversationId: number, content: string): Promise<Message> {
   const { data } = await api.post<Message>(`/conversations/group/${conversationId}/messages`, { content });
+  return data;
+}
+
+export async function sendGroupMessageWithImage(
+  conversationId: number,
+  file: File,
+  content?: string,
+): Promise<Message> {
+  const form = new FormData();
+  if (content) form.append('content', content);
+  form.append('image', file);
+  const { data } = await api.post<Message>(`/conversations/group/${conversationId}/messages`, form);
   return data;
 }
 

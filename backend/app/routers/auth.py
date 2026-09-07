@@ -5,7 +5,7 @@ from app.dependencies import CurrentUser, DbSession
 from app.models import User
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from app.schemas.user import UserOut
-from app.services.security import record_login_session, verify_login_totp
+from app.services.security import maybe_set_trust_token, record_login_session, verify_login_totp
 from app.services.settings import get_or_create_settings
 from app.services.users import build_user_out
 from app.utils.security import create_access_token, hash_password, verify_password
@@ -27,14 +27,17 @@ def login(body: LoginRequest, request: Request, db: DbSession):
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is inactive")
 
-    verify_login_totp(db, user, body.totp_code)
+    verify_login_totp(db, user, body.totp_code, trusted_device_token=body.trusted_device_token)
 
     session = record_login_session(db, user, request)
+    trust_token = maybe_set_trust_token(session, trust_device=body.trust_device)
     db.commit()
     db.refresh(session)
 
     token = create_access_token(user.id, user.username, session_id=session.id)
-    return TokenResponse(access_token=token, user=build_user_out(db, user, user))
+    return TokenResponse(
+        access_token=token, user=build_user_out(db, user, user), trust_token=trust_token
+    )
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)

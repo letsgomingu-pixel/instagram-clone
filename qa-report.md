@@ -281,4 +281,47 @@
 
 ### 8.4 남은 백로그
 
-P0 4개를 제외한 5장의 백로그(P1/P2)는 이번에 손대지 않았다. 특히 **대댓글(답글)** 은 16개 핵심기능 중 유일하게 남은 미완성 항목(3장 5번 "댓글 및 대댓글" 참고)이며, `Comment`에 부모 댓글 컬럼을 추가하는 스키마 변경이 필요해 P0 4개와 성격이 비슷한 다음 작업 후보로 권장한다.
+P0 4개를 제외한 5장의 백로그(P1/P2)는 **9장에서 구현 완료**했다. 배포 시 `009_p1_p2_features` 마이그레이션(`alembic upgrade head`)이 추가로 필요하다.
+
+---
+
+## 9. [업데이트] P1/P2 백로그 구현 완료
+
+> 마이그레이션 **`009_p1_p2_features`** (008 다음). 배포: `git pull` → `alembic upgrade head` → 프론트 빌드 → 서버 재시작.
+
+### P1 구현 항목
+
+| 항목 | 구현 |
+|---|---|
+| 게시물 업로드 사람 태그 UI | `CreatePost` 태그 검색·선택 → `tagged_usernames` 전송 |
+| 대댓글(답글) | `comments.parent_id`, 중첩 `CommentOut`, 답글 UI |
+| 댓글 좋아요 | `comment_likes` 테이블 + 토글 API + 하트 UI |
+| 계정 차단 | `user_blocks` + `/users/{id}/block` API |
+| 메시지 삭제 | `messages.deleted_at` + DELETE API |
+| 이미지/미디어 메시지 | `messages.media_url/media_type` + multipart 업로드 |
+| 메시지 페이지네이션 | `before_id`/`limit` 쿼리, `has_more_messages` |
+| 새 메시지 플로우 | `NewMessageModal` + 메시지 탭 "새 메시지" |
+| 멘션(@) 알림 | 캡션/댓글 `@username` 파싱 → `type=mention` 알림 |
+| 대댓글 알림 | `type=reply` 알림 (부모 댓글 작성자) |
+| 스토리 좋아요/답장 | `story_likes` + `/stories/items/{id}/like`, `/reply` → DM |
+| 프로필 무한 스크롤 | posts/reels/tagged 탭 IntersectionObserver |
+
+### P2 구현 항목
+
+| 항목 | 구현 |
+|---|---|
+| 홈 피드 커서 페이지네이션 | `cursor` 토큰 + `next_cursor` (프론트 `feedCursor`) |
+| 탐색 추천 알고리즘 | 좋아요·댓글·팔로우 가중 점수 정렬 |
+| 해시태그/최근 검색어 | `recent_searches` + `/search/hashtags`, `/search/recent` |
+| 저장 컬렉션 | `saved_collections` + `/collections` CRUD API |
+| 신뢰 기기 2FA 스킵 | `login_sessions.trust_token` + 로그인 시 `trusted_device_token` |
+| 릴스 댓글 | `reel_comments` + CRUD API |
+| 릴스 조회수 중복 방지 | `reel_views` unique (user/session) |
+| 알림 폴링 | 알림 페이지 10초 간격 갱신 |
+| 메시지 실시간성 | 기존 4초 폴링 유지 (WebSocket은 구조적 대규모 작업으로 미포함) |
+
+### 제한사항
+
+- 그룹 채팅 읽음 표시는 8장과 동일하게 근사치.
+- 저장 컬렉션 UI는 API 준비 완료; 프로필 "저장됨" 탭의 폴더 UI는 추후 연결 가능.
+- WebSocket 기반 실시간 메시지/알림은 P2에서 폴링 개선으로 대체.

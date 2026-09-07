@@ -1,8 +1,14 @@
 import type { Comment, PaginatedResponse, Post, User } from '@/types';
 import { api } from './client';
 
-export async function getFeed(page = 1, limit = 10): Promise<PaginatedResponse<Post>> {
-  const { data } = await api.get<PaginatedResponse<Post>>('/posts/feed', { params: { page, limit } });
+export async function getFeed(
+  page = 1,
+  limit = 10,
+  cursor?: string | null,
+): Promise<PaginatedResponse<Post>> {
+  const params: Record<string, string | number> = { page, limit };
+  if (cursor) params.cursor = cursor;
+  const { data } = await api.get<PaginatedResponse<Post>>('/posts/feed', { params });
   return data;
 }
 
@@ -36,8 +42,25 @@ export async function toggleSave(postId: number): Promise<{ is_saved: boolean }>
   return data;
 }
 
-export async function addComment(postId: number, content: string): Promise<Comment> {
-  const { data } = await api.post<Comment>(`/posts/${postId}/comments`, { content });
+export async function addComment(
+  postId: number,
+  content: string,
+  parentId?: number | null,
+): Promise<Comment> {
+  const { data } = await api.post<Comment>(`/posts/${postId}/comments`, {
+    content,
+    parent_id: parentId ?? null,
+  });
+  return data;
+}
+
+export async function toggleCommentLike(
+  postId: number,
+  commentId: number,
+): Promise<{ is_liked: boolean; like_count: number }> {
+  const { data } = await api.post<{ is_liked: boolean; like_count: number }>(
+    `/posts/${postId}/comments/${commentId}/like`,
+  );
   return data;
 }
 

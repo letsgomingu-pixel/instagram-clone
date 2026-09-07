@@ -82,6 +82,19 @@ export async function searchUsersApi(q: string): Promise<User[]> {
   return data;
 }
 
+export async function blockUser(userId: number): Promise<void> {
+  await api.post(`/users/${userId}/block`);
+}
+
+export async function unblockUser(userId: number): Promise<void> {
+  await api.delete(`/users/${userId}/block`);
+}
+
+export async function getBlockStatus(userId: number): Promise<{ is_blocked: boolean }> {
+  const { data } = await api.get<{ is_blocked: boolean }>(`/users/${userId}/block-status`);
+  return data;
+}
+
 export async function deactivateAccount(password: string): Promise<void> {
   await api.post('/users/me/deactivate', { password });
 }

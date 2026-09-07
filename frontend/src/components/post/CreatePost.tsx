@@ -1,11 +1,15 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { ChevronLeft, ChevronRight, ImagePlus, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ImagePlus, MapPin, UserPlus, X } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
+import { Avatar } from '@/components/common/Avatar';
 import * as postsApi from '@/api/posts';
+import * as usersApi from '@/api/users';
 import { useApp } from '@/contexts/AppContext';
+import { useDebounce } from '@/hooks/useDebounce';
 import toast from 'react-hot-toast';
+import type { User } from '@/types';
 
 interface CreatePostModalProps {
   isOpen: boolean;
@@ -19,7 +23,19 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
   const [previewIndex, setPreviewIndex] = useState(0);
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
+  const [tagQuery, setTagQuery] = useState('');
+  const [tagResults, setTagResults] = useState<User[]>([]);
+  const [taggedUsers, setTaggedUsers] = useState<User[]>([]);
   const [uploading, setUploading] = useState(false);
+  const debouncedTagQuery = useDebounce(tagQuery, 300);
+
+  useEffect(() => {
+    if (debouncedTagQuery.length < 1) {
+      setTagResults([]);
+      return;
+    }
+    usersApi.searchUsersApi(debouncedTagQuery).then(setTagResults).catch(() => setTagResults([]));
+  }, [debouncedTagQuery]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (!acceptedFiles.length) return;
@@ -52,6 +68,9 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
       files.forEach((file) => form.append('files', file));
       if (caption) form.append('caption', caption);
       if (location) form.append('location', location);
+      if (taggedUsers.length) {
+        form.append('tagged_usernames', JSON.stringify(taggedUsers.map((u) => u.username)));
+      }
       await postsApi.createPost(form);
       await Promise.all([refreshFeed(), refreshExplore()]);
       toast.success('게시물이 공유되었습니다!');
@@ -70,7 +89,17 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
     setPreviewIndex(0);
     setCaption('');
     setLocation('');
+    setTagQuery('');
+    setTagResults([]);
+    setTaggedUsers([]);
     onClose();
+  };
+
+  const addTag = (user: User) => {
+    if (taggedUsers.some((u) => u.id === user.id)) return;
+    setTaggedUsers((prev) => [...prev, user]);
+    setTagQuery('');
+    setTagResults([]);
   };
 
   const currentPreview = previews[previewIndex];
@@ -163,6 +192,52 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                   onChange={(e) => setLocation(e.target.value)}
                   className="flex-1 text-sm placeholder:text-ig-text-secondary"
                 />
+              </div>
+              <div className="mt-3">
+                <div className="flex items-center gap-2">
+                  <UserPlus size={16} className="text-ig-text-secondary shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="사람 태그하기"
+                    value={tagQuery}
+                    onChange={(e) => setTagQuery(e.target.value)}
+                    className="flex-1 text-sm placeholder:text-ig-text-secondary"
+                  />
+                </div>
+                {tagResults.length > 0 && (
+                  <div className="mt-1 border border-ig-border rounded-lg overflow-hidden max-h-32 overflow-y-auto">
+                    {tagResults.map((user) => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        onClick={() => addTag(user)}
+                        className="flex items-center gap-2 w-full px-3 py-2 hover:bg-ig-secondary text-left"
+                      >
+                        <Avatar src={user.avatar_url} alt={user.username} size="sm" />
+                        <span className="text-sm">{user.username}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {taggedUsers.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {taggedUsers.map((user) => (
+                      <span
+                        key={user.id}
+                        className="inline-flex items-center gap-1 text-xs bg-ig-secondary px-2 py-1 rounded-full"
+                      >
+                        @{user.username}
+                        <button
+                          type="button"
+                          onClick={() => setTaggedUsers((prev) => prev.filter((u) => u.id !== user.id))}
+                          aria-label="태그 제거"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <p className="text-xs text-ig-text-secondary text-right mt-1">{caption.length}/2,200</p>
             </div>

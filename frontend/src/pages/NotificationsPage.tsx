@@ -29,12 +29,22 @@ export function NotificationsPage() {
       return;
     }
 
+    const fetchNotifications = () => {
+      notificationsApi
+        .getNotifications(tab)
+        .then(setNotifications)
+        .catch(() => setNotifications([]))
+        .finally(() => setLoading(false));
+    };
+
     setLoading(true);
-    notificationsApi
-      .getNotifications(tab)
-      .then(setNotifications)
-      .catch(() => setNotifications([]))
-      .finally(() => setLoading(false));
+    fetchNotifications();
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === 'visible') fetchNotifications();
+    }, 10000);
+
+    return () => window.clearInterval(intervalId);
   }, [tab, isAuthenticated, isLoading]);
 
   const groupedNotifications = useMemo(

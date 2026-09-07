@@ -11,6 +11,7 @@ export function LoginForm() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [totpCode, setTotpCode] = useState('');
+  const [trustDevice, setTrustDevice] = useState(false);
   const [requires2fa, setRequires2fa] = useState(false);
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export function LoginForm() {
       await login({
         username,
         password,
-        ...(requires2fa ? { totp_code: totpCode } : {}),
+        ...(requires2fa ? { totp_code: totpCode, trust_device: trustDevice } : {}),
       });
       toast.success('로그인 성공!');
       navigate(from, { replace: true });
@@ -95,16 +96,26 @@ export function LoginForm() {
             disabled={requires2fa}
           />
           {requires2fa && (
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="6자리 인증 코드"
-              value={totpCode}
-              onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
-              className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs placeholder:text-ig-text-secondary"
-              aria-label="2단계 인증 코드"
-            />
+            <>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="6자리 인증 코드"
+                value={totpCode}
+                onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs placeholder:text-ig-text-secondary"
+                aria-label="2단계 인증 코드"
+              />
+              <label className="flex items-center gap-2 text-xs text-ig-text-secondary px-1">
+                <input
+                  type="checkbox"
+                  checked={trustDevice}
+                  onChange={(e) => setTrustDevice(e.target.checked)}
+                />
+                이 기기 저장 (다음 로그인 시 2단계 인증 건너뛰기)
+              </label>
+            </>
           )}
           <Button type="submit" fullWidth size="lg" loading={isLoading} disabled={!username || !password}>
             로그인

@@ -56,6 +56,10 @@ export interface Comment {
   user: User;
   content: string;
   created_at: string;
+  parent_id?: number | null;
+  like_count?: number;
+  is_liked?: boolean;
+  replies?: Comment[];
 }
 
 export interface Story {
@@ -98,6 +102,8 @@ export interface AuthCredentials {
   username: string;
   password: string;
   totp_code?: string;
+  trusted_device_token?: string;
+  trust_device?: boolean;
 }
 
 export interface RegisterData {
@@ -113,6 +119,7 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   next_page: number | null;
+  next_cursor?: string | null;
 }
 
 export interface HashtagPage extends PaginatedResponse<Post> {
@@ -126,22 +133,25 @@ export interface Message {
   content: string;
   created_at: string;
   is_read: boolean;
+  media_url?: string | null;
+  media_type?: string | null;
+  story_item_id?: number | null;
+  is_deleted?: boolean;
 }
 
 export interface Conversation {
   id: number;
   is_group: boolean;
   title?: string | null;
-  /** The other person — set for 1:1 conversations only, null for groups. */
   participant: User | null;
-  /** All members (including yourself) — set for group conversations only. */
   participants: User[];
   messages: Message[];
   last_message: Message;
   unread_count: number;
+  has_more_messages?: boolean;
 }
 
-export type NotificationType = 'like' | 'follow' | 'comment';
+export type NotificationType = 'like' | 'follow' | 'comment' | 'mention' | 'reply';
 
 export type NotificationTab = 'you' | 'following';
 
@@ -156,4 +166,11 @@ export interface Notification {
   comment_preview?: string;
   created_at: string;
   is_read: boolean;
+}
+
+export interface ReelComment {
+  id: number;
+  user: User;
+  content: string;
+  created_at: string;
 }

@@ -8,10 +8,20 @@ class CommentOut(BaseModel):
     user: UserOut
     content: str
     created_at: str
+    parent_id: int | None = None
+    like_count: int = 0
+    is_liked: bool = False
+    replies: list["CommentOut"] = []
 
 
 class CommentCreate(BaseModel):
     content: str = Field(min_length=1, max_length=2200)
+    parent_id: int | None = None
+
+
+class CommentLikeResponse(BaseModel):
+    is_liked: bool
+    like_count: int
 
 
 class PostMediaOut(BaseModel):
@@ -44,3 +54,6 @@ class LikeToggleResponse(BaseModel):
 
 class SaveToggleResponse(BaseModel):
     is_saved: bool
+
+
+CommentOut.model_rebuild()

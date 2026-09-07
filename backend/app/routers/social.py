@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
 
 from sqlalchemy import select
 from sqlalchemy.orm import joinedload
@@ -10,12 +10,15 @@ from app.schemas.notification import NotificationOut, NotificationReadUpdate
 from app.schemas.user import UserOut
 from app.services.conversations import (
     create_group_conversation,
+    delete_message,
     get_group_messages,
     get_group_participants,
     get_messages_with_user,
     list_conversations,
     send_group_message,
+    send_group_message_with_media,
     send_message,
+    send_message_with_media,
 )
 from app.services.posts import build_notification_out, list_notifications
 
@@ -31,13 +34,43 @@ def get_conversations(current_user: CurrentUser, db: DbSession):
 
 
 @conversations_router.get("/{username}/messages", response_model=ConversationOut)
-def get_messages(username: str, current_user: CurrentUser, db: DbSession):
-    return get_messages_with_user(db, current_user, username)
+def get_messages(
+    username: str,
+    current_user: CurrentUser,
+    db: DbSession,
+    before_id: int | None = Query(None),
+    limit: int = Query(50, ge=1, le=100),
+):
+    return get_messages_with_user(db, current_user, username, before_id=before_id, limit=limit)
 
 
 @conversations_router.post("/{username}/messages", response_model=MessageOut, status_code=201)
-def post_message(username: str, body: MessageCreate, current_user: CurrentUser, db: DbSession):
-    return send_message(db, current_user, username, body.content)
+async def post_message(
+    username: str,
+    request: Request,
+    current_user: CurrentUser,
+    db: DbSession,
+):
+    content_type = request.headers.get("content-type", "")
+    if "multipart/form-data" in content_type:
+        form = await request.form()
+        content = form.get("content")
+        text = str(content) if content else None
+        image = form.get("image")
+        if image and hasattr(image, "read"):
+            return await send_message_with_media(db, current_user, username, text, image)  # type: ignore[arg-type]
+        if not text:
+            raise HTTPException(status_code=400, detail="Message content required")
+        return send_message(db, current_user, username, content=text)
+    body = MessageCreate.model_validate(await request.json())
+    if not body.content:
+        raise HTTPException(status_code=400, detail="Message content required")
+    return send_message(db, current_user, username, content=body.content)
+
+
+@conversations_router.delete("/messages/{message_id}", status_code=204)
+def remove_message(message_id: int, current_user: CurrentUser, db: DbSession):
+    delete_message(db, current_user, message_id)
 
 
 @conversations_router.post("/group", response_model=ConversationOut, status_code=201)
@@ -47,13 +80,38 @@ def create_group(body: GroupConversationCreate, current_user: CurrentUser, db: D
 
 
 @conversations_router.get("/group/{conversation_id}/messages", response_model=ConversationOut)
-def get_group_messages_route(conversation_id: int, current_user: CurrentUser, db: DbSession):
-    return get_group_messages(db, current_user, conversation_id)
+def get_group_messages_route(
+    conversation_id: int,
+    current_user: CurrentUser,
+    db: DbSession,
+    before_id: int | None = Query(None),
+    limit: int = Query(50, ge=1, le=100),
+):
+    return get_group_messages(db, current_user, conversation_id, before_id=before_id, limit=limit)
 
 
 @conversations_router.post("/group/{conversation_id}/messages", response_model=MessageOut, status_code=201)
-def post_group_message(conversation_id: int, body: MessageCreate, current_user: CurrentUser, db: DbSession):
-    return send_group_message(db, current_user, conversation_id, body.content)
+async def post_group_message(
+    conversation_id: int,
+    request: Request,
+    current_user: CurrentUser,
+    db: DbSession,
+):
+    content_type = request.headers.get("content-type", "")
+    if "multipart/form-data" in content_type:
+        form = await request.form()
+        content = form.get("content")
+        text = str(content) if content else None
+        image = form.get("image")
+        if image and hasattr(image, "read"):
+            return await send_group_message_with_media(db, current_user, conversation_id, text, image)  # type: ignore[arg-type]
+        if not text:
+            raise HTTPException(status_code=400, detail="Message content required")
+        return send_group_message(db, current_user, conversation_id, content=text)
+    body = MessageCreate.model_validate(await request.json())
+    if not body.content:
+        raise HTTPException(status_code=400, detail="Message content required")
+    return send_group_message(db, current_user, conversation_id, content=body.content)
 
 
 @conversations_router.get("/group/{conversation_id}/participants", response_model=list[UserOut])

@@ -25,7 +25,7 @@ interface PostModalProps {
 }
 
 export function PostModal({ post, onClose }: PostModalProps) {
-  const { toggleLike, toggleSave, addComment } = useApp();
+  const { toggleLike, toggleSave, addComment, setSelectedPost } = useApp();
   const { requireAuth } = useRequireAuth();
   const commentInputRef = useRef<HTMLInputElement>(null);
 
@@ -88,7 +88,13 @@ export function PostModal({ post, onClose }: PostModalProps) {
                 </div>
               </div>
             )}
-            <CommentList comments={post.comments || []} />
+            <CommentList
+              comments={post.comments || []}
+              postId={post.id}
+              onCommentsChange={(comments) =>
+                setSelectedPost({ ...post, comments })
+              }
+            />
           </div>
 
           <div className="border-t border-ig-border px-4 py-3">

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 
-import { X, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { X, ChevronLeft, ChevronRight, Eye, Heart } from 'lucide-react';
 
 import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
@@ -53,6 +54,8 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
   // while you're still reading who viewed it).
   const [viewers, setViewers] = useState<StoryViewerEntry[]>([]);
   const [showViewers, setShowViewers] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [storyLiked, setStoryLiked] = useState(false);
   const paused = showViewers;
 
 
@@ -471,24 +474,39 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
             <span className="text-sm font-semibold">조회 {viewers.length}회</span>
           </button>
         ) : (
-          <div className="absolute bottom-4 left-3 right-3 z-10">
-
+          <div className="absolute bottom-4 left-3 right-3 z-10 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                requireAuth(async () => {
+                  if (!item) return;
+                  const res = await storiesApi.likeStoryItem(item.id);
+                  setStoryLiked(res.is_liked);
+                })
+              }
+              aria-label="스토리 좋아요"
+              className="p-2"
+            >
+              <Heart size={22} className={storyLiked ? 'fill-red-500 text-red-500' : 'text-white'} />
+            </button>
             <input
-
               type="text"
-
               placeholder={isAuthenticated ? `${story.user.username}에게 답장...` : '로그인하여 답장...'}
-
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
               onFocus={() => !isAuthenticated && requireAuth()}
-
-              onClick={() => !isAuthenticated && requireAuth()}
-
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && replyText.trim() && item) {
+                  requireAuth(async () => {
+                    await storiesApi.replyToStory(item.id, replyText.trim());
+                    setReplyText('');
+                    toast.success('답장을 보냈습니다.');
+                  });
+                }
+              }}
               readOnly={!isAuthenticated}
-
-              className="w-full bg-transparent border border-white/50 rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/70 cursor-pointer"
-
+              className="flex-1 bg-transparent border border-white/50 rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/70"
             />
-
           </div>
         )}
 

@@ -1,14 +1,25 @@
 import type { AuthCredentials, RegisterData, User } from '@/types';
 import { api } from './client';
 
-export async function login(credentials: AuthCredentials): Promise<{ access_token: string; user: User }> {
-  const { data } = await api.post<{ access_token: string; token_type: string; user: User }>(
-    '/auth/login',
-    credentials,
-  );
+export async function login(
+  credentials: AuthCredentials,
+): Promise<{ access_token: string; user: User; trust_token?: string | null }> {
+  const storedTrust = localStorage.getItem('trust_token');
+  const { data } = await api.post<{
+    access_token: string;
+    token_type: string;
+    user: User;
+    trust_token?: string | null;
+  }>('/auth/login', {
+    ...credentials,
+    trusted_device_token: credentials.trusted_device_token ?? storedTrust ?? undefined,
+  });
   localStorage.setItem('token', data.access_token);
   localStorage.setItem('userId', String(data.user.id));
-  return { access_token: data.access_token, user: data.user };
+  if (data.trust_token) {
+    localStorage.setItem('trust_token', data.trust_token);
+  }
+  return { access_token: data.access_token, user: data.user, trust_token: data.trust_token };
 }
 
 export async function register(payload: RegisterData): Promise<{ access_token: string; user: User }> {

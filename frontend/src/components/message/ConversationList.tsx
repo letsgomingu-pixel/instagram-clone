@@ -12,6 +12,7 @@ interface ConversationListProps {
   currentUserId: number;
   onSelect: (conversation: Conversation) => void;
   onNewGroup?: () => void;
+  onNewMessage?: () => void;
 }
 
 export function ConversationList({
@@ -20,6 +21,7 @@ export function ConversationList({
   currentUserId,
   onSelect,
   onNewGroup,
+  onNewMessage,
 }: ConversationListProps) {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
@@ -47,15 +49,26 @@ export function ConversationList({
     <div className="flex flex-col h-full">
       <div className="hidden md:flex items-center justify-between px-4 py-3 border-b border-ig-border shrink-0">
         <h1 className="text-base font-bold">{user?.username ?? '메시지'}</h1>
-        {onNewGroup && (
-          <button
-            type="button"
-            onClick={onNewGroup}
-            className="text-xs font-semibold text-ig-primary hover:underline"
-          >
-            새 그룹
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {onNewMessage && (
+            <button
+              type="button"
+              onClick={onNewMessage}
+              className="text-xs font-semibold text-ig-primary hover:underline"
+            >
+              새 메시지
+            </button>
+          )}
+          {onNewGroup && (
+            <button
+              type="button"
+              onClick={onNewGroup}
+              className="text-xs font-semibold text-ig-primary hover:underline"
+            >
+              새 그룹
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="px-4 py-3 shrink-0">

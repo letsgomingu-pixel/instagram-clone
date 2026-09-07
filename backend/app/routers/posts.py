@@ -7,16 +7,18 @@ from sqlalchemy.orm import joinedload
 
 from app.dependencies import CurrentUser, DbSession, OptionalUser
 from app.models import Comment, Like, Post, PostMedia, PostTag, SavedPost, User
-from app.schemas.post import CommentCreate, CommentOut, LikeToggleResponse, PostOut, SaveToggleResponse
-from app.services.notifications import create_post_activity_notifications
+from app.schemas.post import CommentCreate, CommentLikeResponse, CommentOut, LikeToggleResponse, PostOut, SaveToggleResponse
+from app.services.notifications import create_post_activity_notifications, create_mention_notifications, create_reply_notification, create_tag_notifications
 from app.services.posts import (
     build_post_out,
     build_posts_out,
     delete_post_comment,
+    get_explore_posts,
     get_home_feed_posts,
     get_post_or_404,
     list_post_comments,
     list_post_likes,
+    toggle_comment_like,
 )
 from app.services.hashtags import attach_hashtags_to_post
 from app.services.users import build_user_out
@@ -34,12 +36,17 @@ def feed(
     db: DbSession,
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=30),
+    cursor: str | None = Query(None),
 ):
     page, limit, _ = pagination_params(page, limit)
-    posts, total = get_home_feed_posts(db, current_user, page, limit)
+    posts, total, next_cursor = get_home_feed_posts(db, current_user, page, limit, cursor=cursor)
     items = build_posts_out(db, posts, current_user)
-    next_page = page + 1 if page * limit < total else None
-    return PaginatedResponse(items=items, total=total, page=page, limit=limit, next_page=next_page)
+    next_page = page + 1 if page * limit < total and not cursor else None
+    if cursor and len(posts) == limit:
+        next_page = None
+    return PaginatedResponse(
+        items=items, total=total, page=page, limit=limit, next_page=next_page, next_cursor=next_cursor
+    )
 
 
 @router.get("/explore", response_model=PaginatedResponse)
@@ -50,13 +57,7 @@ def explore(
     limit: int = Query(10, ge=1, le=30),
 ):
     page, limit, offset = pagination_params(page, limit)
-    # Same rule as the home feed: a deactivated account's posts must not
-    # surface in explore either.
-    base = select(Post).join(User, Post.user_id == User.id).where(User.is_active.is_(True))
-    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
-    posts = db.scalars(
-        base.options(joinedload(Post.user)).order_by(desc(Post.created_at)).offset(offset).limit(limit)
-    ).all()
+    posts, total = get_explore_posts(db, viewer, offset, limit)
     items = build_posts_out(db, list(posts), viewer)
     return paginate(items, total, page, limit)
 
@@ -136,6 +137,7 @@ async def create_post(
             )
         )
 
+    tagged_ids: list[int] = []
     if tagged_usernames:
         try:
             names = json.loads(tagged_usernames)
@@ -145,16 +147,22 @@ async def create_post(
             tagged = db.scalar(select(User).where(User.username == name))
             if tagged and tagged.id != current_user.id:
                 db.add(PostTag(post_id=post.id, user_id=tagged.id))
+                tagged_ids.append(tagged.id)
 
     db.commit()
     db.refresh(post)
     post.user = current_user
 
-    # Hashtag linking runs only after the post itself is safely committed
-    # above — see attach_hashtags_to_post's docstring for why.
     tag_names = extract_hashtags(caption)
     if tag_names:
         attach_hashtags_to_post(db, post, tag_names)
+
+    if tagged_ids:
+        create_tag_notifications(db, actor=current_user, post=post, tagged_user_ids=tagged_ids)
+        db.commit()
+    if caption:
+        create_mention_notifications(db, actor=current_user, text=caption, post_id=post.id)
+        db.commit()
 
     return build_post_out(db, post, current_user)
 
@@ -248,14 +256,40 @@ def remove_comment(post_id: int, comment_id: int, current_user: CurrentUser, db:
     delete_post_comment(db, post_id, comment_id, current_user)
 
 
+@router.post("/{post_id}/comments/{comment_id}/like", response_model=CommentLikeResponse)
+def like_comment(post_id: int, comment_id: int, current_user: CurrentUser, db: DbSession):
+    is_liked, like_count = toggle_comment_like(db, post_id, comment_id, current_user)
+    return CommentLikeResponse(is_liked=is_liked, like_count=like_count)
+
+
 @router.post("/{post_id}/comments", response_model=CommentOut, status_code=201)
 def add_comment(post_id: int, body: CommentCreate, current_user: CurrentUser, db: DbSession):
     post = get_post_or_404(db, post_id)
-    comment = Comment(post_id=post_id, user_id=current_user.id, content=body.content)
+    parent = None
+    if body.parent_id:
+        parent = db.scalar(
+            select(Comment).where(Comment.id == body.parent_id, Comment.post_id == post_id)
+        )
+        if not parent:
+            raise HTTPException(status_code=404, detail="Parent comment not found")
+    comment = Comment(
+        post_id=post_id,
+        user_id=current_user.id,
+        content=body.content,
+        parent_id=body.parent_id,
+    )
     db.add(comment)
     db.execute(update(Post).where(Post.id == post_id).values(comment_count=Post.comment_count + 1))
-    create_post_activity_notifications(
-        db, actor=current_user, post=post, ntype="comment", comment_preview=body.content[:200]
+    if parent:
+        create_reply_notification(
+            db, actor=current_user, parent_comment=parent, post=post, preview=body.content
+        )
+    else:
+        create_post_activity_notifications(
+            db, actor=current_user, post=post, ntype="comment", comment_preview=body.content[:200]
+        )
+    create_mention_notifications(
+        db, actor=current_user, text=body.content, post_id=post.id, comment_preview=body.content[:200]
     )
     db.commit()
     db.refresh(comment)
@@ -264,4 +298,8 @@ def add_comment(post_id: int, body: CommentCreate, current_user: CurrentUser, db
         user=build_user_out(db, current_user, current_user),
         content=comment.content,
         created_at=to_iso(comment.created_at),
+        parent_id=comment.parent_id,
+        like_count=0,
+        is_liked=False,
+        replies=[],
     )

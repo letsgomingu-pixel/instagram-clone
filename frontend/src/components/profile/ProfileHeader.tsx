@@ -36,6 +36,8 @@ interface ProfileHeaderProps {
 
   onShowFollowing?: () => void;
 
+  onBlock?: () => void;
+
 }
 
 
@@ -63,6 +65,7 @@ export function ProfileHeader({
   onFollow,
   onShowFollowers,
   onShowFollowing,
+  onBlock,
 }: ProfileHeaderProps) {
 
   const { user: currentUser, isAuthenticated } = useAuth();
@@ -244,17 +247,22 @@ export function ProfileHeader({
 
                     </Link>
 
-                    <button
-
-                      className="h-8 w-8 flex items-center justify-center rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors"
-
-                      aria-label="비슷한 계정"
-
-                    >
-
-                      <UserPlus size={16} />
-
-                    </button>
+                    {onBlock ? (
+                      <button
+                        type="button"
+                        onClick={onBlock}
+                        className="h-8 px-3 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors"
+                      >
+                        차단
+                      </button>
+                    ) : (
+                      <button
+                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors"
+                        aria-label="비슷한 계정"
+                      >
+                        <UserPlus size={16} />
+                      </button>
+                    )}
 
                   </>
 

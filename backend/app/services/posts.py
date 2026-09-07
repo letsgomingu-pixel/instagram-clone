@@ -1,10 +1,14 @@
-from sqlalchemy import case, desc, func, select, update
+from datetime import datetime, timezone
+
+from sqlalchemy import and_, case, desc, func, or_, select, update
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Comment, Like, Notification, Post, PostMedia, PostTag, SavedPost, User
+from app.models import Comment, CommentLike, Like, Notification, Post, PostMedia, PostTag, SavedPost, User
 from app.schemas.notification import NotificationOut
 from app.schemas.post import CommentOut, PostMediaOut, PostOut
+from app.services.blocks import blocked_user_ids
 from app.services.users import build_user_out, get_following_ids
+from app.utils.cursor import cursor_from_post, decode_cursor
 from app.utils.datetime_fmt import to_iso
 
 
@@ -59,6 +63,57 @@ def _media_for_posts(db: Session, post_ids: list[int]) -> dict[int, list[PostMed
     return grouped
 
 
+def _liked_comment_ids(db: Session, user_id: int | None, comment_ids: list[int]) -> set[int]:
+    if not comment_ids or not user_id:
+        return set()
+    rows = db.scalars(
+        select(CommentLike.comment_id).where(
+            CommentLike.user_id == user_id, CommentLike.comment_id.in_(comment_ids)
+        )
+    ).all()
+    return set(rows)
+
+
+def _comment_to_out(
+    db: Session,
+    comment: Comment,
+    viewer: User | None,
+    *,
+    replies_map: dict[int, list[CommentOut]] | None = None,
+    liked_comments: set[int] | None = None,
+) -> CommentOut:
+    liked_comments = liked_comments or set()
+    return CommentOut(
+        id=comment.id,
+        user=build_user_out(db, comment.user, viewer),
+        content=comment.content,
+        created_at=to_iso(comment.created_at),
+        parent_id=comment.parent_id,
+        like_count=comment.like_count,
+        is_liked=comment.id in liked_comments,
+        replies=replies_map.get(comment.id, []) if replies_map else [],
+    )
+
+
+def _build_comments_tree(
+    db: Session, comments: list[Comment], viewer: User | None
+) -> list[CommentOut]:
+    if not comments:
+        return []
+    comment_ids = [c.id for c in comments]
+    liked = _liked_comment_ids(db, viewer.id if viewer else None, comment_ids)
+    top_level = [c for c in comments if c.parent_id is None]
+    replies = [c for c in comments if c.parent_id is not None]
+    replies_map: dict[int, list[CommentOut]] = {}
+    for reply in replies:
+        replies_map.setdefault(reply.parent_id, []).append(_comment_to_out(db, reply, viewer, liked_comments=liked))
+    for pid in replies_map:
+        replies_map[pid].sort(key=lambda r: r.created_at)
+    return [
+        _comment_to_out(db, c, viewer, replies_map=replies_map, liked_comments=liked) for c in top_level
+    ]
+
+
 def _comments_for_posts(db: Session, post_ids: list[int], viewer: User | None, limit: int = 20) -> dict[int, list]:
     if not post_ids:
         return {}
@@ -66,22 +121,20 @@ def _comments_for_posts(db: Session, post_ids: list[int], viewer: User | None, l
         select(Comment)
         .where(Comment.post_id.in_(post_ids))
         .options(joinedload(Comment.user))
-        .order_by(Comment.created_at.desc())
+        .order_by(Comment.created_at)
     ).all()
-    grouped: dict[int, list] = {pid: [] for pid in post_ids}
+    grouped_raw: dict[int, list[Comment]] = {pid: [] for pid in post_ids}
     for c in comments:
-        bucket = grouped[c.post_id]
-        if len(bucket) < limit:
-            bucket.append(
-                CommentOut(
-                    id=c.id,
-                    user=build_user_out(db, c.user, viewer),
-                    content=c.content,
-                    created_at=to_iso(c.created_at),
-                )
-            )
-    for pid in grouped:
-        grouped[pid].reverse()
+        grouped_raw[c.post_id].append(c)
+    grouped: dict[int, list] = {}
+    for pid, post_comments in grouped_raw.items():
+        top = [c for c in post_comments if c.parent_id is None][-limit:]
+        allowed_ids = {c.id for c in top}
+        for c in post_comments:
+            if c.parent_id in allowed_ids:
+                allowed_ids.add(c.id)
+        filtered = [c for c in post_comments if c.id in allowed_ids or c.parent_id in allowed_ids]
+        grouped[pid] = _build_comments_tree(db, filtered, viewer)
     return grouped
 
 
@@ -122,25 +175,78 @@ def build_post_out(db: Session, post: Post, viewer: User | None, *, comments_map
     )
 
 
-def get_home_feed_posts(db: Session, user: User, page: int, limit: int) -> tuple[list[Post], int]:
-    """Following posts first, then others."""
+def get_home_feed_posts(
+    db: Session, user: User, page: int, limit: int, *, cursor: str | None = None
+) -> tuple[list[Post], int, str | None]:
+    """Following posts first, then others. Supports cursor-based pagination."""
     following_ids = get_following_ids(db, user.id)
     following_ids.add(user.id)
+    blocked = blocked_user_ids(db, user.id)
     priority = case((Post.user_id.in_(following_ids), 0), else_=1)
-    # A deactivated account's posts must vanish from everyone's feed, not just
-    # from that account's own profile — join to User and require is_active so
-    # `total` and the page both agree on what's actually visible.
-    base = select(Post).join(User, Post.user_id == User.id).where(User.is_active.is_(True))
+
+    base = (
+        select(Post)
+        .join(User, Post.user_id == User.id)
+        .where(User.is_active.is_(True))
+    )
+    if blocked:
+        base = base.where(Post.user_id.notin_(blocked))
+
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     if total == 0:
-        return [], 0
+        return [], 0, None
 
-    offset = (page - 1) * limit
+    query = base.options(joinedload(Post.user)).order_by(priority, desc(Post.created_at), desc(Post.id))
+
+    if cursor:
+        try:
+            decoded = decode_cursor(cursor)
+            c_priority = int(decoded["p"])
+            c_time = datetime.fromisoformat(decoded["t"])
+            c_id = int(decoded["id"])
+            query = query.where(
+                or_(
+                    priority > c_priority,
+                    and_(priority == c_priority, Post.created_at < c_time),
+                    and_(priority == c_priority, Post.created_at == c_time, Post.id < c_id),
+                )
+            )
+            posts = db.scalars(query.limit(limit)).all()
+        except (ValueError, KeyError):
+            posts = []
+    else:
+        offset = (page - 1) * limit
+        posts = db.scalars(query.offset(offset).limit(limit)).all()
+
+    posts_list = list(posts)
+    next_cursor = None
+    if posts_list and len(posts_list) == limit:
+        last = posts_list[-1]
+        last_priority = 0 if last.user_id in following_ids else 1
+        next_cursor = cursor_from_post(priority=last_priority, created_at=last.created_at, post_id=last.id)
+    return posts_list, total, next_cursor
+
+
+def get_explore_posts(
+    db: Session, viewer: User | None, offset: int, limit: int
+) -> tuple[list[Post], int]:
+    """Engagement-weighted explore feed with recency decay."""
+    blocked: set[int] = set()
+    following: set[int] = set()
+    if viewer:
+        blocked = blocked_user_ids(db, viewer.id)
+        following = get_following_ids(db, viewer.id)
+
+    follow_boost = case((Post.user_id.in_(following), 5), else_=0) if following else 0
+    score = Post.like_count * 2 + Post.comment_count * 3 + follow_boost
+
+    base = select(Post).join(User, Post.user_id == User.id).where(User.is_active.is_(True))
+    if blocked:
+        base = base.where(Post.user_id.notin_(blocked))
+
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     posts = db.scalars(
-        base.options(joinedload(Post.user))
-        .order_by(priority, desc(Post.created_at))
-        .offset(offset)
-        .limit(limit)
+        base.options(joinedload(Post.user)).order_by(desc(score), desc(Post.created_at)).offset(offset).limit(limit)
     ).all()
     return list(posts), total
 
@@ -205,23 +311,59 @@ def list_post_comments(db: Session, post_id: int, viewer: User | None, page: int
     get_post_or_404(db, post_id)
     base = (
         select(Comment)
-        .where(Comment.post_id == post_id)
+        .where(Comment.post_id == post_id, Comment.parent_id.is_(None))
         .options(joinedload(Comment.user))
         .order_by(Comment.created_at)
     )
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     offset = (page - 1) * limit
-    comments = db.scalars(base.offset(offset).limit(limit)).all()
-    items = [
-        CommentOut(
-            id=c.id,
-            user=build_user_out(db, c.user, viewer),
-            content=c.content,
-            created_at=to_iso(c.created_at),
+    top_comments = db.scalars(base.offset(offset).limit(limit)).all()
+    if not top_comments:
+        return [], total
+    top_ids = [c.id for c in top_comments]
+    all_comments = list(top_comments) + list(
+        db.scalars(
+            select(Comment)
+            .where(Comment.post_id == post_id, Comment.parent_id.in_(top_ids))
+            .options(joinedload(Comment.user))
+            .order_by(Comment.created_at)
+        ).all()
+    )
+    return _build_comments_tree(db, all_comments, viewer), total
+
+
+def toggle_comment_like(db: Session, post_id: int, comment_id: int, user: User) -> tuple[bool, int]:
+    from fastapi import HTTPException
+    from sqlalchemy.exc import IntegrityError
+
+    get_post_or_404(db, post_id)
+    comment = db.scalar(select(Comment).where(Comment.id == comment_id, Comment.post_id == post_id))
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    existing = db.scalar(
+        select(CommentLike).where(CommentLike.user_id == user.id, CommentLike.comment_id == comment_id)
+    )
+    if existing:
+        db.delete(existing)
+        db.execute(
+            update(Comment)
+            .where(Comment.id == comment_id)
+            .values(like_count=case((Comment.like_count > 0, Comment.like_count - 1), else_=0))
         )
-        for c in comments
-    ]
-    return items, total
+        db.commit()
+        db.refresh(comment)
+        return False, comment.like_count
+    db.add(CommentLike(user_id=user.id, comment_id=comment_id))
+    try:
+        db.flush()
+    except IntegrityError:
+        db.rollback()
+        db.refresh(comment)
+        return True, comment.like_count
+    db.execute(update(Comment).where(Comment.id == comment_id).values(like_count=Comment.like_count + 1))
+    db.commit()
+    db.refresh(comment)
+    return True, comment.like_count
 
 
 def delete_post_comment(db: Session, post_id: int, comment_id: int, user: User) -> None:
@@ -233,11 +375,20 @@ def delete_post_comment(db: Session, post_id: int, comment_id: int, user: User) 
         raise HTTPException(status_code=404, detail="Comment not found")
     if comment.user_id != user.id and post.user_id != user.id:
         raise HTTPException(status_code=403, detail="Not allowed to delete this comment")
+    reply_count = db.scalar(
+        select(func.count()).select_from(Comment).where(Comment.parent_id == comment_id)
+    ) or 0
+    remove_count = 1 + reply_count
     db.delete(comment)
     db.execute(
         update(Post)
         .where(Post.id == post_id)
-        .values(comment_count=case((Post.comment_count > 0, Post.comment_count - 1), else_=0))
+        .values(
+            comment_count=case(
+                (Post.comment_count >= remove_count, Post.comment_count - remove_count),
+                else_=0,
+            )
+        )
     )
     db.commit()
 

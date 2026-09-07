@@ -1,13 +1,21 @@
 import json
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select
 
 from app.dependencies import CurrentUser, DbSession
-from app.schemas.story import StoryOut, StoryOverlayOut, StoryViewerOut, StoryViewResponse
+from app.models import StoryItem, StoryLike
+from app.schemas.story import StoryLikeResponse, StoryOut, StoryOverlayOut, StoryViewerOut, StoryViewResponse
+from app.services.conversations import send_story_reply
 from app.services.stories_reels import create_story, get_stories_feed, get_story_viewers, mark_story_viewed
 from app.utils.media import save_story_media
 
 router = APIRouter(prefix="/stories", tags=["stories"])
+
+
+class StoryReplyCreate(BaseModel):
+    content: str = Field(min_length=1, max_length=2000)
 
 
 @router.get("/feed", response_model=list[StoryOut])
@@ -46,3 +54,31 @@ def view_story(story_id: int, current_user: CurrentUser, db: DbSession):
 @router.get("/{story_id}/viewers", response_model=list[StoryViewerOut])
 def story_viewers(story_id: int, current_user: CurrentUser, db: DbSession):
     return get_story_viewers(db, story_id, current_user)
+
+
+@router.post("/items/{story_item_id}/like", response_model=StoryLikeResponse)
+def like_story_item(story_item_id: int, current_user: CurrentUser, db: DbSession):
+    item = db.get(StoryItem, story_item_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Story item not found")
+    existing = db.scalar(
+        select(StoryLike).where(
+            StoryLike.story_item_id == story_item_id, StoryLike.user_id == current_user.id
+        )
+    )
+    if existing:
+        db.delete(existing)
+        is_liked = False
+    else:
+        db.add(StoryLike(story_item_id=story_item_id, user_id=current_user.id))
+        is_liked = True
+    db.commit()
+    count = db.scalar(
+        select(func.count()).select_from(StoryLike).where(StoryLike.story_item_id == story_item_id)
+    ) or 0
+    return StoryLikeResponse(is_liked=is_liked, like_count=count)
+
+
+@router.post("/items/{story_item_id}/reply", status_code=201)
+def reply_to_story(story_item_id: int, body: StoryReplyCreate, current_user: CurrentUser, db: DbSession):
+    return send_story_reply(db, current_user, story_item_id, body.content)

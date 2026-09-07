@@ -12,6 +12,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
     page: int
     limit: int
     next_page: int | None
+    next_cursor: str | None = None
 
 
 def pagination_params(page: int = 1, limit: int = 10) -> tuple[int, int, int]:

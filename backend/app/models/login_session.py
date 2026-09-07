@@ -20,6 +20,7 @@ class LoginSession(Base):
     device_name: Mapped[str] = mapped_column(String(100), nullable=False)
     location: Mapped[str | None] = mapped_column(String(120), nullable=True)
     is_trusted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    trust_token: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

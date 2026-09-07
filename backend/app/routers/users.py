@@ -23,6 +23,7 @@ from app.schemas.security import (
     TwoFactorSetupOut,
 )
 from app.schemas.settings import PasswordChangeRequest, UserSettingsOut, UserSettingsUpdate
+from app.services.blocks import block_user, is_blocked, unblock_user
 from app.services.notifications import create_follow_notification
 from app.services.posts import build_posts_out
 from app.services.security import (
@@ -241,6 +242,26 @@ def unfollow_user(user_id: int, current_user: CurrentUser, db: DbSession):
         db.delete(follow)
         db.commit()
     return FollowResponse(is_following=False)
+
+
+@router.post("/{user_id}/block", status_code=204)
+def block_user_route(user_id: int, current_user: CurrentUser, db: DbSession):
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot block yourself")
+    target = db.get(User, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    block_user(db, current_user.id, user_id)
+
+
+@router.delete("/{user_id}/block", status_code=204)
+def unblock_user_route(user_id: int, current_user: CurrentUser, db: DbSession):
+    unblock_user(db, current_user.id, user_id)
+
+
+@router.get("/{user_id}/block-status")
+def block_status(user_id: int, current_user: CurrentUser, db: DbSession):
+    return {"is_blocked": is_blocked(db, current_user.id, user_id)}
 
 
 @router.get("/{username}/posts", response_model=PaginatedResponse)
