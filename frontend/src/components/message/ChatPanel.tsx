@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, Info, Phone, Video } from 'lucide-react';
+import { ChevronLeft, Info, Phone, Users, Video } from 'lucide-react';
 import { Avatar } from '@/components/common/Avatar';
 import { NavIcon } from '@/components/post/PostActionIcons';
-import { formatChatTime } from '@/utils/messages';
+import { formatChatTime, getConversationDisplay } from '@/utils/messages';
 import { useAuth } from '@/hooks/useAuth';
-import type { Conversation, Message } from '@/types';
+import type { Conversation, Message, User } from '@/types';
 import { cn } from '@/utils/cn';
 
 interface ChatPanelProps {
@@ -89,7 +89,9 @@ export function ChatPanel({ conversation, loading = false, onSend, onBack, showB
     );
   }
 
-  const { participant, messages } = conversation;
+  const { participant, participants, messages, is_group: isGroup } = conversation;
+  const display = getConversationDisplay(conversation, user?.id ?? 0);
+  const senderById = new Map<number, User>(participants.map((p) => [p.id, p]));
 
   return (
     <div className="flex flex-col h-full">
@@ -100,54 +102,95 @@ export function ChatPanel({ conversation, loading = false, onSend, onBack, showB
               <NavIcon icon={ChevronLeft} />
             </button>
           )}
-          <Link to={`/profile/${participant.username}`} className="flex items-center gap-3 min-w-0">
-            <Avatar src={participant.avatar_url} alt={participant.username} size="sm" />
-            <div className="min-w-0 text-left">
-              <p className="text-base font-semibold truncate">{participant.username}</p>
-              <p className="text-xs text-ig-text-secondary truncate">{participant.full_name}</p>
+          {isGroup ? (
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-full bg-ig-secondary border border-ig-border flex items-center justify-center shrink-0">
+                <Users className="h-4 w-4 text-ig-text-secondary" />
+              </div>
+              <div className="min-w-0 text-left">
+                <p className="text-base font-semibold truncate">{display.name}</p>
+                <p className="text-xs text-ig-text-secondary truncate">{display.subtitle}</p>
+              </div>
             </div>
-          </Link>
+          ) : (
+            <Link to={`/profile/${participant?.username}`} className="flex items-center gap-3 min-w-0">
+              <Avatar src={participant?.avatar_url} alt={participant?.username ?? ''} size="sm" />
+              <div className="min-w-0 text-left">
+                <p className="text-base font-semibold truncate">{participant?.username}</p>
+                <p className="text-xs text-ig-text-secondary truncate">{participant?.full_name}</p>
+              </div>
+            </Link>
+          )}
         </div>
         <div className="flex items-center gap-4 text-ig-text">
-          <button aria-label="음성 통화"><NavIcon icon={Phone} /></button>
-          <button aria-label="영상 통화"><NavIcon icon={Video} /></button>
+          {!isGroup && (
+            <>
+              <button aria-label="음성 통화"><NavIcon icon={Phone} /></button>
+              <button aria-label="영상 통화"><NavIcon icon={Video} /></button>
+            </>
+          )}
           <button aria-label="대화 정보"><NavIcon icon={Info} /></button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <Avatar src={participant.avatar_url} alt={participant.username} size="xl" className="mb-4" />
-            <p className="font-semibold">{participant.username}</p>
-            <p className="text-sm text-ig-text-secondary mt-1">i am not a fishmonger · {participant.full_name}</p>
-            <Link
-              to={`/profile/${participant.username}`}
-              className="mt-4 text-sm text-ig-primary font-semibold hover:underline"
-            >
-              프로필 보기
-            </Link>
-            <p className="text-xs text-ig-text-secondary mt-6">
-              {participant.username}님과 대화를 시작해보세요.
-            </p>
-          </div>
+          isGroup ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <div className="h-20 w-20 rounded-full bg-ig-secondary border border-ig-border flex items-center justify-center mb-4">
+                <Users className="h-8 w-8 text-ig-text-secondary" />
+              </div>
+              <p className="font-semibold">{display.name}</p>
+              <p className="text-sm text-ig-text-secondary mt-1">{display.subtitle}</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <Avatar src={participant?.avatar_url} alt={participant?.username ?? ''} size="xl" className="mb-4" />
+              <p className="font-semibold">{participant?.username}</p>
+              <p className="text-sm text-ig-text-secondary mt-1">i am not a fishmonger · {participant?.full_name}</p>
+              <Link
+                to={`/profile/${participant?.username}`}
+                className="mt-4 text-sm text-ig-primary font-semibold hover:underline"
+              >
+                프로필 보기
+              </Link>
+              <p className="text-xs text-ig-text-secondary mt-6">
+                {participant?.username}님과 대화를 시작해보세요.
+              </p>
+            </div>
+          )
         ) : (
           (() => {
             // Real Instagram shows "읽음" once under the last message the
             // viewer sent, if the other person has seen it — `is_read` is a
             // real, server-tracked value (see backend), but until now nothing
-            // in the chat window ever rendered it.
+            // in the chat window ever rendered it. For groups this boolean
+            // only means "at least one other member has read it" (there's no
+            // per-participant read table), so we don't show a "읽음" label
+            // there — it would misleadingly imply everyone has seen it.
             let lastOwnReadId: number | null = null;
-            for (let i = messages.length - 1; i >= 0; i -= 1) {
-              const m = messages[i];
-              if (user != null && m.sender_id === user.id) {
-                if (m.is_read) lastOwnReadId = m.id;
-                break;
+            if (!isGroup) {
+              for (let i = messages.length - 1; i >= 0; i -= 1) {
+                const m = messages[i];
+                if (user != null && m.sender_id === user.id) {
+                  if (m.is_read) lastOwnReadId = m.id;
+                  break;
+                }
               }
             }
-            return messages.map((message) => (
-              <MessageBubble key={message.id} message={message} showRead={message.id === lastOwnReadId} />
-            ));
+            return messages.map((message, index) => {
+              const prev = index > 0 ? messages[index - 1] : null;
+              const showSenderName =
+                isGroup && message.sender_id !== user?.id && (!prev || prev.sender_id !== message.sender_id);
+              return (
+                <MessageBubble
+                  key={message.id}
+                  message={message}
+                  showRead={message.id === lastOwnReadId}
+                  senderName={showSenderName ? senderById.get(message.sender_id)?.username : undefined}
+                />
+              );
+            });
           })()
         )}
         <div ref={bottomRef} />
@@ -178,12 +221,21 @@ export function ChatPanel({ conversation, loading = false, onSend, onBack, showB
   );
 }
 
-function MessageBubble({ message, showRead }: { message: Message; showRead?: boolean }) {
+function MessageBubble({
+  message,
+  showRead,
+  senderName,
+}: {
+  message: Message;
+  showRead?: boolean;
+  senderName?: string;
+}) {
   const { user } = useAuth();
   const isOwn = user != null && message.sender_id === user.id;
 
   return (
     <div className={cn('flex flex-col', isOwn ? 'items-end' : 'items-start')}>
+      {senderName && <p className="text-[11px] text-ig-text-secondary ml-1 mb-0.5">{senderName}</p>}
       <div
         className={cn(
           'max-w-[65%] px-4 py-2 rounded-3xl text-sm',

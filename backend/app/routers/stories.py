@@ -3,8 +3,8 @@ import json
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.dependencies import CurrentUser, DbSession
-from app.schemas.story import StoryOut, StoryOverlayOut, StoryViewResponse
-from app.services.stories_reels import create_story, get_stories_feed, mark_story_viewed
+from app.schemas.story import StoryOut, StoryOverlayOut, StoryViewerOut, StoryViewResponse
+from app.services.stories_reels import create_story, get_stories_feed, get_story_viewers, mark_story_viewed
 from app.utils.media import save_story_media
 
 router = APIRouter(prefix="/stories", tags=["stories"])
@@ -41,3 +41,8 @@ async def post_story(
 def view_story(story_id: int, current_user: CurrentUser, db: DbSession):
     mark_story_viewed(db, current_user, story_id)
     return StoryViewResponse(viewed=True)
+
+
+@router.get("/{story_id}/viewers", response_model=list[StoryViewerOut])
+def story_viewers(story_id: int, current_user: CurrentUser, db: DbSession):
+    return get_story_viewers(db, story_id, current_user)

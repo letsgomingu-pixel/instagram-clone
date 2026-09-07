@@ -32,6 +32,10 @@ interface ProfileHeaderProps {
 
   onFollow?: () => void;
 
+  onShowFollowers?: () => void;
+
+  onShowFollowing?: () => void;
+
 }
 
 
@@ -52,7 +56,14 @@ const tabClass = (active: boolean) =>
 
 
 
-export function ProfileHeader({ user, activeTab, onTabChange, onFollow }: ProfileHeaderProps) {
+export function ProfileHeader({
+  user,
+  activeTab,
+  onTabChange,
+  onFollow,
+  onShowFollowers,
+  onShowFollowing,
+}: ProfileHeaderProps) {
 
   const { user: currentUser, isAuthenticated } = useAuth();
 
@@ -265,7 +276,7 @@ export function ProfileHeader({ user, activeTab, onTabChange, onFollow }: Profil
 
               </span>
 
-              <button type="button" className="hover:opacity-70">
+              <button type="button" onClick={onShowFollowers} className="hover:opacity-70">
 
                 <strong className="font-semibold">{formatCount(user.follower_count)}</strong>{' '}
 
@@ -273,7 +284,7 @@ export function ProfileHeader({ user, activeTab, onTabChange, onFollow }: Profil
 
               </button>
 
-              <button type="button" className="hover:opacity-70">
+              <button type="button" onClick={onShowFollowing} className="hover:opacity-70">
 
                 <strong className="font-semibold">{formatCount(user.following_count)}</strong>{' '}
 

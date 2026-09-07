@@ -73,6 +73,11 @@ export interface StoryItem {
   created_at: string;
 }
 
+export interface StoryViewerEntry {
+  user: User;
+  viewed_at: string;
+}
+
 export interface StoryOverlay {
   id: string;
   type: 'text' | 'sticker';
@@ -110,6 +115,11 @@ export interface PaginatedResponse<T> {
   next_page: number | null;
 }
 
+export interface HashtagPage extends PaginatedResponse<Post> {
+  name: string;
+  post_count: number;
+}
+
 export interface Message {
   id: number;
   sender_id: number;
@@ -120,7 +130,12 @@ export interface Message {
 
 export interface Conversation {
   id: number;
-  participant: User;
+  is_group: boolean;
+  title?: string | null;
+  /** The other person — set for 1:1 conversations only, null for groups. */
+  participant: User | null;
+  /** All members (including yourself) — set for group conversations only. */
+  participants: User[];
   messages: Message[];
   last_message: Message;
   unread_count: number;

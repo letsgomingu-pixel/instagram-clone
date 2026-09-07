@@ -3,14 +3,17 @@ import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ConversationList } from '@/components/message/ConversationList';
 import { ChatPanel } from '@/components/message/ChatPanel';
+import { NewGroupModal } from '@/components/message/NewGroupModal';
 import * as conversationsApi from '@/api/conversations';
 import type { Conversation, Message } from '@/types';
+import { conversationRouteKey } from '@/utils/messages';
 import { useAuth } from '@/hooks/useAuth';
 
 const POLL_INTERVAL_MS = 4000;
 
 function mergeConversation(prev: Conversation[], incoming: Conversation): Conversation[] {
-  const index = prev.findIndex((c) => c.participant.username === incoming.participant.username);
+  const key = conversationRouteKey(incoming);
+  const index = prev.findIndex((c) => conversationRouteKey(c) === key);
   if (index === -1) return [incoming, ...prev];
   const next = [...prev];
   next[index] = incoming;
@@ -18,17 +21,24 @@ function mergeConversation(prev: Conversation[], incoming: Conversation): Conver
 }
 
 export function MessagesPage() {
-  const { username } = useParams<{ username?: string }>();
+  const { username, conversationId } = useParams<{ username?: string; conversationId?: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
-  const usernameRef = useRef(username);
+  const [showNewGroup, setShowNewGroup] = useState(false);
+
+  // A single stable key identifying "what's currently open" — either
+  // `user:<username>` (1:1) or `group:<conversationId>` — used both to find
+  // the active conversation in state and to avoid re-fetching stale data
+  // for a route we've since navigated away from.
+  const activeKey = conversationId ? `group:${conversationId}` : username ? `user:${username}` : null;
+  const activeKeyRef = useRef(activeKey);
 
   useEffect(() => {
-    usernameRef.current = username;
-  }, [username]);
+    activeKeyRef.current = activeKey;
+  }, [activeKey]);
 
   const refreshConversations = useCallback(async () => {
     const data = await conversationsApi.getConversations();
@@ -36,11 +46,21 @@ export function MessagesPage() {
     return data;
   }, []);
 
-  const refreshActiveChat = useCallback(async (targetUsername: string) => {
-    const conv = await conversationsApi.getMessages(targetUsername);
-    setConversations((prev) => mergeConversation(prev, conv));
-    return conv;
+  const fetchActive = useCallback((key: string): Promise<Conversation> => {
+    if (key.startsWith('group:')) {
+      return conversationsApi.getGroupMessages(Number(key.slice('group:'.length)));
+    }
+    return conversationsApi.getMessages(key.slice('user:'.length));
   }, []);
+
+  const refreshActiveChat = useCallback(
+    async (key: string) => {
+      const conv = await fetchActive(key);
+      setConversations((prev) => mergeConversation(prev, conv));
+      return conv;
+    },
+    [fetchActive],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -49,9 +69,9 @@ export function MessagesPage() {
       setLoading(true);
       try {
         await refreshConversations();
-        if (usernameRef.current) {
+        if (activeKeyRef.current) {
           setChatLoading(true);
-          await refreshActiveChat(usernameRef.current);
+          await refreshActiveChat(activeKeyRef.current);
         }
       } catch {
         if (!cancelled) toast.error('메시지를 불러오지 못했습니다.');
@@ -69,7 +89,7 @@ export function MessagesPage() {
   }, [refreshConversations, refreshActiveChat]);
 
   useEffect(() => {
-    if (!username) {
+    if (!activeKey) {
       setChatLoading(false);
       return;
     }
@@ -77,7 +97,7 @@ export function MessagesPage() {
     let cancelled = false;
     setChatLoading(true);
 
-    refreshActiveChat(username)
+    refreshActiveChat(activeKey)
       .catch(() => {
         if (!cancelled) toast.error('대화를 불러오지 못했습니다.');
       })
@@ -88,7 +108,7 @@ export function MessagesPage() {
     return () => {
       cancelled = true;
     };
-  }, [username, refreshActiveChat]);
+  }, [activeKey, refreshActiveChat]);
 
   useEffect(() => {
     if (loading) return;
@@ -98,9 +118,9 @@ export function MessagesPage() {
 
       try {
         await refreshConversations();
-        const activeUsername = usernameRef.current;
-        if (activeUsername) {
-          await refreshActiveChat(activeUsername);
+        const key = activeKeyRef.current;
+        if (key) {
+          await refreshActiveChat(key);
         }
       } catch {
         // Ignore transient polling errors.
@@ -115,13 +135,17 @@ export function MessagesPage() {
   }, [loading, refreshConversations, refreshActiveChat]);
 
   const activeConversation = useMemo(() => {
-    if (!username) return null;
-    return conversations.find((c) => c.participant.username === username) ?? null;
-  }, [username, conversations]);
+    if (!activeKey) return null;
+    return conversations.find((c) => conversationRouteKey(c) === activeKey) ?? null;
+  }, [activeKey, conversations]);
 
   const handleSelect = useCallback(
-    (selectedUsername: string) => {
-      navigate(`/messages/${selectedUsername}`);
+    (conversation: Conversation) => {
+      if (conversation.is_group) {
+        navigate(`/messages/group/${conversation.id}`);
+      } else if (conversation.participant) {
+        navigate(`/messages/${conversation.participant.username}`);
+      }
     },
     [navigate],
   );
@@ -130,18 +154,29 @@ export function MessagesPage() {
     navigate('/messages');
   }, [navigate]);
 
+  const handleGroupCreated = useCallback(
+    (conversation: Conversation) => {
+      setConversations((prev) => mergeConversation(prev, conversation));
+      navigate(`/messages/group/${conversation.id}`);
+    },
+    [navigate],
+  );
+
   const handleSend = useCallback(
     (content: string) => {
       // Returns a promise (and rejects on failure) so ChatPanel can keep the
       // user's draft text in the input instead of clearing it and silently
       // losing what they typed when the request fails.
-      if (!username || !user) return Promise.reject(new Error('No active conversation'));
+      if (!activeKey || !user) return Promise.reject(new Error('No active conversation'));
 
-      return conversationsApi
-        .sendMessage(username, content)
+      const sendPromise = activeKey.startsWith('group:')
+        ? conversationsApi.sendGroupMessage(Number(activeKey.slice('group:'.length)), content)
+        : conversationsApi.sendMessage(activeKey.slice('user:'.length), content);
+
+      return sendPromise
         .then(async (newMessage: Message) => {
           setConversations((prev) => {
-            const index = prev.findIndex((c) => c.participant.username === username);
+            const index = prev.findIndex((c) => conversationRouteKey(c) === activeKey);
             if (index === -1) return prev;
 
             const updated = [...prev];
@@ -156,7 +191,7 @@ export function MessagesPage() {
           });
 
           try {
-            await refreshActiveChat(username);
+            await refreshActiveChat(activeKey);
           } catch {
             // Local optimistic state is enough if refresh fails.
           }
@@ -166,7 +201,7 @@ export function MessagesPage() {
           throw error;
         });
     },
-    [username, user, refreshActiveChat],
+    [activeKey, user, refreshActiveChat],
   );
 
   const sortedConversations = useMemo(
@@ -179,7 +214,7 @@ export function MessagesPage() {
     [conversations],
   );
 
-  const showChatOnMobile = !!username;
+  const showChatOnMobile = !!activeKey;
 
   if (loading) {
     return (
@@ -200,9 +235,10 @@ export function MessagesPage() {
           >
             <ConversationList
               conversations={sortedConversations}
-              activeUsername={username}
+              activeConversationKey={activeKey ?? undefined}
               currentUserId={user?.id ?? 0}
               onSelect={handleSelect}
+              onNewGroup={() => setShowNewGroup(true)}
             />
           </div>
 
@@ -221,6 +257,12 @@ export function MessagesPage() {
           </div>
         </div>
       </div>
+
+      <NewGroupModal
+        isOpen={showNewGroup}
+        onClose={() => setShowNewGroup(false)}
+        onCreated={handleGroupCreated}
+      />
     </div>
   );
 }

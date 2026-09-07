@@ -5,6 +5,7 @@ import { ProfileHeader, type ProfileTab } from '@/components/profile/ProfileHead
 import { ProfileGrid } from '@/components/profile/ProfileGrid';
 import { ProfileReelsGrid } from '@/components/profile/ProfileReelsGrid';
 import { ProfileTaggedGrid } from '@/components/profile/ProfileTaggedGrid';
+import { FollowListModal } from '@/components/profile/FollowListModal';
 import * as usersApi from '@/api/users';
 import * as postsApi from '@/api/posts';
 import { useAuth } from '@/hooks/useAuth';
@@ -26,6 +27,7 @@ export function ProfilePage() {
   const [followBusy, setFollowBusy] = useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTab>('posts');
   const [loading, setLoading] = useState(true);
+  const [followListMode, setFollowListMode] = useState<'followers' | 'following' | null>(null);
 
   useEffect(() => {
     if (!username) return;
@@ -150,6 +152,8 @@ export function ProfilePage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onFollow={handleFollow}
+        onShowFollowers={() => setFollowListMode('followers')}
+        onShowFollowing={() => setFollowListMode('following')}
       />
 
       {activeTab === 'posts' && <ProfileGrid posts={userPosts} isOwn={isOwn} />}
@@ -158,6 +162,15 @@ export function ProfilePage() {
       )}
       {activeTab === 'saved' && <ProfileGrid posts={savedPosts} savedOnly isOwn={isOwn} />}
       {activeTab === 'tagged' && <ProfileTaggedGrid posts={taggedPosts} isOwn={isOwn} />}
+
+      {followListMode && (
+        <FollowListModal
+          isOpen
+          onClose={() => setFollowListMode(null)}
+          username={profileUser.username}
+          mode={followListMode}
+        />
+      )}
     </div>
   );
 }

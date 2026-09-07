@@ -1,4 +1,4 @@
-import type { Story } from '@/types';
+import type { Story, StoryViewerEntry } from '@/types';
 import { api } from './client';
 
 export async function getStoriesFeed(): Promise<Story[]> {
@@ -13,4 +13,9 @@ export async function createStory(form: FormData): Promise<Story> {
 
 export async function markStoryViewed(storyId: number): Promise<void> {
   await api.post(`/stories/${storyId}/view`);
+}
+
+export async function getStoryViewers(storyId: number): Promise<StoryViewerEntry[]> {
+  const { data } = await api.get<StoryViewerEntry[]>(`/stories/${storyId}/viewers`);
+  return data;
 }

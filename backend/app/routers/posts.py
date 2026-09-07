@@ -18,7 +18,9 @@ from app.services.posts import (
     list_post_comments,
     list_post_likes,
 )
+from app.services.hashtags import attach_hashtags_to_post
 from app.services.users import build_user_out
+from app.utils.hashtags import extract_hashtags
 from app.utils.media import save_post_media
 from app.utils.pagination import PaginatedResponse, paginate, pagination_params
 from app.utils.datetime_fmt import to_iso
@@ -147,6 +149,13 @@ async def create_post(
     db.commit()
     db.refresh(post)
     post.user = current_user
+
+    # Hashtag linking runs only after the post itself is safely committed
+    # above — see attach_hashtags_to_post's docstring for why.
+    tag_names = extract_hashtags(caption)
+    if tag_names:
+        attach_hashtags_to_post(db, post, tag_names)
+
     return build_post_out(db, post, current_user)
 
 

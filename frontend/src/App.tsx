@@ -14,6 +14,7 @@ import { AdminPostsPage } from '@/pages/admin/AdminPostsPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { HomePage } from '@/pages/HomePage';
 import { ExplorePage } from '@/pages/ExplorePage';
+import { HashtagPage } from '@/pages/HashtagPage';
 import { SearchPage } from '@/pages/SearchPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { EditProfilePage } from '@/pages/EditProfilePage';
@@ -65,6 +66,7 @@ export default function App() {
               <Route element={<MainLayout />}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/explore" element={<ExplorePage />} />
+                <Route path="/explore/tags/:tag" element={<HashtagPage />} />
                 <Route path="/reels" element={<ReelsPage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/suggested" element={<SuggestedUsersPage />} />
@@ -76,6 +78,7 @@ export default function App() {
               <Route element={<ProtectedRoute />}>
                 <Route element={<MainLayout showSuggestions={false} />}>
                   <Route path="/messages" element={<MessagesPage />} />
+                  <Route path="/messages/group/:conversationId" element={<MessagesPage />} />
                   <Route path="/messages/:username" element={<MessagesPage />} />
                   <Route path="/profile/edit" element={<EditProfilePage />} />
                   <Route path="/settings" element={<SettingsLayout />}>

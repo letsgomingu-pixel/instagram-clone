@@ -1,14 +1,18 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 
 import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
 import { StoryOverlayLayer } from '@/components/story/StoryOverlayLayer';
 import { formatRelativeTime } from '@/utils/formatDate';
 import { resolveMediaUrl } from '@/utils/media';
+import * as storiesApi from '@/api/stories';
+import type { StoryViewerEntry } from '@/types';
 
 import { useApp } from '@/contexts/AppContext';
+
+import { useAuth } from '@/hooks/useAuth';
 
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
@@ -34,6 +38,8 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
   const { requireAuth, isAuthenticated } = useRequireAuth();
 
+  const { user } = useAuth();
+
   const [storyIndex, setStoryIndex] = useState(initialIndex);
 
   const [itemIndex, setItemIndex] = useState(0);
@@ -42,6 +48,13 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // "누가 봤는지" — only the story's own author can see this, and while the
+  // list is open the story must stop auto-advancing (otherwise it moves on
+  // while you're still reading who viewed it).
+  const [viewers, setViewers] = useState<StoryViewerEntry[]>([]);
+  const [showViewers, setShowViewers] = useState(false);
+  const paused = showViewers;
+
 
 
   const story = stories[storyIndex];
@@ -49,6 +62,28 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
   const item = story?.items[itemIndex];
 
   const isVideo = item?.media_type === 'video';
+
+  const isOwn = !!user && !!story && story.user.id === user.id;
+
+  useEffect(() => {
+    setShowViewers(false);
+    if (!story || !isOwn) {
+      setViewers([]);
+      return;
+    }
+    let cancelled = false;
+    storiesApi
+      .getStoryViewers(story.id)
+      .then((data) => {
+        if (!cancelled) setViewers(data);
+      })
+      .catch(() => {
+        if (!cancelled) setViewers([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [story, isOwn]);
 
 
 
@@ -124,7 +159,7 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
   useEffect(() => {
 
-    if (!item || isVideo) return;
+    if (!item || isVideo || paused) return;
 
 
 
@@ -148,7 +183,7 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
     return () => clearInterval(interval);
 
-  }, [goNext, storyIndex, itemIndex, item, isVideo]);
+  }, [goNext, storyIndex, itemIndex, item, isVideo, paused]);
 
 
 
@@ -208,9 +243,39 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
   useEffect(() => {
 
+    const video = videoRef.current;
+
+    if (!isVideo || !video) return;
+
+    if (paused) {
+
+      video.pause();
+
+    } else {
+
+      void video.play().catch(() => undefined);
+
+    }
+
+  }, [paused, isVideo]);
+
+
+
+  useEffect(() => {
+
     const handleKey = (e: KeyboardEvent) => {
 
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+
+        if (showViewers) setShowViewers(false);
+
+        else onClose();
+
+        return;
+
+      }
+
+      if (showViewers) return;
 
       if (e.key === 'ArrowRight') goNext();
 
@@ -230,7 +295,7 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
     };
 
-  }, [onClose, goNext, goPrev]);
+  }, [onClose, goNext, goPrev, showViewers]);
 
 
 
@@ -396,25 +461,72 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
 
 
-        <div className="absolute bottom-4 left-3 right-3 z-10">
+        {isOwn ? (
+          <button
+            type="button"
+            onClick={() => setShowViewers(true)}
+            className="absolute bottom-4 left-3 right-3 z-10 flex items-center gap-2 text-white/90 hover:text-white"
+          >
+            <Eye size={18} />
+            <span className="text-sm font-semibold">조회 {viewers.length}회</span>
+          </button>
+        ) : (
+          <div className="absolute bottom-4 left-3 right-3 z-10">
 
-          <input
+            <input
 
-            type="text"
+              type="text"
 
-            placeholder={isAuthenticated ? `${story.user.username}에게 답장...` : '로그인하여 답장...'}
+              placeholder={isAuthenticated ? `${story.user.username}에게 답장...` : '로그인하여 답장...'}
 
-            onFocus={() => !isAuthenticated && requireAuth()}
+              onFocus={() => !isAuthenticated && requireAuth()}
 
-            onClick={() => !isAuthenticated && requireAuth()}
+              onClick={() => !isAuthenticated && requireAuth()}
 
-            readOnly={!isAuthenticated}
+              readOnly={!isAuthenticated}
 
-            className="w-full bg-transparent border border-white/50 rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/70 cursor-pointer"
+              className="w-full bg-transparent border border-white/50 rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/70 cursor-pointer"
 
-          />
+            />
 
-        </div>
+          </div>
+        )}
+
+        {isOwn && showViewers && (
+          <div className="absolute inset-0 z-20 flex flex-col justify-end bg-black/40" onClick={() => setShowViewers(false)}>
+            <div
+              className="bg-white rounded-t-2xl max-h-[70%] flex flex-col overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-ig-border shrink-0">
+                <span className="text-sm font-semibold">조회 {viewers.length}회</span>
+                <button type="button" onClick={() => setShowViewers(false)} aria-label="닫기">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="overflow-y-auto">
+                {viewers.length === 0 ? (
+                  <p className="text-sm text-ig-text-secondary text-center py-8">
+                    아직 이 스토리를 본 사람이 없습니다.
+                  </p>
+                ) : (
+                  viewers.map((v) => (
+                    <div key={v.user.id} className="flex items-center gap-3 px-4 py-2.5">
+                      <Avatar src={v.user.avatar_url} alt={v.user.username} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">{v.user.username}</p>
+                        <p className="text-xs text-ig-text-secondary truncate">{v.user.full_name}</p>
+                      </div>
+                      <span className="text-xs text-ig-text-secondary shrink-0">
+                        {formatRelativeTime(v.viewed_at)}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
 

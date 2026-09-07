@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
 from app.models import Follow, Post, User
@@ -155,6 +155,36 @@ def _suggestion_reason(
     if post_count > 0:
         return "새로운 게시물"
     return "회원님을 위한 추천"
+
+
+def get_followers(db: Session, target: User, viewer: User | None, page: int, limit: int) -> tuple[list[UserOut], int]:
+    """Who follows `target` — real Instagram's follower list, most recent first."""
+    base = (
+        select(User)
+        .join(Follow, Follow.follower_id == User.id)
+        .where(Follow.following_id == target.id, User.is_active.is_(True))
+    )
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    offset = (page - 1) * limit
+    users = db.scalars(
+        base.order_by(desc(Follow.created_at)).offset(offset).limit(limit)
+    ).all()
+    return [build_user_out(db, u, viewer) for u in users], total
+
+
+def get_following(db: Session, target: User, viewer: User | None, page: int, limit: int) -> tuple[list[UserOut], int]:
+    """Who `target` follows — real Instagram's following list, most recent first."""
+    base = (
+        select(User)
+        .join(Follow, Follow.following_id == User.id)
+        .where(Follow.follower_id == target.id, User.is_active.is_(True))
+    )
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    offset = (page - 1) * limit
+    users = db.scalars(
+        base.order_by(desc(Follow.created_at)).offset(offset).limit(limit)
+    ).all()
+    return [build_user_out(db, u, viewer) for u in users], total
 
 
 def search_users(db: Session, query: str, viewer: User | None, limit: int = 20) -> list[UserOut]:

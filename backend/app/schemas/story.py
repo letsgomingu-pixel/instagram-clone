@@ -34,3 +34,8 @@ class StoryOut(BaseModel):
 
 class StoryViewResponse(BaseModel):
     viewed: bool = True
+
+
+class StoryViewerOut(BaseModel):
+    user: UserOut
+    viewed_at: str

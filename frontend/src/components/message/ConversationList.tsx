@@ -1,22 +1,25 @@
 import { useMemo, useState } from 'react';
+import { Users } from 'lucide-react';
 import { Avatar } from '@/components/common/Avatar';
-import { formatMessageTime } from '@/utils/messages';
+import { formatMessageTime, getConversationDisplay, conversationRouteKey } from '@/utils/messages';
 import { useAuth } from '@/hooks/useAuth';
 import type { Conversation } from '@/types';
 import { cn } from '@/utils/cn';
 
 interface ConversationListProps {
   conversations: Conversation[];
-  activeUsername?: string;
+  activeConversationKey?: string;
   currentUserId: number;
-  onSelect: (username: string) => void;
+  onSelect: (conversation: Conversation) => void;
+  onNewGroup?: () => void;
 }
 
 export function ConversationList({
   conversations,
-  activeUsername,
+  activeConversationKey,
   currentUserId,
   onSelect,
+  onNewGroup,
 }: ConversationListProps) {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
@@ -25,7 +28,14 @@ export function ConversationList({
     const q = query.trim().toLowerCase();
     if (!q) return conversations;
     return conversations.filter((c) => {
-      const { participant } = c;
+      if (c.is_group) {
+        if (c.title?.toLowerCase().includes(q)) return true;
+        return c.participants.some(
+          (p) => p.username.toLowerCase().includes(q) || p.full_name.toLowerCase().includes(q),
+        );
+      }
+      const participant = c.participant;
+      if (!participant) return false;
       return (
         participant.username.toLowerCase().includes(q) ||
         participant.full_name.toLowerCase().includes(q)
@@ -37,6 +47,15 @@ export function ConversationList({
     <div className="flex flex-col h-full">
       <div className="hidden md:flex items-center justify-between px-4 py-3 border-b border-ig-border shrink-0">
         <h1 className="text-base font-bold">{user?.username ?? '메시지'}</h1>
+        {onNewGroup && (
+          <button
+            type="button"
+            onClick={onNewGroup}
+            className="text-xs font-semibold text-ig-primary hover:underline"
+          >
+            새 그룹
+          </button>
+        )}
       </div>
 
       <div className="px-4 py-3 shrink-0">
@@ -56,8 +75,9 @@ export function ConversationList({
           </p>
         ) : (
           filteredConversations.map((conversation) => {
-            const { participant, last_message, unread_count } = conversation;
-            const isActive = participant.username === activeUsername;
+            const { name, avatarUrl } = getConversationDisplay(conversation, currentUserId);
+            const { last_message, unread_count } = conversation;
+            const isActive = conversationRouteKey(conversation) === activeConversationKey;
             const isOwnLast = last_message.sender_id === currentUserId;
             const preview = last_message.content
               ? `${isOwnLast ? '보냄: ' : ''}${last_message.content}`
@@ -67,16 +87,22 @@ export function ConversationList({
               <button
                 key={conversation.id}
                 type="button"
-                onClick={() => onSelect(participant.username)}
+                onClick={() => onSelect(conversation)}
                 className={cn(
                   'w-full flex items-center gap-3 px-4 py-3 hover:bg-ig-secondary transition-colors text-left',
                   isActive && 'bg-ig-secondary',
                 )}
               >
-                <Avatar src={participant.avatar_url} alt={participant.username} size="md" />
+                {conversation.is_group && !avatarUrl ? (
+                  <div className="h-11 w-11 rounded-full bg-ig-secondary border border-ig-border flex items-center justify-center shrink-0">
+                    <Users className="h-5 w-5 text-ig-text-secondary" />
+                  </div>
+                ) : (
+                  <Avatar src={avatarUrl} alt={name} size="md" />
+                )}
                 <div className="flex-1 min-w-0">
                   <p className={cn('text-sm truncate', unread_count > 0 ? 'font-bold' : 'font-normal')}>
-                    {participant.username}
+                    {name}
                   </p>
                   <p
                     className={cn(

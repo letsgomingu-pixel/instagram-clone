@@ -1,3 +1,39 @@
+import type { Conversation } from '@/types';
+
+export interface ConversationDisplay {
+  name: string;
+  subtitle: string;
+  avatarUrl?: string;
+}
+
+/**
+ * Shared "how do we show this thread" logic for both the conversation list
+ * row and the chat panel header. 1:1 threads show the other person; groups
+ * show their title (falling back to a comma-joined member list) since
+ * there's no single "other person" to show an avatar/name for.
+ */
+export function getConversationDisplay(
+  conversation: Conversation,
+  currentUserId: number,
+): ConversationDisplay {
+  if (conversation.is_group) {
+    const others = conversation.participants.filter((p) => p.id !== currentUserId);
+    const name = conversation.title?.trim() || others.map((p) => p.username).join(', ') || '그룹';
+    return { name, subtitle: `참여자 ${conversation.participants.length}명` };
+  }
+  const participant = conversation.participant;
+  return {
+    name: participant?.username ?? '',
+    subtitle: participant?.full_name ?? '',
+    avatarUrl: participant?.avatar_url,
+  };
+}
+
+/** Stable key for matching a conversation against the active route param. */
+export function conversationRouteKey(conversation: Conversation): string {
+  return conversation.is_group ? `group:${conversation.id}` : `user:${conversation.participant?.username ?? ''}`;
+}
+
 export function formatMessageTime(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();

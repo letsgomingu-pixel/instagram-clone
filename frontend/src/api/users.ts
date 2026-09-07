@@ -63,6 +63,20 @@ export async function getUserTaggedPosts(username: string, page = 1): Promise<Pa
   return data;
 }
 
+export async function getFollowers(username: string, page = 1): Promise<PaginatedResponse<User>> {
+  const { data } = await api.get<PaginatedResponse<User>>(`/users/${username}/followers`, {
+    params: { page, limit: 30 },
+  });
+  return data;
+}
+
+export async function getFollowing(username: string, page = 1): Promise<PaginatedResponse<User>> {
+  const { data } = await api.get<PaginatedResponse<User>>(`/users/${username}/following`, {
+    params: { page, limit: 30 },
+  });
+  return data;
+}
+
 export async function searchUsersApi(q: string): Promise<User[]> {
   const { data } = await api.get<User[]>('/search/users', { params: { q } });
   return data;

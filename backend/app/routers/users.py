@@ -37,7 +37,13 @@ from app.services.security import (
 )
 from app.services.settings import get_settings, update_settings
 from app.services.stories_reels import build_reels_out, get_user_reels
-from app.services.users import build_user_out, get_suggested_users, get_user_by_username
+from app.services.users import (
+    build_user_out,
+    get_followers,
+    get_following,
+    get_suggested_users,
+    get_user_by_username,
+)
 from app.utils.media import save_image
 from app.utils.pagination import PaginatedResponse, paginate, pagination_params
 from app.utils.security import hash_password, verify_password
@@ -312,4 +318,36 @@ def user_tagged(
         base.options(joinedload(Post.user)).order_by(Post.created_at.desc()).offset(offset).limit(limit)
     ).all()
     items = build_posts_out(db, list(posts), viewer)
+    return paginate(items, total, page, limit)
+
+
+@router.get("/{username}/followers", response_model=PaginatedResponse)
+def followers_list(
+    username: str,
+    db: DbSession,
+    viewer: OptionalUser = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(30, ge=1, le=50),
+):
+    user = get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    page, limit, _ = pagination_params(page, limit)
+    items, total = get_followers(db, user, viewer, page, limit)
+    return paginate(items, total, page, limit)
+
+
+@router.get("/{username}/following", response_model=PaginatedResponse)
+def following_list(
+    username: str,
+    db: DbSession,
+    viewer: OptionalUser = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(30, ge=1, le=50),
+):
+    user = get_user_by_username(db, username)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    page, limit, _ = pagination_params(page, limit)
+    items, total = get_following(db, user, viewer, page, limit)
     return paginate(items, total, page, limit)

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models import Follow, Reel, ReelLike, Story, StoryItem, StoryView, User
 from app.schemas.reel import ReelOut
-from app.schemas.story import StoryItemOut, StoryOut, StoryOverlayOut
+from app.schemas.story import StoryItemOut, StoryOut, StoryOverlayOut, StoryViewerOut
 from app.services.users import build_user_out, get_following_ids
 from app.utils.datetime_fmt import to_iso
 
@@ -226,6 +226,29 @@ def mark_story_viewed(db: Session, viewer: User, story_id: int) -> bool:
         db.add(StoryView(user_id=viewer.id, story_id=story_id))
         db.commit()
     return True
+
+
+def get_story_viewers(db: Session, story_id: int, owner: User) -> list[StoryViewerOut]:
+    """Who-viewed-my-story list — real Instagram only shows this to the
+    story's own author, most recent viewer first."""
+    from fastapi import HTTPException
+
+    story = db.get(Story, story_id)
+    if not story:
+        raise HTTPException(status_code=404, detail="Story not found")
+    if story.user_id != owner.id:
+        raise HTTPException(status_code=403, detail="Only the story owner can see its viewers")
+
+    rows = db.scalars(
+        select(StoryView)
+        .where(StoryView.story_id == story_id)
+        .options(joinedload(StoryView.user))
+        .order_by(desc(StoryView.viewed_at))
+    ).all()
+    return [
+        StoryViewerOut(user=build_user_out(db, row.user, owner), viewed_at=to_iso(row.viewed_at))
+        for row in rows
+    ]
 
 
 def create_reel(

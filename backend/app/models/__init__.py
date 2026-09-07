@@ -1,6 +1,7 @@
 from app.models.comment import Comment
-from app.models.conversation import Conversation, Message
+from app.models.conversation import Conversation, ConversationParticipant, Message
 from app.models.follow import Follow
+from app.models.hashtag import Hashtag, PostHashtag
 from app.models.like import Like
 from app.models.login_session import LoginSession
 from app.models.notification import Notification
@@ -23,6 +24,8 @@ __all__ = [
     "Comment",
     "Like",
     "Follow",
+    "Hashtag",
+    "PostHashtag",
     "SavedPost",
     "Story",
     "StoryItem",
@@ -31,6 +34,7 @@ __all__ = [
     "ReelLike",
     "PostTag",
     "Conversation",
+    "ConversationParticipant",
     "Message",
     "Notification",
 ]
