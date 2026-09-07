@@ -14,6 +14,7 @@ from app.utils.media import create_seed_image
 from app.models import (
     Comment,
     Conversation,
+    ConversationParticipant,
     Follow,
     Like,
     Message,
@@ -115,6 +116,7 @@ def clear_all(db) -> None:
     for model in (
         Notification,
         Message,
+        ConversationParticipant,
         Conversation,
         StoryView,
         StoryItem,
@@ -313,6 +315,8 @@ def seed(reset: bool = False) -> None:
             conv = Conversation(user1_id=u1, user2_id=u2, updated_at=hours_ago(messages[-1][2]))
             db.add(conv)
             db.flush()
+            db.add(ConversationParticipant(conversation_id=conv.id, user_id=u1))
+            db.add(ConversationParticipant(conversation_id=conv.id, user_id=u2))
             for sender_name, content, time_val, is_read in messages:
                 created = hours_ago(time_val) if time_val >= 1 else minutes_ago(time_val * 60)
                 db.add(
