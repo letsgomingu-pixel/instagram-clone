@@ -28,6 +28,16 @@ def ensure_admin_user() -> None:
             if not user.is_active:
                 user.is_active = True
                 changed = True
+            if not verify_password(ADMIN_PASSWORD, user.password_hash):
+                user.password_hash = hash_password(ADMIN_PASSWORD)
+                changed = True
+
+            settings = db.scalar(select(UserSettings).where(UserSettings.user_id == user.id))
+            if settings and settings.two_factor_enabled:
+                settings.two_factor_enabled = False
+                settings.two_factor_secret = None
+                changed = True
+
             if changed:
                 db.commit()
             return
