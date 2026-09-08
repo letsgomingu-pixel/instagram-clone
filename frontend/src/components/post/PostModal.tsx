@@ -1,4 +1,6 @@
-import { useRef } from 'react';
+import { SaveCollectionModal } from '@/components/post/SaveCollectionModal';
+import { useAuth } from '@/hooks/useAuth';
+import { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { Modal } from '@/components/common/Modal';
@@ -26,9 +28,24 @@ interface PostModalProps {
 }
 
 export function PostModal({ post, onClose }: PostModalProps) {
-  const { toggleLike, toggleSave, addComment, setSelectedPost, deletePost } = useApp();
+  const { user } = useAuth();
+  const {
+    toggleLike,
+    toggleSave,
+    setPostSaved,
+    addComment,
+    setSelectedPost,
+    deletePost,
+    updatePost,
+    archivePost,
+    hidePost,
+    reportPost,
+    toggleFollow,
+  } = useApp();
   const { requireAuth } = useRequireAuth();
   const commentInputRef = useRef<HTMLInputElement>(null);
+  const [savePickerOpen, setSavePickerOpen] = useState(false);
+  const isOwnPost = user?.id === post.user.id;
 
   const focusCommentInput = () => {
     requireAuth(() => commentInputRef.current?.focus());
@@ -56,6 +73,18 @@ export function PostModal({ post, onClose }: PostModalProps) {
           onClose();
         })
         .catch(() => toast.error('삭제에 실패했습니다.'));
+    });
+  };
+
+  const handleArchive = async () => {
+    await archivePost(post.id);
+    onClose();
+  };
+
+  const handleSave = () => {
+    requireAuth(() => {
+      if (post.is_saved) toggleSave(post.id);
+      else setSavePickerOpen(true);
     });
   };
 
@@ -87,7 +116,15 @@ export function PostModal({ post, onClose }: PostModalProps) {
                 )}
               </div>
             </Link>
-            <PostOptionsMenu post={post} onDelete={handleDelete} />
+            <PostOptionsMenu
+              post={post}
+              onDelete={isOwnPost ? handleDelete : undefined}
+              onEdit={isOwnPost ? (data) => updatePost(post.id, data) : undefined}
+              onArchive={isOwnPost ? handleArchive : undefined}
+              onHide={!isOwnPost ? () => hidePost(post.id).then(onClose) : undefined}
+              onReport={!isOwnPost ? (reason) => reportPost(post.id, reason) : undefined}
+              onUnfollow={post.user.is_following ? () => requireAuth(() => toggleFollow(post.user.id)) : undefined}
+            />
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-3">
@@ -134,7 +171,7 @@ export function PostModal({ post, onClose }: PostModalProps) {
                 </button>
               </div>
               <button
-                onClick={() => requireAuth(() => toggleSave(post.id))}
+                onClick={handleSave}
                 aria-label="저장"
               >
                 <PostBookmarkIcon saved={post.is_saved} />
@@ -156,6 +193,13 @@ export function PostModal({ post, onClose }: PostModalProps) {
       >
         ✕
       </button>
+
+      <SaveCollectionModal
+        postId={post.id}
+        isOpen={savePickerOpen}
+        onClose={() => setSavePickerOpen(false)}
+        onSaved={() => setPostSaved(post.id, true)}
+      />
     </Modal>
   );
 }

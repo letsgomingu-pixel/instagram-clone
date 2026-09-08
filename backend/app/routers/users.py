@@ -25,6 +25,16 @@ from app.schemas.security import (
 from app.schemas.settings import PasswordChangeRequest, UserSettingsOut, UserSettingsUpdate
 from app.services.blocks import block_user, is_blocked, unblock_user
 from app.services.notifications import create_follow_notification
+from app.services.follow_requests import (
+    accept_follow_request,
+    accept_follow_request_by_requester,
+    cancel_follow_request,
+    list_follow_requests,
+    reject_follow_request,
+    reject_follow_request_by_requester,
+    request_follow,
+    target_requires_follow_request,
+)
 from app.services.posts import build_posts_out
 from app.services.security import (
     delete_login_session,
@@ -73,6 +83,18 @@ def suggested(db: DbSession, viewer: OptionalUser = None, limit: int = Query(10,
 
 @router.put("/me", response_model=UserOut)
 def update_me(body: UserUpdate, current_user: CurrentUser, db: DbSession):
+    if body.username is not None:
+        new_username = body.username.strip().lower()
+        if new_username != current_user.username.lower():
+            taken = db.scalar(
+                select(User.id).where(
+                    func.lower(User.username) == new_username,
+                    User.id != current_user.id,
+                )
+            )
+            if taken:
+                raise HTTPException(status_code=400, detail="Username is already taken")
+            current_user.username = body.username.strip()
     if body.full_name is not None:
         current_user.full_name = body.full_name
     if body.bio is not None:
@@ -214,24 +236,23 @@ def follow_user(user_id: int, current_user: CurrentUser, db: DbSession):
     if user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot follow yourself")
     target = db.get(User, user_id)
-    if not target:
+    if not target or not target.is_active:
         raise HTTPException(status_code=404, detail="User not found")
     existing = db.scalar(
         select(Follow.id).where(Follow.follower_id == current_user.id, Follow.following_id == user_id)
     )
     if existing:
-        return FollowResponse(is_following=True)
+        return FollowResponse(is_following=True, is_requested=False)
+    if target_requires_follow_request(db, user_id):
+        request_follow(db, current_user, target)
+        return FollowResponse(is_following=False, is_requested=True)
     db.add(Follow(follower_id=current_user.id, following_id=user_id))
     create_follow_notification(db, current_user, target)
     try:
         db.commit()
     except IntegrityError:
-        # Two concurrent follow requests (e.g. a double-click) can both pass the
-        # existence check above; the second commit then hits the UNIQUE
-        # constraint. Treat that as the already-following state instead of
-        # bubbling up a 500.
         db.rollback()
-    return FollowResponse(is_following=True)
+    return FollowResponse(is_following=True, is_requested=False)
 
 
 @router.delete("/{user_id}/follow", response_model=FollowResponse)
@@ -242,7 +263,33 @@ def unfollow_user(user_id: int, current_user: CurrentUser, db: DbSession):
     if follow:
         db.delete(follow)
         db.commit()
-    return FollowResponse(is_following=False)
+    cancel_follow_request(db, current_user.id, user_id)
+    return FollowResponse(is_following=False, is_requested=False)
+
+
+@router.get("/me/follow-requests", response_model=list[UserOut])
+def my_follow_requests(current_user: CurrentUser, db: DbSession):
+    return list_follow_requests(db, current_user)
+
+
+@router.post("/me/follow-requests/{request_id}/accept", response_model=UserOut)
+def accept_follow_request_route(request_id: int, current_user: CurrentUser, db: DbSession):
+    return accept_follow_request(db, current_user, request_id)
+
+
+@router.delete("/me/follow-requests/{request_id}", status_code=204)
+def reject_follow_request_route(request_id: int, current_user: CurrentUser, db: DbSession):
+    reject_follow_request(db, current_user, request_id)
+
+
+@router.post("/me/follow-requests/by-user/{requester_id}/accept", response_model=UserOut)
+def accept_follow_request_by_user_route(requester_id: int, current_user: CurrentUser, db: DbSession):
+    return accept_follow_request_by_requester(db, current_user, requester_id)
+
+
+@router.delete("/me/follow-requests/by-user/{requester_id}", status_code=204)
+def reject_follow_request_by_user_route(requester_id: int, current_user: CurrentUser, db: DbSession):
+    reject_follow_request_by_requester(db, current_user, requester_id)
 
 
 @router.post("/{user_id}/block", status_code=204)
@@ -279,10 +326,12 @@ def user_posts(
     if not can_view_user_content(db, user, viewer):
         return paginate([], 0, page, limit)
     page, limit, offset = pagination_params(page, limit)
-    total = db.scalar(select(func.count()).select_from(Post).where(Post.user_id == user.id)) or 0
+    total = db.scalar(
+        select(func.count()).select_from(Post).where(Post.user_id == user.id, Post.is_archived.is_(False))
+    ) or 0
     posts = db.scalars(
         select(Post)
-        .where(Post.user_id == user.id)
+        .where(Post.user_id == user.id, Post.is_archived.is_(False))
         .options(joinedload(Post.user))
         .order_by(Post.created_at.desc())
         .offset(offset)

@@ -7,7 +7,16 @@ from sqlalchemy.orm import joinedload
 
 from app.dependencies import CurrentUser, DbSession, OptionalUser
 from app.models import Comment, Like, Post, PostMedia, PostTag, SavedPost, User
-from app.schemas.post import CommentCreate, CommentLikeResponse, CommentOut, LikeToggleResponse, PostOut, SaveToggleResponse
+from app.schemas.post import (
+    CommentCreate,
+    CommentLikeResponse,
+    CommentOut,
+    LikeToggleResponse,
+    PostOut,
+    PostReportCreate,
+    PostUpdate,
+    SaveToggleResponse,
+)
 from app.services.notifications import create_post_activity_notifications, create_mention_notifications, create_reply_notification, create_tag_notifications
 from app.services.posts import (
     build_post_out,
@@ -17,9 +26,14 @@ from app.services.posts import (
     get_explore_posts,
     get_home_feed_posts,
     get_post_or_404,
+    hide_post_for_user,
+    list_archived_posts,
     list_post_comments,
     list_post_likes,
+    report_post,
+    set_post_archived,
     toggle_comment_like,
+    update_post_by_owner,
 )
 from app.services.hashtags import attach_hashtags_to_post
 from app.services.users import build_user_out
@@ -29,6 +43,19 @@ from app.utils.pagination import PaginatedResponse, paginate, pagination_params
 from app.utils.datetime_fmt import to_iso
 
 router = APIRouter(prefix="/posts", tags=["posts"])
+
+
+@router.get("/archived", response_model=PaginatedResponse)
+def archived_posts(
+    current_user: CurrentUser,
+    db: DbSession,
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=30),
+):
+    page, limit, offset = pagination_params(page, limit)
+    posts, total = list_archived_posts(db, current_user, offset, limit)
+    items = build_posts_out(db, posts, current_user)
+    return paginate(items, total, page, limit)
 
 
 @router.get("/feed", response_model=PaginatedResponse)
@@ -96,6 +123,36 @@ def get_post(post_id: int, db: DbSession, viewer: OptionalUser = None):
 @router.delete("/{post_id}", status_code=204)
 def remove_post(post_id: int, current_user: CurrentUser, db: DbSession):
     delete_post_by_owner(db, post_id, current_user)
+
+
+@router.patch("/{post_id}", response_model=PostOut)
+def edit_post(post_id: int, body: PostUpdate, current_user: CurrentUser, db: DbSession):
+    post = update_post_by_owner(
+        db, post_id, current_user, caption=body.caption, location=body.location
+    )
+    return build_post_out(db, post, current_user)
+
+
+@router.post("/{post_id}/archive", response_model=PostOut)
+def archive_post(post_id: int, current_user: CurrentUser, db: DbSession):
+    post = set_post_archived(db, post_id, current_user, archived=True)
+    return build_post_out(db, post, current_user)
+
+
+@router.delete("/{post_id}/archive", response_model=PostOut)
+def unarchive_post(post_id: int, current_user: CurrentUser, db: DbSession):
+    post = set_post_archived(db, post_id, current_user, archived=False)
+    return build_post_out(db, post, current_user)
+
+
+@router.post("/{post_id}/hide", status_code=204)
+def hide_post(post_id: int, current_user: CurrentUser, db: DbSession):
+    hide_post_for_user(db, post_id, current_user)
+
+
+@router.post("/{post_id}/report", status_code=204)
+def report_post_route(post_id: int, body: PostReportCreate, current_user: CurrentUser, db: DbSession):
+    report_post(db, post_id, current_user, reason=body.reason, details=body.details)
 
 
 @router.post("", response_model=PostOut, status_code=201)

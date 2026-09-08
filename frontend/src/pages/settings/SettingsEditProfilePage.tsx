@@ -27,6 +27,9 @@ export function SettingsEditProfilePage() {
   const { refreshFeed, refreshStories, syncCurrentUserAvatar } = useApp();
   const navigate = useNavigate();
   const [fullName, setFullName] = useState(user?.full_name || '');
+  const [username, setUsername] = useState(user?.username || '');
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [checkingUsername, setCheckingUsername] = useState(false);
   const [bio, setBio] = useState(user?.bio || '');
   const [website, setWebsite] = useState(user?.website || '');
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar_url || '');
@@ -35,12 +38,33 @@ export function SettingsEditProfilePage() {
 
   useEffect(() => {
     setFullName(user?.full_name || '');
+    setUsername(user?.username || '');
     setBio(user?.bio || '');
     setWebsite(user?.website || '');
     if (!avatarFile) {
       setAvatarPreview(user?.avatar_url || '');
     }
-  }, [user?.full_name, user?.bio, user?.website, user?.avatar_url, avatarFile]);
+  }, [user?.full_name, user?.username, user?.bio, user?.website, user?.avatar_url, avatarFile]);
+
+  useEffect(() => {
+    if (!username || username === user?.username) {
+      setUsernameAvailable(null);
+      return;
+    }
+    if (username.length < 3) {
+      setUsernameAvailable(false);
+      return;
+    }
+    setCheckingUsername(true);
+    const timer = window.setTimeout(() => {
+      usersApi
+        .checkUsername(username)
+        .then(setUsernameAvailable)
+        .catch(() => setUsernameAvailable(false))
+        .finally(() => setCheckingUsername(false));
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [username, user?.username]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -63,6 +87,11 @@ export function SettingsEditProfilePage() {
 
     setSaving(true);
     try {
+      if (username !== user.username && usernameAvailable === false) {
+        toast.error('사용할 수 없는 사용자 이름입니다.');
+        return;
+      }
+
       let updated = user;
 
       if (avatarFile) {
@@ -72,6 +101,7 @@ export function SettingsEditProfilePage() {
       }
 
       updated = await usersApi.updateProfile({
+        username: username !== user.username ? username : undefined,
         full_name: fullName,
         bio,
         website: website || undefined,
@@ -81,7 +111,7 @@ export function SettingsEditProfilePage() {
       await Promise.all([refreshFeed(), refreshStories()]);
       setAvatarFile(null);
       toast.success('프로필이 저장되었습니다.');
-      navigate(`/profile/${user.username}`);
+      navigate(`/profile/${updated.username}`);
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -118,6 +148,24 @@ export function SettingsEditProfilePage() {
       </div>
 
       <div className="space-y-6 max-w-[460px]">
+        <SettingsField label="사용자 이름">
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9._]/g, '').slice(0, 30))}
+            className="w-full px-2 py-1.5 border border-ig-border rounded-[3px] text-[16px] bg-ig-secondary focus:border-ig-text-secondary"
+          />
+          {username !== user?.username && username.length >= 3 && (
+            <p className={`text-[12px] mt-1 ${usernameAvailable ? 'text-green-600' : 'text-ig-red'}`}>
+              {checkingUsername
+                ? '확인 중...'
+                : usernameAvailable
+                  ? '사용 가능한 사용자 이름입니다.'
+                  : '사용할 수 없는 사용자 이름입니다.'}
+            </p>
+          )}
+        </SettingsField>
+
         <SettingsField label="웹사이트">
           <input
             type="url"

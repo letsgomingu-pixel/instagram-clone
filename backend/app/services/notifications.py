@@ -30,6 +30,22 @@ def create_follow_notification(db: Session, actor: User, target: User) -> None:
     )
 
 
+def create_follow_request_notification(db: Session, actor: User, target: User) -> None:
+    if actor.id == target.id:
+        return
+    if not user_allows_notification(db, target.id, "notify_follows"):
+        return
+    db.add(
+        Notification(
+            recipient_id=target.id,
+            actor_id=actor.id,
+            type="follow_request",
+            tab="you",
+            is_read=False,
+        )
+    )
+
+
 def create_post_activity_notifications(
     db: Session,
     *,

@@ -13,6 +13,7 @@ export interface User {
   is_own_profile?: boolean;
   is_admin?: boolean;
   is_private?: boolean;
+  is_requested?: boolean;
 }
 
 export interface PostMedia {
@@ -152,7 +153,7 @@ export interface Conversation {
   has_more_messages?: boolean;
 }
 
-export type NotificationType = 'like' | 'follow' | 'comment' | 'mention' | 'reply';
+export type NotificationType = 'like' | 'follow' | 'comment' | 'mention' | 'reply' | 'follow_request';
 
 export type NotificationTab = 'you' | 'following';
 

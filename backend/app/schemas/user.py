@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, Field
 
 
 class UserUpdate(BaseModel):
+    username: str | None = Field(None, min_length=3, max_length=30)
     full_name: str | None = Field(None, max_length=100)
     bio: str | None = Field(None, max_length=150)
     website: str | None = Field(None, max_length=255)
@@ -22,6 +23,7 @@ class UserOut(BaseModel):
     is_own_profile: bool = False
     is_admin: bool = False
     is_private: bool = False
+    is_requested: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -36,6 +38,7 @@ class UsernameCheck(BaseModel):
 
 class FollowResponse(BaseModel):
     is_following: bool
+    is_requested: bool = False
 
 
 class AccountDeactivateRequest(BaseModel):

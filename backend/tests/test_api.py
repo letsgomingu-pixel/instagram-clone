@@ -728,6 +728,111 @@ def test_search_users(auth_headers):
     assert any(u["username"] == "alice_kim" for u in r.json())
 
 
+def test_post_edit_archive_hide_report(auth_headers):
+    created = client.post(
+        "/api/v1/posts",
+        headers=auth_headers,
+        files={"image": ("test.jpg", _make_image_bytes(), "image/jpeg")},
+        data={"caption": "parity test"},
+    )
+    assert created.status_code == 201
+    own_post_id = created.json()["id"]
+
+    edit = client.patch(
+        f"/api/v1/posts/{own_post_id}",
+        headers=auth_headers,
+        json={"caption": "pytest edited caption", "location": "Seoul"},
+    )
+    assert edit.status_code == 200, edit.text
+    assert edit.json()["caption"] == "pytest edited caption"
+
+    feed = client.get("/api/v1/posts/feed", headers=auth_headers).json()
+    other_post_id = next((p["id"] for p in feed["items"] if p["id"] != own_post_id), None)
+    if other_post_id:
+        hide = client.post(f"/api/v1/posts/{other_post_id}/hide", headers=auth_headers)
+        assert hide.status_code == 204, hide.text
+
+        report = client.post(
+            f"/api/v1/posts/{other_post_id}/report",
+            headers=auth_headers,
+            json={"reason": "spam"},
+        )
+        assert report.status_code == 204, report.text
+
+    archive = client.post(f"/api/v1/posts/{own_post_id}/archive", headers=auth_headers)
+    assert archive.status_code == 200, archive.text
+
+    archived = client.get("/api/v1/posts/archived", headers=auth_headers)
+    assert archived.status_code == 200
+    assert any(p["id"] == own_post_id for p in archived.json()["items"])
+
+    unarchive = client.delete(f"/api/v1/posts/{own_post_id}/archive", headers=auth_headers)
+    assert unarchive.status_code == 200, unarchive.text
+
+    client.delete(f"/api/v1/posts/{own_post_id}", headers=auth_headers)
+
+
+def test_private_follow_request_flow():
+    private_headers = _login("alice_kim", "12345")
+    requester_headers = _login()
+
+    me = client.get("/api/v1/auth/me", headers=private_headers).json()
+    requester = client.get("/api/v1/auth/me", headers=requester_headers).json()
+
+    client.delete(f"/api/v1/users/{me['id']}/follow", headers=requester_headers)
+
+    client.put(
+        "/api/v1/users/me/settings",
+        headers=private_headers,
+        json={"is_private": True},
+    )
+
+    follow = client.post(f"/api/v1/users/{me['id']}/follow", headers=requester_headers)
+    assert follow.status_code == 200, follow.text
+    body = follow.json()
+    assert body["is_requested"] is True, body
+    assert body["is_following"] is False
+
+    requests = client.get("/api/v1/users/me/follow-requests", headers=private_headers)
+    assert requests.status_code == 200
+    assert any(u["id"] == requester["id"] for u in requests.json())
+
+    accept = client.post(
+        f"/api/v1/users/me/follow-requests/by-user/{requester['id']}/accept",
+        headers=private_headers,
+    )
+    assert accept.status_code == 200, accept.text
+
+    profile = client.get(f"/api/v1/users/{me['username']}", headers=requester_headers)
+    assert profile.status_code == 200
+    assert profile.json()["is_following"] is True
+
+    client.put(
+        "/api/v1/users/me/settings",
+        headers=private_headers,
+        json={"is_private": False},
+    )
+
+
+def test_username_change(auth_headers):
+    me = client.get("/api/v1/auth/me", headers=auth_headers).json()
+    original = me["username"]
+    candidate = f"{original}_py"[:30]
+
+    check = client.get("/api/v1/users/check-username", params={"username": candidate})
+    assert check.status_code == 200
+
+    if check.json()["available"]:
+        updated = client.put(
+            "/api/v1/users/me",
+            headers=auth_headers,
+            json={"username": candidate},
+        )
+        assert updated.status_code == 200, updated.text
+        assert updated.json()["username"] == candidate
+        client.put("/api/v1/users/me", headers=auth_headers, json={"username": original})
+
+
 def test_unauthorized_feed():
     r = client.get("/api/v1/posts/feed")
     assert r.status_code == 401

@@ -10,6 +10,8 @@ interface NotificationItemProps {
   isFollowing: boolean;
   onOpenPost?: (postId: number) => void;
   onFollow?: (userId: number) => void;
+  onAcceptFollowRequest?: (userId: number) => void;
+  onRejectFollowRequest?: (userId: number) => void;
   onMarkRead?: (id: number) => void;
 }
 
@@ -18,6 +20,8 @@ export function NotificationItem({
   isFollowing,
   onOpenPost,
   onFollow,
+  onAcceptFollowRequest,
+  onRejectFollowRequest,
   onMarkRead,
 }: NotificationItemProps) {
   const { actor, type, post_id, post_image_url, created_at, is_read } = notification;
@@ -54,7 +58,30 @@ export function NotificationItem({
       </div>
 
       <div className="flex items-center gap-3 shrink-0">
-        {type === 'follow' ? (
+        {type === 'follow_request' ? (
+          <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAcceptFollowRequest?.(actor.id);
+              }}
+              className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-primary text-white hover:bg-ig-primary-hover"
+            >
+              수락
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRejectFollowRequest?.(actor.id);
+              }}
+              className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb]"
+            >
+              거절
+            </button>
+          </>
+        ) : type === 'follow' ? (
           <button
             type="button"
             onClick={(e) => {
@@ -78,15 +105,10 @@ export function NotificationItem({
               onOpenPost?.(post_id);
             }}
             className="w-11 h-11 shrink-0 overflow-hidden hover:opacity-90"
-            aria-label="게시물 보기"
           >
             <MediaImage src={post_image_url} alt="" className="w-full h-full object-cover" />
           </button>
         ) : null}
-
-        {!is_read && (
-          <span className="w-2 h-2 rounded-full bg-ig-primary shrink-0" aria-label="읽지 않음" />
-        )}
       </div>
     </div>
   );

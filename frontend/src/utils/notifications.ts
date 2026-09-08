@@ -44,6 +44,10 @@ export function getNotificationMessage(notification: Notification): string {
     return '회원님을 팔로우하기 시작했습니다.';
   }
 
+  if (type === 'follow_request') {
+    return '회원님을 팔로우하고 싶어합니다.';
+  }
+
   if (comment_preview) {
     return target_username
       ? `${target_username}님의 게시물에 댓글을 남겼습니다: ${comment_preview}`

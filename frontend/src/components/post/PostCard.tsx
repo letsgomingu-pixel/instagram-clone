@@ -17,6 +17,8 @@ import {
 } from '@/components/post/PostActionIcons';
 import { formatRelativeTime } from '@/utils/formatDate';
 import { useApp } from '@/contexts/AppContext';
+import { SaveCollectionModal } from '@/components/post/SaveCollectionModal';
+import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import type { Post } from '@/types';
 
@@ -26,12 +28,27 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, onOpenModal }: PostCardProps) {
-  const { toggleLike, toggleSave, setSelectedPost, addComment, toggleFollow, deletePost } = useApp();
+  const { user } = useAuth();
+  const {
+    toggleLike,
+    toggleSave,
+    setPostSaved,
+    setSelectedPost,
+    addComment,
+    toggleFollow,
+    deletePost,
+    updatePost,
+    archivePost,
+    hidePost,
+    reportPost,
+  } = useApp();
   const { requireAuth } = useRequireAuth();
   const [showHeart, setShowHeart] = useState(false);
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [likesOpen, setLikesOpen] = useState(false);
+  const [savePickerOpen, setSavePickerOpen] = useState(false);
   const lastTap = useRef(0);
+  const isOwnPost = user?.id === post.user.id;
 
   const previewComments = (post.comments || []).slice(-2);
 
@@ -88,6 +105,16 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
     });
   };
 
+  const handleSave = () => {
+    requireAuth(() => {
+      if (post.is_saved) {
+        toggleSave(post.id);
+      } else {
+        setSavePickerOpen(true);
+      }
+    });
+  };
+
   return (
     <article className="group feed-card">
       <header className="flex items-center justify-between px-4 py-[14px]">
@@ -102,7 +129,15 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
             )}
           </div>
         </Link>
-        <PostOptionsMenu post={post} onUnfollow={handleUnfollow} onDelete={handleDelete} />
+        <PostOptionsMenu
+          post={post}
+          onUnfollow={post.user.is_following ? handleUnfollow : undefined}
+          onDelete={isOwnPost ? handleDelete : undefined}
+          onEdit={isOwnPost ? (data) => updatePost(post.id, data) : undefined}
+          onArchive={isOwnPost ? () => archivePost(post.id) : undefined}
+          onHide={!isOwnPost ? () => hidePost(post.id) : undefined}
+          onReport={!isOwnPost ? (reason) => reportPost(post.id, reason) : undefined}
+        />
       </header>
 
       <PostMediaCarousel
@@ -143,7 +178,7 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
             </button>
           </div>
           <button
-            onClick={() => requireAuth(() => toggleSave(post.id))}
+            onClick={handleSave}
             aria-label={post.is_saved ? '저장 취소' : '저장'}
             className="hover:opacity-50 transition-opacity active:scale-95"
           >
@@ -199,6 +234,13 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
         likeCount={post.like_count}
         isOpen={likesOpen}
         onClose={() => setLikesOpen(false)}
+      />
+
+      <SaveCollectionModal
+        postId={post.id}
+        isOpen={savePickerOpen}
+        onClose={() => setSavePickerOpen(false)}
+        onSaved={() => setPostSaved(post.id, true)}
       />
     </article>
   );

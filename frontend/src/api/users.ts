@@ -7,6 +7,7 @@ export async function getUserProfile(username: string): Promise<User> {
 }
 
 export async function updateProfile(payload: {
+  username?: string;
   full_name?: string;
   bio?: string;
   website?: string;
@@ -34,12 +35,37 @@ export async function getSuggestedUsers(limit = 10): Promise<SuggestedUser[]> {
   return data;
 }
 
-export async function followUser(userId: number): Promise<void> {
-  await api.post(`/users/${userId}/follow`);
+export async function followUser(userId: number): Promise<{ is_following: boolean; is_requested: boolean }> {
+  const { data } = await api.post<{ is_following: boolean; is_requested: boolean }>(`/users/${userId}/follow`);
+  return data;
 }
 
-export async function unfollowUser(userId: number): Promise<void> {
-  await api.delete(`/users/${userId}/follow`);
+export async function unfollowUser(userId: number): Promise<{ is_following: boolean; is_requested: boolean }> {
+  const { data } = await api.delete<{ is_following: boolean; is_requested: boolean }>(`/users/${userId}/follow`);
+  return data;
+}
+
+export async function getFollowRequests(): Promise<User[]> {
+  const { data } = await api.get<User[]>('/users/me/follow-requests');
+  return data;
+}
+
+export async function acceptFollowRequest(requestId: number): Promise<User> {
+  const { data } = await api.post<User>(`/users/me/follow-requests/${requestId}/accept`);
+  return data;
+}
+
+export async function rejectFollowRequest(requestId: number): Promise<void> {
+  await api.delete(`/users/me/follow-requests/${requestId}`);
+}
+
+export async function acceptFollowRequestByUser(requesterId: number): Promise<User> {
+  const { data } = await api.post<User>(`/users/me/follow-requests/by-user/${requesterId}/accept`);
+  return data;
+}
+
+export async function rejectFollowRequestByUser(requesterId: number): Promise<void> {
+  await api.delete(`/users/me/follow-requests/by-user/${requesterId}`);
 }
 
 export async function getUserPosts(username: string, page = 1): Promise<PaginatedResponse<Post>> {

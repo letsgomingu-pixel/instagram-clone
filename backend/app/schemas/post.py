@@ -31,6 +31,16 @@ class PostMediaOut(BaseModel):
     position: int
 
 
+class PostUpdate(BaseModel):
+    caption: str | None = Field(None, max_length=2200)
+    location: str | None = Field(None, max_length=255)
+
+
+class PostReportCreate(BaseModel):
+    reason: str = Field(min_length=1, max_length=50)
+    details: str | None = Field(None, max_length=500)
+
+
 class PostOut(BaseModel):
     id: int
     user: UserOut

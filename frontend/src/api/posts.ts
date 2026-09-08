@@ -78,6 +78,37 @@ export async function deletePost(postId: number): Promise<void> {
   await api.delete(`/posts/${postId}`);
 }
 
+export async function updatePost(
+  postId: number,
+  data: { caption?: string | null; location?: string | null },
+): Promise<Post> {
+  const { data: post } = await api.patch<Post>(`/posts/${postId}`, data);
+  return post;
+}
+
+export async function archivePost(postId: number): Promise<Post> {
+  const { data } = await api.post<Post>(`/posts/${postId}/archive`);
+  return data;
+}
+
+export async function unarchivePost(postId: number): Promise<Post> {
+  const { data } = await api.delete<Post>(`/posts/${postId}/archive`);
+  return data;
+}
+
+export async function hidePost(postId: number): Promise<void> {
+  await api.post(`/posts/${postId}/hide`);
+}
+
+export async function reportPost(postId: number, reason: string, details?: string): Promise<void> {
+  await api.post(`/posts/${postId}/report`, { reason, details });
+}
+
+export async function getArchivedPosts(page = 1): Promise<PaginatedResponse<Post>> {
+  const { data } = await api.get<PaginatedResponse<Post>>('/posts/archived', { params: { page, limit: 30 } });
+  return data;
+}
+
 export async function deleteComment(postId: number, commentId: number): Promise<void> {
   await api.delete(`/posts/${postId}/comments/${commentId}`);
 }

@@ -30,6 +30,7 @@ export function MessagesPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [showNewGroup, setShowNewGroup] = useState(false);
   const [showNewMessage, setShowNewMessage] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
 
   // A single stable key identifying "what's currently open" — either
   // `user:<username>` (1:1) or `group:<conversationId>` — used both to find
@@ -256,6 +257,42 @@ export function MessagesPage() {
     [activeKey, refreshActiveChat],
   );
 
+  const handleLoadOlder = useCallback(async () => {
+    if (!activeKey || !activeConversation?.has_more_messages || loadingOlder) return;
+    const firstMessage = activeConversation.messages[0];
+    if (!firstMessage) return;
+
+    setLoadingOlder(true);
+    try {
+      const older = activeKey.startsWith('group:')
+        ? await conversationsApi.getGroupMessages(
+            Number(activeKey.slice('group:'.length)),
+            firstMessage.id,
+          )
+        : await conversationsApi.getMessages(activeKey.slice('user:'.length), firstMessage.id);
+
+      setConversations((prev) => {
+        const index = prev.findIndex((c) => conversationRouteKey(c) === activeKey);
+        if (index === -1) return prev;
+        const current = prev[index];
+        const existingIds = new Set(current.messages.map((m) => m.id));
+        const prepended = older.messages.filter((m) => !existingIds.has(m.id));
+        const updated = {
+          ...current,
+          messages: [...prepended, ...current.messages],
+          has_more_messages: older.has_more_messages,
+        };
+        const next = [...prev];
+        next[index] = updated;
+        return next;
+      });
+    } catch {
+      toast.error('이전 메시지를 불러오지 못했습니다.');
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [activeKey, activeConversation, loadingOlder]);
+
   const sortedConversations = useMemo(
     () =>
       [...conversations].sort(
@@ -303,9 +340,11 @@ export function MessagesPage() {
             <ChatPanel
               conversation={activeConversation}
               loading={chatLoading}
+              loadingOlder={loadingOlder}
               onSend={handleSend}
               onSendImage={handleSendImage}
               onDeleteMessage={handleDeleteMessage}
+              onLoadOlder={handleLoadOlder}
               onBack={handleBack}
               showBackButton={showChatOnMobile}
             />

@@ -2,12 +2,15 @@ from app.models.comment import Comment
 from app.models.comment_like import CommentLike
 from app.models.conversation import Conversation, ConversationParticipant, Message
 from app.models.follow import Follow
+from app.models.follow_request import FollowRequest
 from app.models.hashtag import Hashtag, PostHashtag
+from app.models.hidden_post import HiddenPost
 from app.models.like import Like
 from app.models.login_session import LoginSession
 from app.models.notification import Notification
 from app.models.post import Post
 from app.models.post_media import PostMedia
+from app.models.post_report import PostReport
 from app.models.post_tag import PostTag
 from app.models.recent_search import RecentSearch
 from app.models.reel import Reel, ReelLike
@@ -33,8 +36,11 @@ __all__ = [
     "CommentLike",
     "Like",
     "Follow",
+    "FollowRequest",
     "Hashtag",
     "PostHashtag",
+    "HiddenPost",
+    "PostReport",
     "SavedPost",
     "SavedCollection",
     "SavedCollectionItem",

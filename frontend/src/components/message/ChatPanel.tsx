@@ -13,9 +13,11 @@ import { cn } from '@/utils/cn';
 interface ChatPanelProps {
   conversation: Conversation | null;
   loading?: boolean;
+  loadingOlder?: boolean;
   onSend: (content: string) => Promise<void>;
   onSendImage?: (file: File) => Promise<void>;
   onDeleteMessage?: (messageId: number) => Promise<void>;
+  onLoadOlder?: () => Promise<void>;
   onBack?: () => void;
   showBackButton?: boolean;
 }
@@ -23,21 +25,43 @@ interface ChatPanelProps {
 export function ChatPanel({
   conversation,
   loading = false,
+  loadingOlder = false,
   onSend,
   onSendImage,
   onDeleteMessage,
+  onLoadOlder,
   onBack,
   showBackButton,
 }: ChatPanelProps) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prevMessageCountRef = useRef(0);
   const { user } = useAuth();
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [conversation?.messages.length]);
+    const count = conversation?.messages.length ?? 0;
+    if (count > prevMessageCountRef.current && !loadingOlder) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    prevMessageCountRef.current = count;
+  }, [conversation?.messages.length, loadingOlder]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !onLoadOlder || !conversation?.has_more_messages) return;
+
+    const handleScroll = () => {
+      if (el.scrollTop < 80 && !loadingOlder) {
+        void onLoadOlder();
+      }
+    };
+
+    el.addEventListener('scroll', handleScroll);
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [conversation?.has_more_messages, loadingOlder, onLoadOlder]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,7 +184,12 @@ export function ChatPanel({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+        {loadingOlder && (
+          <div className="flex justify-center py-2">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-ig-border border-t-ig-primary" />
+          </div>
+        )}
         {messages.length === 0 ? (
           isGroup ? (
             <div className="flex flex-col items-center justify-center h-full text-center">

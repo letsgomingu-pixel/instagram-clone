@@ -21,7 +21,14 @@ def get_user_by_username(db: Session, username: str) -> User | None:
 
 
 def get_user_counts(db: Session, user_id: int) -> tuple[int, int, int]:
-    post_count = db.scalar(select(func.count()).select_from(Post).where(Post.user_id == user_id)) or 0
+    post_count = (
+        db.scalar(
+            select(func.count()).select_from(Post).where(
+                Post.user_id == user_id, Post.is_archived.is_(False)
+            )
+        )
+        or 0
+    )
     follower_count = (
         db.scalar(select(func.count()).select_from(Follow).where(Follow.following_id == user_id)) or 0
     )
@@ -74,6 +81,8 @@ def build_user_out(
         follower_count = fc if follower_count is None else follower_count
         following_count = fgc if following_count is None else following_count
 
+    from app.services.follow_requests import has_pending_request
+
     return UserOut(
         id=user.id,
         username=user.username,
@@ -89,6 +98,7 @@ def build_user_out(
         is_own_profile=viewer.id == user.id if viewer else False,
         is_admin=user.is_admin,
         is_private=user_is_private(db, user.id),
+        is_requested=has_pending_request(db, viewer.id if viewer else None, user.id),
     )
 
 

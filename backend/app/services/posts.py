@@ -3,11 +3,12 @@ from datetime import datetime, timezone
 from sqlalchemy import and_, case, desc, func, or_, select, update
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Comment, CommentLike, Like, Notification, Post, PostMedia, PostTag, SavedPost, User
+from app.models import Comment, CommentLike, HiddenPost, Like, Notification, Post, PostMedia, PostReport, PostTag, SavedPost, User
 from app.schemas.notification import NotificationOut
 from app.schemas.post import CommentOut, PostMediaOut, PostOut
 from app.services.blocks import blocked_user_ids
 from app.services.users import build_user_out, get_following_ids
+from app.utils.hashtags import extract_hashtags
 from app.utils.cursor import cursor_from_post, decode_cursor
 from app.utils.datetime_fmt import to_iso
 
@@ -18,6 +19,13 @@ def _liked_post_ids(db: Session, user_id: int, post_ids: list[int]) -> set[int]:
     rows = db.scalars(
         select(Like.post_id).where(Like.user_id == user_id, Like.post_id.in_(post_ids))
     ).all()
+    return set(rows)
+
+
+def _hidden_post_ids(db: Session, user_id: int | None) -> set[int]:
+    if not user_id:
+        return set()
+    rows = db.scalars(select(HiddenPost.post_id).where(HiddenPost.user_id == user_id)).all()
     return set(rows)
 
 
@@ -187,10 +195,13 @@ def get_home_feed_posts(
     base = (
         select(Post)
         .join(User, Post.user_id == User.id)
-        .where(User.is_active.is_(True))
+        .where(User.is_active.is_(True), Post.is_archived.is_(False))
     )
     if blocked:
         base = base.where(Post.user_id.notin_(blocked))
+    hidden = _hidden_post_ids(db, user.id)
+    if hidden:
+        base = base.where(Post.id.notin_(hidden))
 
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     if total == 0:
@@ -240,9 +251,15 @@ def get_explore_posts(
     follow_boost = case((Post.user_id.in_(following), 5), else_=0) if following else 0
     score = Post.like_count * 2 + Post.comment_count * 3 + follow_boost
 
-    base = select(Post).join(User, Post.user_id == User.id).where(User.is_active.is_(True))
+    base = select(Post).join(User, Post.user_id == User.id).where(
+        User.is_active.is_(True), Post.is_archived.is_(False)
+    )
     if blocked:
         base = base.where(Post.user_id.notin_(blocked))
+    if viewer:
+        hidden = _hidden_post_ids(db, viewer.id)
+        if hidden:
+            base = base.where(Post.id.notin_(hidden))
 
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     posts = db.scalars(
@@ -401,6 +418,71 @@ def delete_post_comment(db: Session, post_id: int, comment_id: int, user: User) 
         )
     )
     db.commit()
+
+
+def update_post_by_owner(
+    db: Session, post_id: int, user: User, *, caption: str | None = None, location: str | None = None
+) -> Post:
+    from fastapi import HTTPException
+    from sqlalchemy import delete
+
+    from app.models import PostHashtag
+
+    post = get_post_or_404(db, post_id)
+    if post.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not allowed to edit this post")
+    if caption is not None:
+        post.caption = caption or None
+        db.execute(delete(PostHashtag).where(PostHashtag.post_id == post_id))
+        db.commit()
+        db.refresh(post)
+        tag_names = extract_hashtags(post.caption)
+        if tag_names:
+            from app.services.hashtags import attach_hashtags_to_post
+
+            attach_hashtags_to_post(db, post, tag_names)
+    if location is not None:
+        post.location = location or None
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+def set_post_archived(db: Session, post_id: int, user: User, *, archived: bool) -> Post:
+    from fastapi import HTTPException
+
+    post = get_post_or_404(db, post_id)
+    if post.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not allowed to archive this post")
+    post.is_archived = archived
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+def hide_post_for_user(db: Session, post_id: int, user: User) -> None:
+    get_post_or_404(db, post_id)
+    existing = db.scalar(
+        select(HiddenPost.id).where(HiddenPost.user_id == user.id, HiddenPost.post_id == post_id)
+    )
+    if not existing:
+        db.add(HiddenPost(user_id=user.id, post_id=post_id))
+        db.commit()
+
+
+def report_post(db: Session, post_id: int, user: User, *, reason: str, details: str | None) -> None:
+    get_post_or_404(db, post_id)
+    db.add(PostReport(reporter_id=user.id, post_id=post_id, reason=reason, details=details))
+    db.commit()
+
+
+def list_archived_posts(db: Session, user: User, offset: int, limit: int) -> tuple[list[Post], int]:
+    base = select(Post).where(Post.user_id == user.id, Post.is_archived.is_(True))
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    posts = db.scalars(
+        base.options(joinedload(Post.user)).order_by(desc(Post.created_at)).offset(offset).limit(limit)
+    ).all()
+    return list(posts), total
 
 
 def build_notification_out(db: Session, notification: Notification, viewer: User | None) -> NotificationOut:

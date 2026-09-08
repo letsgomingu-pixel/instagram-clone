@@ -173,11 +173,12 @@ export function ProfileHeader({
 
                     </Link>
 
-                    <button className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors">
-
+                    <Link
+                      to="/archive"
+                      className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors inline-flex items-center"
+                    >
                       보관함
-
-                    </button>
+                    </Link>
 
                     <Link
 
@@ -214,25 +215,15 @@ export function ProfileHeader({
                   <>
 
                     <button
-
                       onClick={onFollow}
-
                       className={cn(
-
                         'h-8 px-4 text-[14px] font-semibold rounded-lg transition-colors inline-flex items-center gap-1',
-
-                        user.is_following
-
+                        user.is_following || user.is_requested
                           ? 'bg-ig-secondary hover:bg-[#dbdbdb]'
-
                           : 'bg-ig-primary text-white hover:bg-ig-primary-hover',
-
                       )}
-
                     >
-
-                      {user.is_following ? '팔로잉' : '팔로우'}
-
+                      {user.is_following ? '팔로잉' : user.is_requested ? '요청됨' : '팔로우'}
                     </button>
 
                     <Link

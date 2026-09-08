@@ -30,6 +30,7 @@ import { SettingsSecurityPage } from '@/pages/settings/SettingsSecurityPage';
 import { SettingsAccountPage } from '@/pages/settings/SettingsAccountPage';
 import { SettingsIndexPage } from '@/pages/settings/SettingsIndexPage';
 import { ReelsPage } from '@/pages/ReelsPage';
+import { ArchivedPostsPage } from '@/pages/ArchivedPostsPage';
 import { SuggestedUsersPage } from '@/pages/SuggestedUsersPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
@@ -80,6 +81,7 @@ export default function App() {
                   <Route path="/messages" element={<MessagesPage />} />
                   <Route path="/messages/group/:conversationId" element={<MessagesPage />} />
                   <Route path="/messages/:username" element={<MessagesPage />} />
+                  <Route path="/archive" element={<ArchivedPostsPage />} />
                   <Route path="/profile/edit" element={<EditProfilePage />} />
                   <Route path="/settings" element={<SettingsLayout />}>
                     <Route index element={<SettingsIndexPage />} />

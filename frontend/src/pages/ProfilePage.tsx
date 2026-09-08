@@ -24,6 +24,7 @@ export function ProfilePage() {
   const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [following, setFollowing] = useState<boolean | undefined>(undefined);
+  const [requested, setRequested] = useState<boolean | undefined>(undefined);
   const [followBusy, setFollowBusy] = useState(false);
   const [activeTab, setActiveTab] = useState<ProfileTab>('posts');
   const [loading, setLoading] = useState(true);
@@ -51,6 +52,7 @@ export function ProfilePage() {
         if (cancelled) return;
         setProfileUser(user);
         setFollowing(user.is_following);
+        setRequested(user.is_requested);
         setUserPosts(postsRes.items);
         setUserReels(reelsRes.items);
         setTaggedPosts(taggedRes.items);
@@ -155,35 +157,38 @@ export function ProfilePage() {
     avatar_url: isOwn ? (currentUser.avatar_url ?? profileUser.avatar_url) : profileUser.avatar_url,
     is_own_profile: isOwn,
     is_following: following ?? profileUser.is_following ?? false,
+    is_requested: requested ?? profileUser.is_requested ?? false,
   };
 
   const handleFollow = () => {
     requireAuth(async () => {
-      if (followBusy) return; // guard against double-clicks racing the same toggle
+      if (followBusy) return;
       const wasFollowing = following ?? profileUser.is_following ?? false;
-      const next = !wasFollowing;
+      const wasRequested = requested ?? profileUser.is_requested ?? false;
 
-      // Optimistic update — flip the button and the follower count
-      // immediately, matching how every other follow button in the app
-      // behaves, then roll back on failure instead of failing silently.
       setFollowBusy(true);
-      setFollowing(next);
-      setProfileUser((prev) =>
-        prev
-          ? { ...prev, follower_count: Math.max(0, prev.follower_count + (next ? 1 : -1)) }
-          : prev
-      );
       try {
-        if (next) await followUser(profileUser.id);
-        else await unfollowUser(profileUser.id);
+        if (wasFollowing || wasRequested) {
+          await unfollowUser(profileUser.id);
+          setFollowing(false);
+          setRequested(false);
+          if (wasFollowing) {
+            setProfileUser((prev) =>
+              prev ? { ...prev, follower_count: Math.max(0, prev.follower_count - 1) } : prev,
+            );
+          }
+        } else {
+          const result = await followUser(profileUser.id);
+          setFollowing(result.is_following);
+          setRequested(result.is_requested);
+          if (result.is_following) {
+            setProfileUser((prev) =>
+              prev ? { ...prev, follower_count: prev.follower_count + 1 } : prev,
+            );
+          }
+        }
       } catch {
-        setFollowing(wasFollowing);
-        setProfileUser((prev) =>
-          prev
-            ? { ...prev, follower_count: Math.max(0, prev.follower_count + (next ? -1 : 1)) }
-            : prev
-        );
-        toast.error(next ? '팔로우에 실패했습니다.' : '팔로우 취소에 실패했습니다.');
+        toast.error('팔로우 상태를 변경하지 못했습니다.');
       } finally {
         setFollowBusy(false);
       }

@@ -9,9 +9,10 @@ interface ProfileGridProps {
   /** Whether the viewer is looking at their own profile — controls the empty-state copy. */
   isOwn?: boolean;
   isPrivate?: boolean;
+  onPostClick?: (post: Post) => void;
 }
 
-export function ProfileGrid({ posts, savedOnly = false, isOwn = true, isPrivate = false }: ProfileGridProps) {
+export function ProfileGrid({ posts, savedOnly = false, isOwn = true, isPrivate = false, onPostClick }: ProfileGridProps) {
   const { setSelectedPost } = useApp();
 
   if (isPrivate) {
@@ -66,7 +67,7 @@ export function ProfileGrid({ posts, savedOnly = false, isOwn = true, isPrivate 
       {posts.map((post) => (
         <button
           key={post.id}
-          onClick={() => setSelectedPost(post)}
+          onClick={() => (onPostClick ? onPostClick(post) : setSelectedPost(post))}
           className="relative aspect-square group overflow-hidden bg-ig-secondary"
           aria-label={`${post.user.username}의 게시물`}
         >

@@ -8,6 +8,7 @@ import {
 } from '@/utils/notifications';
 import * as notificationsApi from '@/api/notifications';
 import * as postsApi from '@/api/posts';
+import * as usersApi from '@/api/users';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import type { Notification, NotificationTab } from '@/types';
@@ -102,6 +103,23 @@ export function NotificationsPage() {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
   };
 
+  const handleAcceptFollowRequest = (userId: number) => {
+    void usersApi.acceptFollowRequestByUser(userId).then(() => {
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.actor.id === userId && n.type === 'follow_request' ? { ...n, is_read: true } : n,
+        ),
+      );
+      void followUser(userId);
+    });
+  };
+
+  const handleRejectFollowRequest = (userId: number) => {
+    void usersApi.rejectFollowRequestByUser(userId).then(() => {
+      setNotifications((prev) => prev.filter((n) => !(n.actor.id === userId && n.type === 'follow_request')));
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-16">
@@ -171,6 +189,8 @@ export function NotificationsPage() {
                     isFollowing={isFollowing(notification.actor.id)}
                     onOpenPost={handleOpenPost}
                     onFollow={handleFollow}
+                    onAcceptFollowRequest={handleAcceptFollowRequest}
+                    onRejectFollowRequest={handleRejectFollowRequest}
                     onMarkRead={handleMarkRead}
                   />
                 ))}

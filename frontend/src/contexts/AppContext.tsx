@@ -84,15 +84,27 @@ interface AppContextValue {
 
   toggleSave: (postId: number) => void;
 
+  setPostSaved: (postId: number, isSaved: boolean) => void;
+
   toggleFollow: (userId: number, isFollowing?: boolean) => void;
 
-  followUser: (userId: number) => Promise<void>;
+  followUser: (userId: number) => Promise<{ is_following: boolean; is_requested: boolean }>;
 
-  unfollowUser: (userId: number) => Promise<void>;
+  unfollowUser: (userId: number) => Promise<{ is_following: boolean; is_requested: boolean }>;
 
   addComment: (postId: number, content: string, parentId?: number | null) => void;
 
   deletePost: (postId: number) => Promise<void>;
+
+  updatePost: (postId: number, data: { caption?: string | null; location?: string | null }) => Promise<void>;
+
+  archivePost: (postId: number) => Promise<void>;
+
+  unarchivePost: (postId: number) => Promise<void>;
+
+  hidePost: (postId: number) => Promise<void>;
+
+  reportPost: (postId: number, reason: string, details?: string) => Promise<void>;
 
   markStoryViewed: (storyId: number) => void;
 
@@ -130,10 +142,12 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 
 
-function patchUserFollowing(user: User, userId: number, isFollowing: boolean): User {
-
-  return user.id === userId ? { ...user, is_following: isFollowing } : user;
-
+function patchUserFollowStatus(
+  user: User,
+  userId: number,
+  status: { is_following?: boolean; is_requested?: boolean },
+): User {
+  return user.id === userId ? { ...user, ...status } : user;
 }
 
 
@@ -195,66 +209,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 
 
-  const syncFollowState = useCallback((userId: number, isFollowing: boolean) => {
+  const syncFollowStatus = useCallback(
+    (userId: number, status: { is_following: boolean; is_requested: boolean }) => {
+      setSuggestedUsers((prev) => {
+        if (status.is_following) {
+          return prev.filter((u) => u.id !== userId);
+        }
+        return prev.map((u) =>
+          u.id === userId ? { ...u, is_following: status.is_following, is_requested: status.is_requested } : u,
+        );
+      });
 
-    setSuggestedUsers((prev) => {
-      if (isFollowing) {
-        return prev.filter((u) => u.id !== userId);
-      }
-      return prev.map((u) => (u.id === userId ? { ...u, is_following: isFollowing } : u));
-    });
+      const patch = (user: User) => patchUserFollowStatus(user, userId, status);
 
-    setPosts((prev) =>
-
-      prev.map((p) =>
-
-        p.user.id === userId ? { ...p, user: patchUserFollowing(p.user, userId, isFollowing) } : p,
-
-      ),
-
-    );
-
-    setExplorePosts((prev) =>
-
-      prev.map((p) =>
-
-        p.user.id === userId ? { ...p, user: patchUserFollowing(p.user, userId, isFollowing) } : p,
-
-      ),
-
-    );
-
-    setReels((prev) =>
-
-      prev.map((r) =>
-
-        r.user.id === userId ? { ...r, user: patchUserFollowing(r.user, userId, isFollowing) } : r,
-
-      ),
-
-    );
-
-    setProfileReels((prev) =>
-
-      prev.map((r) =>
-
-        r.user.id === userId ? { ...r, user: patchUserFollowing(r.user, userId, isFollowing) } : r,
-
-      ),
-
-    );
-
-    setSelectedPost((prev) =>
-
-      prev?.user.id === userId
-
-        ? { ...prev, user: patchUserFollowing(prev.user, userId, isFollowing) }
-
-        : prev,
-
-    );
-
-  }, []);
+      setPosts((prev) => prev.map((p) => (p.user.id === userId ? { ...p, user: patch(p.user) } : p)));
+      setExplorePosts((prev) => prev.map((p) => (p.user.id === userId ? { ...p, user: patch(p.user) } : p)));
+      setReels((prev) => prev.map((r) => (r.user.id === userId ? { ...r, user: patch(r.user) } : r)));
+      setProfileReels((prev) => prev.map((r) => (r.user.id === userId ? { ...r, user: patch(r.user) } : r)));
+      setSelectedPost((prev) => (prev?.user.id === userId ? { ...prev, user: patch(prev.user) } : prev));
+    },
+    [],
+  );
 
 
 
@@ -497,6 +472,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 
 
+  const removePostFromState = useCallback((postId: number) => {
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+    setExplorePosts((prev) => prev.filter((p) => p.id !== postId));
+    setSelectedPost((prev) => (prev?.id === postId ? null : prev));
+  }, []);
+
   const updatePostInState = useCallback((postId: number, updater: (p: Post) => Post) => {
 
     setPosts((prev) => prev.map((p) => (p.id === postId ? updater(p) : p)));
@@ -612,7 +593,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [isAuthenticated, updatePostInState],
   );
 
-
+  const setPostSaved = useCallback(
+    (postId: number, isSaved: boolean) => {
+      updatePostInState(postId, (p) => ({ ...p, is_saved: isSaved }));
+    },
+    [updatePostInState],
+  );
 
   const resolveFollowing = useCallback(
 
@@ -638,6 +624,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 
 
+  const resolveRequested = useCallback(
+    (userId: number): boolean => {
+      const fromSuggested = suggestedUsers.find((u) => u.id === userId);
+      if (fromSuggested) return !!fromSuggested.is_requested;
+      const fromPost = posts.find((p) => p.user.id === userId)?.user.is_requested;
+      if (fromPost !== undefined) return fromPost;
+      const fromReel = reels.find((r) => r.user.id === userId)?.user.is_requested;
+      return fromReel ?? false;
+    },
+    [suggestedUsers, posts, reels],
+  );
+
   const toggleFollow = useCallback(
 
     (userId: number, nextFollowing?: boolean) => {
@@ -646,71 +644,67 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       if (nextFollowing !== undefined) {
 
-        syncFollowState(userId, nextFollowing);
+        syncFollowStatus(userId, { is_following: nextFollowing, is_requested: false });
 
         return;
 
       }
 
       const currentlyFollowing = resolveFollowing(userId);
-      const nextFollowingState = !currentlyFollowing;
+      const currentlyRequested = resolveRequested(userId);
 
-      // Optimistic: flip every card showing this user immediately, then
-      // revert + toast if the request fails, instead of waiting on the
-      // round-trip (matches toggleLike's pattern).
-      syncFollowState(userId, nextFollowingState);
+      if (currentlyFollowing || currentlyRequested) {
+        syncFollowStatus(userId, { is_following: false, is_requested: false });
+        void usersApi.unfollowUser(userId)
+          .then(() => refreshSuggestedUsers(10))
+          .catch(() => {
+            syncFollowStatus(userId, {
+              is_following: currentlyFollowing,
+              is_requested: currentlyRequested,
+            });
+            toast.error('팔로우 상태를 변경하지 못했습니다. 다시 시도해 주세요.');
+          });
+        return;
+      }
 
-      const action = currentlyFollowing ? usersApi.unfollowUser : usersApi.followUser;
+      syncFollowStatus(userId, { is_following: false, is_requested: true });
 
-      void action(userId)
-        .then(() => {
+      void usersApi.followUser(userId)
+        .then(({ is_following, is_requested }) => {
+          syncFollowStatus(userId, { is_following, is_requested });
           void refreshSuggestedUsers(10);
         })
         .catch(() => {
-          syncFollowState(userId, currentlyFollowing);
+          syncFollowStatus(userId, { is_following: false, is_requested: false });
           toast.error('팔로우 상태를 변경하지 못했습니다. 다시 시도해 주세요.');
         });
 
     },
 
-    [isAuthenticated, resolveFollowing, syncFollowState, refreshSuggestedUsers],
+    [isAuthenticated, resolveFollowing, resolveRequested, syncFollowStatus, refreshSuggestedUsers],
 
   );
 
 
 
   const followUser = useCallback(
-
     async (userId: number) => {
-
-      if (!isAuthenticated) return;
-
-      await usersApi.followUser(userId);
-
-      syncFollowState(userId, true);
-
+      if (!isAuthenticated) return { is_following: false, is_requested: false };
+      const result = await usersApi.followUser(userId);
+      syncFollowStatus(userId, result);
+      return result;
     },
-
-    [isAuthenticated, syncFollowState],
-
+    [isAuthenticated, syncFollowStatus],
   );
 
-
-
   const unfollowUser = useCallback(
-
     async (userId: number) => {
-
-      if (!isAuthenticated) return;
-
-      await usersApi.unfollowUser(userId);
-
-      syncFollowState(userId, false);
-
+      if (!isAuthenticated) return { is_following: false, is_requested: false };
+      const result = await usersApi.unfollowUser(userId);
+      syncFollowStatus(userId, result);
+      return result;
     },
-
-    [isAuthenticated, syncFollowState],
-
+    [isAuthenticated, syncFollowStatus],
   );
 
 
@@ -746,23 +740,55 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 
   const deletePost = useCallback(
-
     async (postId: number) => {
-
       if (!isAuthenticated) return;
-
       await postsApi.deletePost(postId);
-
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
-
-      setExplorePosts((prev) => prev.filter((p) => p.id !== postId));
-
-      setSelectedPost((prev) => (prev?.id === postId ? null : prev));
-
+      removePostFromState(postId);
     },
+    [isAuthenticated, removePostFromState],
+  );
 
+  const updatePost = useCallback(
+    async (postId: number, data: { caption?: string | null; location?: string | null }) => {
+      if (!isAuthenticated) return;
+      const updated = await postsApi.updatePost(postId, data);
+      updatePostInState(postId, () => updated);
+    },
+    [isAuthenticated, updatePostInState],
+  );
+
+  const archivePost = useCallback(
+    async (postId: number) => {
+      if (!isAuthenticated) return;
+      await postsApi.archivePost(postId);
+      removePostFromState(postId);
+    },
+    [isAuthenticated, removePostFromState],
+  );
+
+  const unarchivePost = useCallback(
+    async (postId: number) => {
+      if (!isAuthenticated) return;
+      await postsApi.unarchivePost(postId);
+    },
     [isAuthenticated],
+  );
 
+  const hidePost = useCallback(
+    async (postId: number) => {
+      if (!isAuthenticated) return;
+      await postsApi.hidePost(postId);
+      removePostFromState(postId);
+    },
+    [isAuthenticated, removePostFromState],
+  );
+
+  const reportPost = useCallback(
+    async (postId: number, reason: string, details?: string) => {
+      if (!isAuthenticated) return;
+      await postsApi.reportPost(postId, reason, details);
+    },
+    [isAuthenticated],
   );
 
 
@@ -853,6 +879,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       toggleSave,
 
+      setPostSaved,
+
       toggleFollow,
 
       followUser,
@@ -862,6 +890,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addComment,
 
       deletePost,
+
+      updatePost,
+
+      archivePost,
+
+      unarchivePost,
+
+      hidePost,
+
+      reportPost,
 
       markStoryViewed,
 
@@ -937,6 +975,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       toggleSave,
 
+      setPostSaved,
+
       toggleFollow,
 
       followUser,
@@ -946,6 +986,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addComment,
 
       deletePost,
+
+      updatePost,
+
+      archivePost,
+
+      unarchivePost,
+
+      hidePost,
+
+      reportPost,
 
       markStoryViewed,
 
