@@ -833,6 +833,19 @@ def test_username_change(auth_headers):
         client.put("/api/v1/users/me", headers=auth_headers, json={"username": original})
 
 
+def test_blocked_users_list(auth_headers):
+    target = client.get("/api/v1/users/alice_kim").json()
+    client.post(f"/api/v1/users/{target['id']}/block", headers=auth_headers)
+    listed = client.get("/api/v1/users/me/blocked", headers=auth_headers)
+    assert listed.status_code == 200
+    assert any(u["id"] == target["id"] for u in listed.json())
+    status = client.get(f"/api/v1/users/{target['id']}/block-status", headers=auth_headers)
+    assert status.json()["blocked_by_me"] is True
+    client.delete(f"/api/v1/users/{target['id']}/block", headers=auth_headers)
+    after = client.get("/api/v1/users/me/blocked", headers=auth_headers)
+    assert all(u["id"] != target["id"] for u in after.json())
+
+
 def test_unauthorized_feed():
     r = client.get("/api/v1/posts/feed")
     assert r.status_code == 401

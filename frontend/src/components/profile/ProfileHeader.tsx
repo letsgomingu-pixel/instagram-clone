@@ -38,6 +38,8 @@ interface ProfileHeaderProps {
 
   onBlock?: () => void;
 
+  onUnblock?: () => void;
+
 }
 
 
@@ -66,6 +68,7 @@ export function ProfileHeader({
   onShowFollowers,
   onShowFollowing,
   onBlock,
+  onUnblock,
 }: ProfileHeaderProps) {
 
   const { user: currentUser, isAuthenticated } = useAuth();
@@ -238,7 +241,15 @@ export function ProfileHeader({
 
                     </Link>
 
-                    {onBlock ? (
+                    {onUnblock ? (
+                      <button
+                        type="button"
+                        onClick={onUnblock}
+                        className="h-8 px-3 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors"
+                      >
+                        차단 해제
+                      </button>
+                    ) : onBlock ? (
                       <button
                         type="button"
                         onClick={onBlock}

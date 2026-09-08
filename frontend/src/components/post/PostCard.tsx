@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Avatar } from '@/components/common/Avatar';
 import { FeedCommentInput } from '@/components/post/FeedCommentInput';
@@ -47,21 +47,16 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [likesOpen, setLikesOpen] = useState(false);
   const [savePickerOpen, setSavePickerOpen] = useState(false);
-  const lastTap = useRef(0);
   const isOwnPost = user?.id === post.user.id;
 
   const previewComments = (post.comments || []).slice(-2);
 
-  const handleDoubleTap = useCallback(() => {
-    const now = Date.now();
-    if (now - lastTap.current < 300) {
-      requireAuth(() => {
-        if (!post.is_liked) toggleLike(post.id);
-        setShowHeart(true);
-        setTimeout(() => setShowHeart(false), 1000);
-      });
-    }
-    lastTap.current = now;
+  const handleDoubleTapLike = useCallback(() => {
+    requireAuth(() => {
+      if (!post.is_liked) toggleLike(post.id);
+      setShowHeart(true);
+      setTimeout(() => setShowHeart(false), 1000);
+    });
   }, [post.id, post.is_liked, toggleLike, requireAuth]);
 
   const handleLike = () => {
@@ -147,7 +142,7 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
             : [{ id: 0, media_url: post.image_url, media_type: 'image', position: 0 }]
         }
         alt={post.caption || `${post.user.username}의 게시물`}
-        onDoubleTap={handleDoubleTap}
+        onDoubleTap={handleDoubleTapLike}
         showHeart={showHeart}
         heartIcon={<DoubleTapHeartIcon className="animate-heart-pop drop-shadow-lg" />}
       />

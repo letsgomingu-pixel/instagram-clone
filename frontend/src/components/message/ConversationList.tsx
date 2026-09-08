@@ -47,7 +47,7 @@ export function ConversationList({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="hidden md:flex items-center justify-between px-4 py-3 border-b border-ig-border shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-ig-border shrink-0">
         <h1 className="text-base font-bold">{user?.username ?? '메시지'}</h1>
         <div className="flex items-center gap-3">
           {onNewMessage && (

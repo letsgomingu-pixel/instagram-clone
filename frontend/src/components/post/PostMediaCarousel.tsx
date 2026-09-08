@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, Volume2, VolumeX } from 'lucide-react';
 import { MediaImage } from '@/components/common/MediaImage';
 import { resolveMediaUrl } from '@/utils/media';
@@ -12,6 +12,8 @@ interface PostMediaCarouselProps {
   heartIcon?: React.ReactNode;
 }
 
+const SWIPE_THRESHOLD_PX = 50;
+
 export function PostMediaCarousel({
   media,
   alt,
@@ -22,8 +24,18 @@ export function PostMediaCarousel({
   const items = media.length > 0 ? media : [];
   const [index, setIndex] = useState(0);
   const [muted, setMuted] = useState(true);
+  const touchStartX = useRef<number | null>(null);
+  const lastTapRef = useRef(0);
   const current = items[index] ?? items[0];
   const hasMultiple = items.length > 1;
+
+  const goToIndex = useCallback(
+    (next: number) => {
+      if (next < 0 || next >= items.length) return;
+      setIndex(next);
+    },
+    [items.length],
+  );
 
   const toggleMuted = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -33,39 +45,69 @@ export function PostMediaCarousel({
   const goPrev = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      setIndex((i) => (i - 1 + items.length) % items.length);
+      goToIndex(index - 1);
     },
-    [items.length],
+    [goToIndex, index],
   );
 
   const goNext = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      setIndex((i) => (i + 1) % items.length);
+      goToIndex(index + 1);
     },
-    [items.length],
+    [goToIndex, index],
+  );
+
+  const handleTap = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      onDoubleTap?.();
+    }
+    lastTapRef.current = now;
+  }, [onDoubleTap]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0]?.clientX ?? null;
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const startX = touchStartX.current;
+      touchStartX.current = null;
+      if (startX == null || !hasMultiple) return;
+
+      const endX = e.changedTouches[0]?.clientX ?? startX;
+      const delta = endX - startX;
+      if (Math.abs(delta) < SWIPE_THRESHOLD_PX) return;
+
+      if (delta < 0 && index < items.length - 1) {
+        goToIndex(index + 1);
+      } else if (delta > 0 && index > 0) {
+        goToIndex(index - 1);
+      }
+    },
+    [goToIndex, hasMultiple, index, items.length],
   );
 
   if (!current) return null;
 
   return (
     <div
-      className="relative w-full aspect-square bg-black select-none touch-manipulation overflow-hidden"
-      onClick={onDoubleTap}
+      className="group relative w-full aspect-square bg-black select-none touch-manipulation overflow-hidden"
+      onClick={handleTap}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       role="button"
       tabIndex={0}
-      aria-label="게시물 미디어 — 더블 탭하여 좋아요"
+      aria-label="게시물 미디어 — 더블 탭하여 좋아요, 스와이프하여 넘기기"
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') onDoubleTap?.();
+        if (e.key === 'Enter' || e.key === ' ') handleTap();
+        if (e.key === 'ArrowLeft') goToIndex(index - 1);
+        if (e.key === 'ArrowRight') goToIndex(index + 1);
       }}
     >
       {current.media_type === 'video' ? (
         <>
-          {/* No native `controls` here: real Instagram feed videos autoplay
-              muted with a single mute/unmute toggle, not a browser scrubber —
-              and `pointer-events-none` used to make native controls visible
-              but entirely unclickable (every click fell through to the
-              double-tap-to-like handler on the wrapper). */}
           <video
             src={resolveMediaUrl(current.media_url)}
             className="w-full h-full object-cover"

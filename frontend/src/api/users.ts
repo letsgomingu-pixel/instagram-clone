@@ -116,8 +116,13 @@ export async function unblockUser(userId: number): Promise<void> {
   await api.delete(`/users/${userId}/block`);
 }
 
-export async function getBlockStatus(userId: number): Promise<{ is_blocked: boolean }> {
-  const { data } = await api.get<{ is_blocked: boolean }>(`/users/${userId}/block-status`);
+export async function getBlockStatus(userId: number): Promise<{ is_blocked: boolean; blocked_by_me: boolean }> {
+  const { data } = await api.get<{ is_blocked: boolean; blocked_by_me: boolean }>(`/users/${userId}/block-status`);
+  return data;
+}
+
+export async function getBlockedUsers(): Promise<User[]> {
+  const { data } = await api.get<User[]>('/users/me/blocked');
   return data;
 }
 

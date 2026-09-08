@@ -23,7 +23,7 @@ from app.schemas.security import (
     TwoFactorSetupOut,
 )
 from app.schemas.settings import PasswordChangeRequest, UserSettingsOut, UserSettingsUpdate
-from app.services.blocks import block_user, is_blocked, unblock_user
+from app.services.blocks import block_user, is_blocked, is_blocked_by_viewer, list_blocked_users, unblock_user
 from app.services.notifications import create_follow_notification
 from app.services.follow_requests import (
     accept_follow_request,
@@ -292,6 +292,11 @@ def reject_follow_request_by_user_route(requester_id: int, current_user: Current
     reject_follow_request_by_requester(db, current_user, requester_id)
 
 
+@router.get("/me/blocked", response_model=list[UserOut])
+def my_blocked_users(current_user: CurrentUser, db: DbSession):
+    return list_blocked_users(db, current_user)
+
+
 @router.post("/{user_id}/block", status_code=204)
 def block_user_route(user_id: int, current_user: CurrentUser, db: DbSession):
     if user_id == current_user.id:
@@ -309,7 +314,10 @@ def unblock_user_route(user_id: int, current_user: CurrentUser, db: DbSession):
 
 @router.get("/{user_id}/block-status")
 def block_status(user_id: int, current_user: CurrentUser, db: DbSession):
-    return {"is_blocked": is_blocked(db, current_user.id, user_id)}
+    return {
+        "is_blocked": is_blocked(db, current_user.id, user_id),
+        "blocked_by_me": is_blocked_by_viewer(db, current_user.id, user_id),
+    }
 
 
 @router.get("/{username}/posts", response_model=PaginatedResponse)

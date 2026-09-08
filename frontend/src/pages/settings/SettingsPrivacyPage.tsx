@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import * as settingsApi from '@/api/settings';
 
@@ -208,6 +209,12 @@ export function SettingsPrivacyPage() {
 
         ))}
 
+        <Link
+          to="/settings/blocked"
+          className="flex items-center justify-between py-4 text-[16px] font-semibold text-ig-link hover:underline"
+        >
+          차단한 계정 관리
+        </Link>
       </div>
 
     </div>

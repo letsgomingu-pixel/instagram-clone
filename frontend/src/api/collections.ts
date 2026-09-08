@@ -16,6 +16,10 @@ export async function addPostToCollection(collectionId: number, postId: number):
   await api.post(`/collections/${collectionId}/posts/${postId}`);
 }
 
+export async function removePostFromCollection(collectionId: number, postId: number): Promise<void> {
+  await api.delete(`/collections/${collectionId}/posts/${postId}`);
+}
+
 export async function getCollectionPosts(
   collectionId: number,
   page = 1,

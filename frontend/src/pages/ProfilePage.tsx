@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ProfileHeader, type ProfileTab } from '@/components/profile/ProfileHeader';
 import { ProfileGrid } from '@/components/profile/ProfileGrid';
+import { ProfileSavedTab } from '@/components/profile/ProfileSavedTab';
 import { ProfileReelsGrid } from '@/components/profile/ProfileReelsGrid';
 import { ProfileTaggedGrid } from '@/components/profile/ProfileTaggedGrid';
 import { FollowListModal } from '@/components/profile/FollowListModal';
@@ -15,7 +16,8 @@ import type { Post, Reel, User } from '@/types';
 
 export function ProfilePage() {
   const { username } = useParams<{ username: string }>();
-  const { user: currentUser } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { user: currentUser, isAuthenticated } = useAuth();
   const { followUser, unfollowUser, setActiveReelIndex, setProfileReels } = useApp();
   const { requireAuth } = useRequireAuth();
   const [profileUser, setProfileUser] = useState<User | null>(null);
@@ -35,7 +37,15 @@ export function ProfilePage() {
   const [reelsHasMore, setReelsHasMore] = useState(false);
   const [taggedPage, setTaggedPage] = useState(1);
   const [taggedHasMore, setTaggedHasMore] = useState(false);
+  const [blockedByMe, setBlockedByMe] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'saved' || tab === 'reels' || tab === 'tagged' || tab === 'posts') {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!username) return;
@@ -68,6 +78,12 @@ export function ProfilePage() {
         } else {
           setSavedPosts([]);
         }
+        if (currentUser && user.id !== currentUser.id && isAuthenticated) {
+          const status = await usersApi.getBlockStatus(user.id);
+          if (!cancelled) setBlockedByMe(status.blocked_by_me);
+        } else if (!cancelled) {
+          setBlockedByMe(false);
+        }
       } catch {
         if (!cancelled) setProfileUser(null);
       } finally {
@@ -77,7 +93,7 @@ export function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [username, currentUser?.username, currentUser?.avatar_url]);
+  }, [username, currentUser?.username, currentUser?.avatar_url, currentUser?.id, isAuthenticated]);
 
   // Re-fetch the "저장됨" tab every time it's opened (not just on the initial
   // profile load) so a post saved/unsaved elsewhere in the app while this
@@ -210,11 +226,22 @@ export function ProfilePage() {
         onShowFollowers={() => setFollowListMode('followers')}
         onShowFollowing={() => setFollowListMode('following')}
         onBlock={
-          !isOwn
+          !isOwn && !blockedByMe
             ? () =>
                 requireAuth(async () => {
                   await usersApi.blockUser(profileUser.id);
+                  setBlockedByMe(true);
                   toast.success(`${profileUser.username}님을 차단했습니다.`);
+                })
+            : undefined
+        }
+        onUnblock={
+          !isOwn && blockedByMe
+            ? () =>
+                requireAuth(async () => {
+                  await usersApi.unblockUser(profileUser.id);
+                  setBlockedByMe(false);
+                  toast.success(`${profileUser.username}님 차단을 해제했습니다.`);
                 })
             : undefined
         }
@@ -224,7 +251,7 @@ export function ProfilePage() {
       {activeTab === 'reels' && (
         <ProfileReelsGrid reels={userReels} onReelClick={handleReelClick} isPrivate={isPrivateLocked} />
       )}
-      {activeTab === 'saved' && <ProfileGrid posts={savedPosts} savedOnly isOwn={isOwn} />}
+      {activeTab === 'saved' && isOwn && <ProfileSavedTab savedPosts={savedPosts} />}
       {activeTab === 'tagged' && <ProfileTaggedGrid posts={taggedPosts} isOwn={isOwn} />}
 
       <div ref={loadMoreRef} className="h-8" />
