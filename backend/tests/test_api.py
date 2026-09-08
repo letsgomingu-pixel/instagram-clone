@@ -407,6 +407,23 @@ def test_create_post(auth_headers):
     assert body["media"][0]["media_type"] == "image"
 
 
+def test_delete_own_post(auth_headers):
+    created = client.post(
+        "/api/v1/posts",
+        headers=auth_headers,
+        files={"image": ("test.jpg", _make_image_bytes(), "image/jpeg")},
+        data={"caption": "to delete"},
+    )
+    assert created.status_code == 201
+    post_id = created.json()["id"]
+
+    deleted = client.delete(f"/api/v1/posts/{post_id}", headers=auth_headers)
+    assert deleted.status_code == 204
+
+    missing = client.get(f"/api/v1/posts/{post_id}", headers=auth_headers)
+    assert missing.status_code == 404
+
+
 # ── Stories, Reels ─────────────────────────────────────────────────────────
 
 

@@ -8,10 +8,28 @@ interface ProfileGridProps {
   savedOnly?: boolean;
   /** Whether the viewer is looking at their own profile — controls the empty-state copy. */
   isOwn?: boolean;
+  isPrivate?: boolean;
 }
 
-export function ProfileGrid({ posts, savedOnly = false, isOwn = true }: ProfileGridProps) {
+export function ProfileGrid({ posts, savedOnly = false, isOwn = true, isPrivate = false }: ProfileGridProps) {
   const { setSelectedPost } = useApp();
+
+  if (isPrivate) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-8 text-center border border-ig-border bg-white md:rounded-lg">
+        <div className="w-[62px] h-[62px] border-2 border-ig-text rounded-full flex items-center justify-center mb-4">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </div>
+        <h2 className="text-[28px] font-light mb-2">비공개 계정입니다</h2>
+        <p className="text-[14px] text-ig-text-secondary max-w-[350px]">
+          사진과 동영상을 보려면 이 계정을 팔로우하세요.
+        </p>
+      </div>
+    );
+  }
 
   if (posts.length === 0) {
     return (

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 
 from app.dependencies import CurrentUser, DbSession
-from app.models import StoryItem, StoryLike
+from app.models import Story, StoryItem, StoryLike
 from app.schemas.story import StoryLikeResponse, StoryOut, StoryOverlayOut, StoryViewerOut, StoryViewResponse
 from app.services.conversations import send_story_reply
 from app.services.stories_reels import create_story, get_stories_feed, get_story_viewers, mark_story_viewed
@@ -82,3 +82,14 @@ def like_story_item(story_item_id: int, current_user: CurrentUser, db: DbSession
 @router.post("/items/{story_item_id}/reply", status_code=201)
 def reply_to_story(story_item_id: int, body: StoryReplyCreate, current_user: CurrentUser, db: DbSession):
     return send_story_reply(db, current_user, story_item_id, body.content)
+
+
+@router.delete("/{story_id}", status_code=204)
+def delete_story(story_id: int, current_user: CurrentUser, db: DbSession):
+    story = db.get(Story, story_id)
+    if not story:
+        raise HTTPException(status_code=404, detail="Story not found")
+    if story.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not allowed to delete this story")
+    db.delete(story)
+    db.commit()

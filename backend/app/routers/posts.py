@@ -13,6 +13,7 @@ from app.services.posts import (
     build_post_out,
     build_posts_out,
     delete_post_comment,
+    delete_post_by_owner,
     get_explore_posts,
     get_home_feed_posts,
     get_post_or_404,
@@ -90,6 +91,11 @@ def saved_posts(
 def get_post(post_id: int, db: DbSession, viewer: OptionalUser = None):
     post = get_post_or_404(db, post_id)
     return build_post_out(db, post, viewer)
+
+
+@router.delete("/{post_id}", status_code=204)
+def remove_post(post_id: int, current_user: CurrentUser, db: DbSession):
+    delete_post_by_owner(db, post_id, current_user)
 
 
 @router.post("", response_model=PostOut, status_code=201)

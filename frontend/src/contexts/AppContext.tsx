@@ -92,6 +92,8 @@ interface AppContextValue {
 
   addComment: (postId: number, content: string, parentId?: number | null) => void;
 
+  deletePost: (postId: number) => Promise<void>;
+
   markStoryViewed: (storyId: number) => void;
 
   markReelViewed: (reelId: number) => void;
@@ -743,6 +745,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 
 
+  const deletePost = useCallback(
+
+    async (postId: number) => {
+
+      if (!isAuthenticated) return;
+
+      await postsApi.deletePost(postId);
+
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+
+      setExplorePosts((prev) => prev.filter((p) => p.id !== postId));
+
+      setSelectedPost((prev) => (prev?.id === postId ? null : prev));
+
+    },
+
+    [isAuthenticated],
+
+  );
+
+
+
   const markStoryViewed = useCallback(
 
     (storyId: number) => {
@@ -837,6 +861,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       addComment,
 
+      deletePost,
+
       markStoryViewed,
 
       markReelViewed,
@@ -918,6 +944,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       unfollowUser,
 
       addComment,
+
+      deletePost,
 
       markStoryViewed,
 

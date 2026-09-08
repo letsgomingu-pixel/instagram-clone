@@ -12,6 +12,7 @@ export interface User {
   is_following?: boolean;
   is_own_profile?: boolean;
   is_admin?: boolean;
+  is_private?: boolean;
 }
 
 export interface PostMedia {

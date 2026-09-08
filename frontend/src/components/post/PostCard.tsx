@@ -26,7 +26,7 @@ interface PostCardProps {
 }
 
 export function PostCard({ post, onOpenModal }: PostCardProps) {
-  const { toggleLike, toggleSave, setSelectedPost, addComment, toggleFollow } = useApp();
+  const { toggleLike, toggleSave, setSelectedPost, addComment, toggleFollow, deletePost } = useApp();
   const { requireAuth } = useRequireAuth();
   const [showHeart, setShowHeart] = useState(false);
   const [likeAnimating, setLikeAnimating] = useState(false);
@@ -80,6 +80,14 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
     requireAuth(() => toggleFollow(post.user.id));
   };
 
+  const handleDelete = () => {
+    requireAuth(() => {
+      void deletePost(post.id)
+        .then(() => toast.success('게시물이 삭제되었습니다.'))
+        .catch(() => toast.error('삭제에 실패했습니다.'));
+    });
+  };
+
   return (
     <article className="group feed-card">
       <header className="flex items-center justify-between px-4 py-[14px]">
@@ -94,7 +102,7 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
             )}
           </div>
         </Link>
-        <PostOptionsMenu post={post} onUnfollow={handleUnfollow} />
+        <PostOptionsMenu post={post} onUnfollow={handleUnfollow} onDelete={handleDelete} />
       </header>
 
       <PostMediaCarousel

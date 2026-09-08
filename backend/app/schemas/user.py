@@ -21,6 +21,7 @@ class UserOut(BaseModel):
     is_following: bool = False
     is_own_profile: bool = False
     is_admin: bool = False
+    is_private: bool = False
 
     model_config = {"from_attributes": True}
 

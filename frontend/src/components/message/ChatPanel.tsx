@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, Info, Phone, Users, Video } from 'lucide-react';
+import { ChevronLeft, ImagePlus, Info, Phone, Users, Video } from 'lucide-react';
 import { Avatar } from '@/components/common/Avatar';
+import { MediaImage } from '@/components/common/MediaImage';
 import { NavIcon } from '@/components/post/PostActionIcons';
 import { formatChatTime, getConversationDisplay } from '@/utils/messages';
+import { resolveMediaUrl } from '@/utils/media';
 import { useAuth } from '@/hooks/useAuth';
 import type { Conversation, Message, User } from '@/types';
 import { cn } from '@/utils/cn';
@@ -12,14 +14,25 @@ interface ChatPanelProps {
   conversation: Conversation | null;
   loading?: boolean;
   onSend: (content: string) => Promise<void>;
+  onSendImage?: (file: File) => Promise<void>;
+  onDeleteMessage?: (messageId: number) => Promise<void>;
   onBack?: () => void;
   showBackButton?: boolean;
 }
 
-export function ChatPanel({ conversation, loading = false, onSend, onBack, showBackButton }: ChatPanelProps) {
+export function ChatPanel({
+  conversation,
+  loading = false,
+  onSend,
+  onSendImage,
+  onDeleteMessage,
+  onBack,
+  showBackButton,
+}: ChatPanelProps) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -38,6 +51,20 @@ export function ChatPanel({ conversation, loading = false, onSend, onBack, showB
       // Keep what the user typed instead of clearing it — onSend already
       // surfaces the failure toast, but silently discarding the message text
       // on top of that meant re-typing it from scratch.
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const handleImagePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !onSendImage || sending) return;
+    setSending(true);
+    try {
+      await onSendImage(file);
+    } catch {
+      // Parent surfaces toast
     } finally {
       setSending(false);
     }
@@ -188,6 +215,7 @@ export function ChatPanel({ conversation, loading = false, onSend, onBack, showB
                   message={message}
                   showRead={message.id === lastOwnReadId}
                   senderName={showSenderName ? senderById.get(message.sender_id)?.username : undefined}
+                  onDelete={onDeleteMessage}
                 />
               );
             });
@@ -198,6 +226,26 @@ export function ChatPanel({ conversation, loading = false, onSend, onBack, showB
 
       <form onSubmit={handleSubmit} className="px-4 py-3 border-t border-ig-border shrink-0">
         <div className="flex items-center gap-2">
+          {onSendImage && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={(e) => void handleImagePick(e)}
+              />
+              <button
+                type="button"
+                aria-label="사진 또는 동영상 보내기"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={sending}
+                className="p-1 text-ig-text-secondary hover:text-ig-text disabled:opacity-40"
+              >
+                <ImagePlus size={22} />
+              </button>
+            </>
+          )}
           <input
             type="text"
             value={draft}
@@ -225,13 +273,21 @@ function MessageBubble({
   message,
   showRead,
   senderName,
+  onDelete,
 }: {
   message: Message;
   showRead?: boolean;
   senderName?: string;
+  onDelete?: (messageId: number) => Promise<void>;
 }) {
   const { user } = useAuth();
   const isOwn = user != null && message.sender_id === user.id;
+  const isDeleted = message.is_deleted || (!message.content && !message.media_url);
+
+  const handleDelete = () => {
+    if (!onDelete || !window.confirm('메시지를 삭제할까요?')) return;
+    void onDelete(message.id);
+  };
 
   return (
     <div className={cn('flex flex-col', isOwn ? 'items-end' : 'items-start')}>
@@ -242,11 +298,42 @@ function MessageBubble({
           isOwn ? 'bg-ig-primary text-white' : 'bg-ig-secondary text-ig-text',
         )}
       >
-        <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        {isDeleted ? (
+          <p className="italic opacity-70">메시지가 삭제되었습니다.</p>
+        ) : (
+          <>
+            {message.media_url && (
+              message.media_type === 'video' ? (
+                <video
+                  src={resolveMediaUrl(message.media_url)}
+                  controls
+                  playsInline
+                  className="max-w-full rounded-lg mb-1"
+                />
+              ) : (
+                <MediaImage
+                  src={message.media_url}
+                  alt="첨부 미디어"
+                  className="max-w-full rounded-lg mb-1"
+                />
+              )
+            )}
+            {message.content && <p className="whitespace-pre-wrap break-words">{message.content}</p>}
+          </>
+        )}
         <p className={cn('text-[10px] mt-1', isOwn ? 'text-white/70' : 'text-ig-text-secondary')}>
           {formatChatTime(message.created_at)}
         </p>
       </div>
+      {isOwn && onDelete && !isDeleted && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          className="text-[11px] text-ig-text-secondary mt-1 mr-1 hover:text-ig-red"
+        >
+          삭제
+        </button>
+      )}
       {showRead && <p className="text-[11px] text-ig-text-secondary mt-1 mr-1">읽음</p>}
     </div>
   );

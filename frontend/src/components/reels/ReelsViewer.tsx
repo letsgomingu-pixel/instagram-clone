@@ -1,17 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 import {
-
   X,
-
   ChevronUp,
-
   ChevronDown,
-
   Music2,
-
+  Trash2,
 } from 'lucide-react';
 
 import {
@@ -26,6 +23,9 @@ import {
 
 import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
+import { ReelCommentsModal } from '@/components/reels/ReelCommentsModal';
+import { resolveMediaUrl } from '@/utils/media';
+import * as reelsApi from '@/api/reels';
 
 import { useApp } from '@/contexts/AppContext';
 
@@ -62,6 +62,10 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
   const [index, setIndex] = useState(initialIndex);
 
   const [showHeart, setShowHeart] = useState(false);
+
+  const [commentsOpen, setCommentsOpen] = useState(false);
+
+  const [menuOpen, setMenuOpen] = useState(false);
 
 
 
@@ -127,6 +131,10 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
     if (reel) markReelViewed(reel.id);
 
+    setCommentsOpen(false);
+
+    setMenuOpen(false);
+
   }, [reel, markReelViewed]);
 
 
@@ -160,6 +168,54 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
 
   if (!reel) return null;
+
+
+
+  const handleShare = async () => {
+
+    const url = `${window.location.origin}/reels`;
+
+    try {
+
+      if (navigator.share) await navigator.share({ url, title: `${reel.user.username}의 릴스` });
+
+      else {
+
+        await navigator.clipboard.writeText(url);
+
+        toast.success('링크가 복사되었습니다.');
+
+      }
+
+    } catch {
+
+      // cancelled
+
+    }
+
+  };
+
+
+
+  const handleDeleteReel = async () => {
+
+    if (!window.confirm('릴스를 삭제할까요?')) return;
+
+    try {
+
+      await reelsApi.deleteReel(reel.id);
+
+      toast.success('릴스가 삭제되었습니다.');
+
+      onClose();
+
+    } catch {
+
+      toast.error('삭제에 실패했습니다.');
+
+    }
+
+  };
 
 
 
@@ -233,11 +289,39 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
         >
 
-          <MediaImage
-            src={reel.thumbnail_url}
-            alt={reel.caption || '릴스'}
-            className="w-full h-full object-cover"
-          />
+          {reel.video_url ? (
+
+            <video
+
+              src={resolveMediaUrl(reel.video_url)}
+
+              poster={resolveMediaUrl(reel.thumbnail_url)}
+
+              className="w-full h-full object-cover"
+
+              muted
+
+              playsInline
+
+              loop
+
+              autoPlay
+
+            />
+
+          ) : (
+
+            <MediaImage
+
+              src={reel.thumbnail_url}
+
+              alt={reel.caption || '릴스'}
+
+              className="w-full h-full object-cover"
+
+            />
+
+          )}
 
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60 pointer-events-none" />
 
@@ -275,7 +359,15 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
           </button>
 
-          <button className="flex flex-col items-center gap-1 text-white" aria-label="댓글">
+          <button
+
+            onClick={() => requireAuth(() => setCommentsOpen(true))}
+
+            className="flex flex-col items-center gap-1 text-white"
+
+            aria-label="댓글"
+
+          >
 
             <PostCommentIcon size={REEL_ACTION_ICON_SIZE} tone="reels" />
 
@@ -283,17 +375,53 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
           </button>
 
-          <button className="text-white" aria-label="공유">
+          <button onClick={() => requireAuth(handleShare)} className="text-white" aria-label="공유">
 
             <PostShareIcon size={REEL_ACTION_ICON_SIZE} tone="reels" />
 
           </button>
 
-          <button className="text-white" aria-label="더보기">
+          <div className="relative">
 
-            <PostMoreIcon size={REEL_ACTION_ICON_SIZE} tone="reels" />
+            <button
 
-          </button>
+              onClick={() => setMenuOpen((v) => !v)}
+
+              className="text-white"
+
+              aria-label="더보기"
+
+            >
+
+              <PostMoreIcon size={REEL_ACTION_ICON_SIZE} tone="reels" />
+
+            </button>
+
+            {menuOpen && isOwnReel && (
+
+              <div className="absolute right-0 bottom-full mb-2 min-w-[140px] rounded-xl border border-white/20 bg-black/90 py-2 shadow-lg">
+
+                <button
+
+                  type="button"
+
+                  onClick={() => void handleDeleteReel()}
+
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-white/10"
+
+                >
+
+                  <Trash2 size={16} />
+
+                  삭제
+
+                </button>
+
+              </div>
+
+            )}
+
+          </div>
 
         </div>
 
@@ -352,6 +480,18 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
         </div>
 
       </div>
+
+
+
+      <ReelCommentsModal
+
+        reel={reel}
+
+        isOpen={commentsOpen}
+
+        onClose={() => setCommentsOpen(false)}
+
+      />
 
 
 

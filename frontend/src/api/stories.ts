@@ -32,3 +32,7 @@ export async function likeStoryItem(
 export async function replyToStory(storyItemId: number, content: string): Promise<void> {
   await api.post(`/stories/items/${storyItemId}/reply`, { content });
 }
+
+export async function deleteStory(storyId: number): Promise<void> {
+  await api.delete(`/stories/${storyId}`);
+}

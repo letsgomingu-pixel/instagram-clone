@@ -170,3 +170,14 @@ def add_reel_comment(reel_id: int, body: ReelCommentCreate, current_user: Curren
         content=comment.content,
         created_at=to_iso(comment.created_at),
     )
+
+
+@router.delete("/{reel_id}", status_code=204)
+def delete_reel(reel_id: int, current_user: CurrentUser, db: DbSession):
+    reel = db.get(Reel, reel_id)
+    if not reel:
+        raise HTTPException(status_code=404, detail="Reel not found")
+    if reel.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not allowed to delete this reel")
+    db.delete(reel)
+    db.commit()

@@ -74,6 +74,10 @@ export async function getPostComments(postId: number, page = 1, limit = 20): Pro
   return data;
 }
 
+export async function deletePost(postId: number): Promise<void> {
+  await api.delete(`/posts/${postId}`);
+}
+
 export async function deleteComment(postId: number, commentId: number): Promise<void> {
   await api.delete(`/posts/${postId}/comments/${commentId}`);
 }

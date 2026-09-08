@@ -7,9 +7,24 @@ import type { Reel } from '@/types';
 interface ProfileReelsGridProps {
   reels: Reel[];
   onReelClick: (index: number) => void;
+  isPrivate?: boolean;
 }
 
-export function ProfileReelsGrid({ reels, onReelClick }: ProfileReelsGridProps) {
+export function ProfileReelsGrid({ reels, onReelClick, isPrivate = false }: ProfileReelsGridProps) {
+  if (isPrivate) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-8 text-center border border-ig-border bg-white md:rounded-lg">
+        <div className="w-[62px] h-[62px] border-2 border-ig-text rounded-full flex items-center justify-center mb-4">
+          <ReelsIcon size={24} />
+        </div>
+        <h2 className="text-[28px] font-light mb-2">비공개 계정입니다</h2>
+        <p className="text-[14px] text-ig-text-secondary max-w-[350px]">
+          릴스를 보려면 이 계정을 팔로우하세요.
+        </p>
+      </div>
+    );
+  }
+
   if (reels.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-8 text-center border border-ig-border bg-white md:rounded-lg">

@@ -40,6 +40,7 @@ from app.services.settings import get_settings, update_settings
 from app.services.stories_reels import build_reels_out, get_user_reels
 from app.services.users import (
     build_user_out,
+    can_view_user_content,
     get_followers,
     get_following,
     get_suggested_users,
@@ -275,6 +276,8 @@ def user_posts(
     user = get_user_by_username(db, username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if not can_view_user_content(db, user, viewer):
+        return paginate([], 0, page, limit)
     page, limit, offset = pagination_params(page, limit)
     total = db.scalar(select(func.count()).select_from(Post).where(Post.user_id == user.id)) or 0
     posts = db.scalars(
@@ -300,6 +303,8 @@ def user_reels(
     user = get_user_by_username(db, username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if not can_view_user_content(db, user, viewer):
+        return paginate([], 0, page, limit)
     page, limit, offset = pagination_params(page, limit)
     reels, total = get_user_reels(db, user.id, offset, limit)
     items = build_reels_out(db, reels, viewer)
@@ -317,6 +322,8 @@ def user_tagged(
     user = get_user_by_username(db, username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if not can_view_user_content(db, user, viewer):
+        return paginate([], 0, page, limit)
     page, limit, offset = pagination_params(page, limit)
     # `user` (the tagged person) is already guaranteed active by
     # get_user_by_username above, but the post's author is a different

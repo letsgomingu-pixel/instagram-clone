@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { Avatar } from '@/components/common/Avatar';
 import { MultilineText } from '@/components/common/MultilineText';
 import { formatRelativeTime } from '@/utils/formatDate';
+import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import * as postsApi from '@/api/posts';
 import type { Comment } from '@/types';
@@ -11,25 +13,34 @@ import type { Comment } from '@/types';
 interface CommentListProps {
   comments: Comment[];
   postId?: number;
+  postOwnerId?: number;
   onCommentsChange?: (comments: Comment[]) => void;
 }
 
 function CommentRow({
   comment,
   postId,
+  postOwnerId,
   depth,
   onReply,
   onLikeToggle,
+  onDelete,
+  onRefresh,
 }: {
   comment: Comment;
   postId?: number;
+  postOwnerId?: number;
   depth: number;
   onReply: (parentId: number) => void;
   onLikeToggle: (commentId: number, isLiked: boolean, likeCount: number) => void;
+  onDelete: (commentId: number) => void;
+  onRefresh: () => Promise<void>;
 }) {
+  const { user } = useAuth();
   const { requireAuth } = useRequireAuth();
   const [replying, setReplying] = useState(false);
   const [replyText, setReplyText] = useState('');
+  const canDelete = !!user && (user.id === comment.user.id || user.id === postOwnerId);
 
   const handleLike = () => {
     if (!postId) return;
@@ -43,8 +54,22 @@ function CommentRow({
     if (!postId || !replyText.trim()) return;
     requireAuth(async () => {
       await postsApi.addComment(postId, replyText.trim(), comment.id);
+      await onRefresh();
       setReplyText('');
       setReplying(false);
+    });
+  };
+
+  const handleDelete = () => {
+    if (!postId || !canDelete) return;
+    if (!window.confirm('댓글을 삭제할까요?')) return;
+    requireAuth(async () => {
+      try {
+        await postsApi.deleteComment(postId, comment.id);
+        onDelete(comment.id);
+      } catch {
+        toast.error('댓글 삭제에 실패했습니다.');
+      }
     });
   };
 
@@ -82,6 +107,15 @@ function CommentRow({
                 답글 달기
               </button>
             )}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="text-[10px] text-ig-text-secondary font-semibold hover:text-ig-red"
+              >
+                삭제
+              </button>
+            )}
           </div>
           {replying && (
             <div className="flex gap-2 mt-2">
@@ -112,16 +146,25 @@ function CommentRow({
           key={reply.id}
           comment={reply}
           postId={postId}
+          postOwnerId={postOwnerId}
           depth={depth + 1}
           onReply={onReply}
           onLikeToggle={onLikeToggle}
+          onDelete={onDelete}
+          onRefresh={onRefresh}
         />
       ))}
     </div>
   );
 }
 
-export function CommentList({ comments, postId, onCommentsChange }: CommentListProps) {
+export function CommentList({ comments, postId, postOwnerId, onCommentsChange }: CommentListProps) {
+  const refreshComments = async () => {
+    if (!postId || !onCommentsChange) return;
+    const res = await postsApi.getPostComments(postId);
+    onCommentsChange(res.items);
+  };
+
   const handleLikeToggle = (commentId: number, isLiked: boolean, likeCount: number) => {
     if (!onCommentsChange) return;
     const update = (list: Comment[]): Comment[] =>
@@ -131,6 +174,15 @@ export function CommentList({ comments, postId, onCommentsChange }: CommentListP
         return c;
       });
     onCommentsChange(update(comments));
+  };
+
+  const handleDelete = (commentId: number) => {
+    if (!onCommentsChange) return;
+    const remove = (list: Comment[]): Comment[] =>
+      list
+        .filter((c) => c.id !== commentId)
+        .map((c) => (c.replies?.length ? { ...c, replies: remove(c.replies) } : c));
+    onCommentsChange(remove(comments));
   };
 
   if (comments.length === 0) {
@@ -148,9 +200,12 @@ export function CommentList({ comments, postId, onCommentsChange }: CommentListP
           key={comment.id}
           comment={comment}
           postId={postId}
+          postOwnerId={postOwnerId}
           depth={0}
           onReply={() => {}}
           onLikeToggle={handleLikeToggle}
+          onDelete={handleDelete}
+          onRefresh={refreshComments}
         />
       ))}
     </div>

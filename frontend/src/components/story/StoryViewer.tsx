@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 
 import toast from 'react-hot-toast';
-import { X, ChevronLeft, ChevronRight, Eye, Heart } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Eye, Heart, Trash2 } from 'lucide-react';
 
 import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
@@ -35,7 +35,7 @@ const IMAGE_STORY_DURATION = 5000;
 
 export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
-  const { stories, markStoryViewed } = useApp();
+  const { stories, markStoryViewed, refreshStories } = useApp();
 
   const { requireAuth, isAuthenticated } = useRequireAuth();
 
@@ -308,7 +308,17 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
   const altText = `${story.user.username}의 스토리`;
 
-
+  const handleDeleteStory = async () => {
+    if (!window.confirm('스토리를 삭제할까요?')) return;
+    try {
+      await storiesApi.deleteStory(story.id);
+      await refreshStories();
+      toast.success('스토리가 삭제되었습니다.');
+      onClose();
+    } catch {
+      toast.error('삭제에 실패했습니다.');
+    }
+  };
 
   return (
 
@@ -328,7 +338,16 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
       </button>
 
-
+      {isOwn && (
+        <button
+          type="button"
+          onClick={() => void handleDeleteStory()}
+          className="absolute top-4 left-4 z-10 text-white hover:opacity-70"
+          aria-label="스토리 삭제"
+        >
+          <Trash2 size={24} />
+        </button>
+      )}
 
       {storyIndex > 0 || itemIndex > 0 ? (
 

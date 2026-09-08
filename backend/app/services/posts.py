@@ -366,6 +366,16 @@ def toggle_comment_like(db: Session, post_id: int, comment_id: int, user: User) 
     return True, comment.like_count
 
 
+def delete_post_by_owner(db: Session, post_id: int, user: User) -> None:
+    from fastapi import HTTPException
+
+    post = get_post_or_404(db, post_id)
+    if post.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not allowed to delete this post")
+    db.delete(post)
+    db.commit()
+
+
 def delete_post_comment(db: Session, post_id: int, comment_id: int, user: User) -> None:
     from fastapi import HTTPException
 

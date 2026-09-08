@@ -206,6 +206,56 @@ export function MessagesPage() {
     [activeKey, user, refreshActiveChat],
   );
 
+  const handleSendImage = useCallback(
+    (file: File) => {
+      if (!activeKey || !user) return Promise.reject(new Error('No active conversation'));
+
+      const sendPromise = activeKey.startsWith('group:')
+        ? conversationsApi.sendGroupMessageWithImage(Number(activeKey.slice('group:'.length)), file)
+        : conversationsApi.sendMessageWithImage(activeKey.slice('user:'.length), file);
+
+      return sendPromise
+        .then(async (newMessage: Message) => {
+          setConversations((prev) => {
+            const index = prev.findIndex((c) => conversationRouteKey(c) === activeKey);
+            if (index === -1) return prev;
+            const updated = [...prev];
+            const conversation = {
+              ...updated[index],
+              messages: [...updated[index].messages, newMessage],
+              last_message: newMessage,
+              unread_count: 0,
+            };
+            updated.splice(index, 1);
+            return [conversation, ...updated];
+          });
+          try {
+            await refreshActiveChat(activeKey);
+          } catch {
+            // optimistic state is enough
+          }
+        })
+        .catch((error) => {
+          toast.error('미디어 전송에 실패했습니다.');
+          throw error;
+        });
+    },
+    [activeKey, user, refreshActiveChat],
+  );
+
+  const handleDeleteMessage = useCallback(
+    (messageId: number) =>
+      conversationsApi.deleteMessage(messageId).then(async () => {
+        if (activeKey) {
+          await refreshActiveChat(activeKey);
+        }
+      }).catch(() => {
+        toast.error('메시지 삭제에 실패했습니다.');
+        throw new Error('delete failed');
+      }),
+    [activeKey, refreshActiveChat],
+  );
+
   const sortedConversations = useMemo(
     () =>
       [...conversations].sort(
@@ -254,6 +304,8 @@ export function MessagesPage() {
               conversation={activeConversation}
               loading={chatLoading}
               onSend={handleSend}
+              onSendImage={handleSendImage}
+              onDeleteMessage={handleDeleteMessage}
               onBack={handleBack}
               showBackButton={showChatOnMobile}
             />

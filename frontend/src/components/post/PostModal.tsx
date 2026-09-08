@@ -1,15 +1,16 @@
 import { useRef } from 'react';
+import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { Modal } from '@/components/common/Modal';
 import { Avatar } from '@/components/common/Avatar';
 import { MultilineText } from '@/components/common/MultilineText';
 import { PostMediaCarousel } from '@/components/post/PostMediaCarousel';
+import { PostOptionsMenu } from '@/components/post/PostOptionsMenu';
 import { TaggedUsers } from '@/components/post/TaggedUsers';
 import {
   PostBookmarkIcon,
   PostCommentIcon,
   PostLikeIcon,
-  PostMoreIcon,
   PostShareIcon,
 } from '@/components/post/PostActionIcons';
 import { CommentList } from '@/components/comment/CommentList';
@@ -25,7 +26,7 @@ interface PostModalProps {
 }
 
 export function PostModal({ post, onClose }: PostModalProps) {
-  const { toggleLike, toggleSave, addComment, setSelectedPost } = useApp();
+  const { toggleLike, toggleSave, addComment, setSelectedPost, deletePost } = useApp();
   const { requireAuth } = useRequireAuth();
   const commentInputRef = useRef<HTMLInputElement>(null);
 
@@ -33,15 +34,35 @@ export function PostModal({ post, onClose }: PostModalProps) {
     requireAuth(() => commentInputRef.current?.focus());
   };
 
+  const handleShare = async () => {
+    const url = `${window.location.origin}/p/${post.id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ url, title: `${post.user.username}의 게시물` });
+      } else {
+        await navigator.clipboard.writeText(url);
+        toast.success('링크가 클립보드에 복사되었습니다.');
+      }
+    } catch {
+      // User cancelled share
+    }
+  };
+
+  const handleDelete = () => {
+    requireAuth(() => {
+      void deletePost(post.id)
+        .then(() => {
+          toast.success('게시물이 삭제되었습니다.');
+          onClose();
+        })
+        .catch(() => toast.error('삭제에 실패했습니다.'));
+    });
+  };
+
   return (
     <Modal isOpen onClose={onClose} size="lg" showClose={false} className="w-full max-w-[900px]">
       <div className="flex flex-col md:flex-row max-h-[90vh] md:max-h-[600px]">
         <div className="md:w-[60%] bg-black flex items-center justify-center min-h-[300px] md:min-h-0">
-          {/* Reuse the same carousel the feed uses instead of a single <img>:
-              a raw MediaImage here only ever showed the cover (media[0]) and
-              rendered a video post's URL as a broken <img>, so multi-photo
-              posts and video posts were both effectively unviewable from the
-              detail modal / permalink. */}
           <PostMediaCarousel
             media={
               post.media?.length
@@ -66,9 +87,7 @@ export function PostModal({ post, onClose }: PostModalProps) {
                 )}
               </div>
             </Link>
-            <button aria-label="더보기" className="p-1">
-              <PostMoreIcon />
-            </button>
+            <PostOptionsMenu post={post} onDelete={handleDelete} />
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-3">
@@ -91,8 +110,9 @@ export function PostModal({ post, onClose }: PostModalProps) {
             <CommentList
               comments={post.comments || []}
               postId={post.id}
+              postOwnerId={post.user.id}
               onCommentsChange={(comments) =>
-                setSelectedPost({ ...post, comments })
+                setSelectedPost({ ...post, comments, comment_count: comments.length })
               }
             />
           </div>
@@ -109,7 +129,7 @@ export function PostModal({ post, onClose }: PostModalProps) {
                 <button onClick={focusCommentInput} aria-label="댓글">
                   <PostCommentIcon />
                 </button>
-                <button aria-label="공유">
+                <button onClick={() => requireAuth(handleShare)} aria-label="공유">
                   <PostShareIcon />
                 </button>
               </div>

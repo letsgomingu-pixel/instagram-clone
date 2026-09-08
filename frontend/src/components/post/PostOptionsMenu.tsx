@@ -2,16 +2,21 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { PostMoreIcon } from '@/components/post/PostActionIcons';
+import { useAuth } from '@/hooks/useAuth';
 import type { Post } from '@/types';
 
 interface PostOptionsMenuProps {
   post: Post;
   onUnfollow?: () => void;
+  onDelete?: () => void;
+  tone?: 'default' | 'reels';
 }
 
-export function PostOptionsMenu({ post, onUnfollow }: PostOptionsMenuProps) {
+export function PostOptionsMenu({ post, onUnfollow, onDelete, tone = 'default' }: PostOptionsMenuProps) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const isOwnPost = user?.id === post.user.id;
 
   useEffect(() => {
     if (!open) return;
@@ -37,6 +42,22 @@ export function PostOptionsMenu({ post, onUnfollow }: PostOptionsMenuProps) {
     setOpen(false);
   };
 
+  const handleDelete = () => {
+    if (!window.confirm('이 게시물을 삭제할까요?')) return;
+    onDelete?.();
+    setOpen(false);
+  };
+
+  const menuItemClass =
+    tone === 'reels'
+      ? 'block w-full px-4 py-2.5 text-left text-[14px] text-white hover:bg-white/10'
+      : 'block w-full px-4 py-2.5 text-left text-[14px] hover:bg-ig-secondary';
+
+  const menuClass =
+    tone === 'reels'
+      ? 'absolute right-0 top-full z-20 mt-1 min-w-[180px] rounded-xl border border-white/20 bg-black/90 py-2 shadow-lg'
+      : 'absolute right-0 top-full z-20 mt-1 min-w-[180px] rounded-xl border border-ig-border bg-white py-2 shadow-lg';
+
   return (
     <div className="relative shrink-0" ref={menuRef}>
       <button
@@ -46,34 +67,28 @@ export function PostOptionsMenu({ post, onUnfollow }: PostOptionsMenuProps) {
         onClick={() => setOpen((prev) => !prev)}
         className="p-1 hover:opacity-60"
       >
-        <PostMoreIcon />
+        <PostMoreIcon tone={tone === 'reels' ? 'reels' : 'default'} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-20 mt-1 min-w-[180px] rounded-xl border border-ig-border bg-white py-2 shadow-lg">
-          <button
-            type="button"
-            onClick={copyLink}
-            className="block w-full px-4 py-2.5 text-left text-[14px] hover:bg-ig-secondary"
-          >
+        <div className={menuClass}>
+          <button type="button" onClick={copyLink} className={menuItemClass}>
             링크 복사
           </button>
           <Link
             to={`/p/${post.id}`}
             onClick={() => setOpen(false)}
-            className="block px-4 py-2.5 text-[14px] hover:bg-ig-secondary"
+            className={tone === 'reels' ? menuItemClass : 'block px-4 py-2.5 text-[14px] hover:bg-ig-secondary'}
           >
             게시물로 이동
           </Link>
-          {!post.user.is_own_profile && onUnfollow && (
-            <button
-              type="button"
-              onClick={() => {
-                onUnfollow();
-                setOpen(false);
-              }}
-              className="block w-full px-4 py-2.5 text-left text-[14px] text-ig-red hover:bg-ig-secondary"
-            >
+          {isOwnPost && onDelete && (
+            <button type="button" onClick={handleDelete} className={`${menuItemClass} text-ig-red`}>
+              삭제
+            </button>
+          )}
+          {!isOwnPost && onUnfollow && (
+            <button type="button" onClick={() => { onUnfollow(); setOpen(false); }} className={`${menuItemClass} text-ig-red`}>
               팔로우 취소
             </button>
           )}

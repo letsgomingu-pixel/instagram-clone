@@ -1,7 +1,7 @@
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session
 
-from app.models import Follow, Post, User
+from app.models import Follow, Post, User, UserSettings
 from app.schemas.user import SuggestedUserOut, UserOut
 from app.utils.datetime_fmt import to_iso
 
@@ -45,6 +45,20 @@ def is_following(db: Session, follower_id: int | None, following_id: int) -> boo
     )
 
 
+def can_view_user_content(db: Session, user: User, viewer: User | None) -> bool:
+    if viewer and viewer.id == user.id:
+        return True
+    settings = db.scalar(select(UserSettings).where(UserSettings.user_id == user.id))
+    if not settings or not settings.is_private:
+        return True
+    return is_following(db, viewer.id if viewer else None, user.id)
+
+
+def user_is_private(db: Session, user_id: int) -> bool:
+    settings = db.scalar(select(UserSettings).where(UserSettings.user_id == user_id))
+    return bool(settings and settings.is_private)
+
+
 def build_user_out(
     db: Session,
     user: User,
@@ -74,6 +88,7 @@ def build_user_out(
         is_following=is_following(db, viewer.id if viewer else None, user.id),
         is_own_profile=viewer.id == user.id if viewer else False,
         is_admin=user.is_admin,
+        is_private=user_is_private(db, user.id),
     )
 
 

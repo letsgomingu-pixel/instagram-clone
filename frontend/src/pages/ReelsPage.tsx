@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Music2 } from 'lucide-react';
+import { Music2, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import {
   DoubleTapHeartIcon,
   PostCommentIcon,
@@ -12,6 +13,8 @@ import {
 import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
 import { CreateReelModal } from '@/components/reels/CreateReel';
+import { ReelCommentsModal } from '@/components/reels/ReelCommentsModal';
+import * as reelsApi from '@/api/reels';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -49,10 +52,12 @@ function ReelMedia({ reel, isActive }: { reel: Reel; isActive: boolean }) {
 }
 
 function ReelItem({ reel, isActive }: ReelItemProps) {
-  const { toggleReelLike, followUser } = useApp();
+  const { toggleReelLike, followUser, refreshReels } = useApp();
   const { user: currentUser } = useAuth();
   const { requireAuth } = useRequireAuth();
   const [showHeart, setShowHeart] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const isOwnReel = currentUser?.id === reel.user.id;
   const showFollow = !isOwnReel && !reel.user.is_following;
@@ -71,6 +76,30 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
     requireAuth(() => {
       void followUser(reel.user.id);
     });
+  };
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/reels`;
+    try {
+      if (navigator.share) await navigator.share({ url, title: `${reel.user.username}의 릴스` });
+      else {
+        await navigator.clipboard.writeText(url);
+        toast.success('링크가 복사되었습니다.');
+      }
+    } catch {
+      // cancelled
+    }
+  };
+
+  const handleDeleteReel = async () => {
+    if (!window.confirm('릴스를 삭제할까요?')) return;
+    try {
+      await reelsApi.deleteReel(reel.id);
+      toast.success('릴스가 삭제되었습니다.');
+      await refreshReels();
+    } catch {
+      toast.error('삭제에 실패했습니다.');
+    }
   };
 
   return (
@@ -97,16 +126,34 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
             <PostLikeIcon liked={reel.is_liked} size={REEL_ACTION_ICON_SIZE} tone="reels" />
             <span className="text-[12px] font-semibold">{formatCount(reel.like_count)}</span>
           </button>
-          <button className="flex flex-col items-center gap-1 text-white" aria-label="댓글">
+          <button
+            onClick={() => requireAuth(() => setCommentsOpen(true))}
+            className="flex flex-col items-center gap-1 text-white"
+            aria-label="댓글"
+          >
             <PostCommentIcon size={REEL_ACTION_ICON_SIZE} tone="reels" />
             <span className="text-[12px] font-semibold">{formatCount(reel.comment_count)}</span>
           </button>
-          <button className="text-white" aria-label="공유">
+          <button onClick={() => requireAuth(handleShare)} className="text-white" aria-label="공유">
             <PostShareIcon size={REEL_ACTION_ICON_SIZE} tone="reels" />
           </button>
-          <button className="text-white" aria-label="더보기">
-            <PostMoreIcon size={REEL_ACTION_ICON_SIZE} tone="reels" />
-          </button>
+          <div className="relative">
+            <button onClick={() => setMenuOpen((v) => !v)} className="text-white" aria-label="더보기">
+              <PostMoreIcon size={REEL_ACTION_ICON_SIZE} tone="reels" />
+            </button>
+            {menuOpen && isOwnReel && (
+              <div className="absolute right-0 bottom-full mb-2 min-w-[140px] rounded-xl border border-white/20 bg-black/90 py-2 shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteReel()}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-white/10"
+                >
+                  <Trash2 size={16} />
+                  삭제
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="absolute bottom-0 left-0 right-14 p-4 z-10 text-white">
@@ -134,6 +181,8 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
           )}
         </div>
       </div>
+
+      <ReelCommentsModal reel={reel} isOpen={commentsOpen} onClose={() => setCommentsOpen(false)} />
     </section>
   );
 }

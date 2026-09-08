@@ -149,6 +149,7 @@ export function ProfilePage() {
   }
 
   const isOwn = !!currentUser && profileUser.username === currentUser.username;
+  const isPrivateLocked = !!profileUser.is_private && !isOwn && !profileUser.is_following;
   const displayUser = {
     ...profileUser,
     avatar_url: isOwn ? (currentUser.avatar_url ?? profileUser.avatar_url) : profileUser.avatar_url,
@@ -214,9 +215,9 @@ export function ProfilePage() {
         }
       />
 
-      {activeTab === 'posts' && <ProfileGrid posts={userPosts} isOwn={isOwn} />}
+      {activeTab === 'posts' && <ProfileGrid posts={userPosts} isOwn={isOwn} isPrivate={isPrivateLocked} />}
       {activeTab === 'reels' && (
-        <ProfileReelsGrid reels={userReels} onReelClick={handleReelClick} />
+        <ProfileReelsGrid reels={userReels} onReelClick={handleReelClick} isPrivate={isPrivateLocked} />
       )}
       {activeTab === 'saved' && <ProfileGrid posts={savedPosts} savedOnly isOwn={isOwn} />}
       {activeTab === 'tagged' && <ProfileTaggedGrid posts={taggedPosts} isOwn={isOwn} />}
