@@ -149,7 +149,7 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
       />
 
       {post.post_type === 'product' && post.product && (
-        <ProductInfo product={post.product} showBuyButton />
+        <ProductInfo product={post.product} showBuyButton showCartButton />
       )}
 
       {post.post_type === 'review' && (

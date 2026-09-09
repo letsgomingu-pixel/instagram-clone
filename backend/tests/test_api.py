@@ -1181,3 +1181,127 @@ def test_create_review_after_delivery(auth_headers):
     reviews_feed = client.get("/api/v1/posts/feed", params={"tab": "reviews"}, headers=auth_headers)
     assert reviews_feed.status_code == 200
     assert any(p["id"] == body["id"] for p in reviews_feed.json()["items"])
+
+
+def test_search_products():
+    admin_headers = _admin_login()
+    created = _create_admin_product(admin_headers, name="냉동새우", price=22000)
+    product_id = created["product"]["id"]
+
+    by_name = client.get("/api/v1/search/products", params={"q": "냉동새우"})
+    assert by_name.status_code == 200
+    assert any(p["id"] == product_id for p in by_name.json())
+
+    by_storage = client.get("/api/v1/search/products", params={"storage_type": "fresh"})
+    assert by_storage.status_code == 200
+    assert all(p["storage_type"] == "fresh" for p in by_storage.json())
+
+
+def test_admin_update_product():
+    admin_headers = _admin_login()
+    created = _create_admin_product(admin_headers, name="수정테스트", price=10000)
+    product_id = created["product"]["id"]
+
+    updated = client.patch(
+        f"/api/v1/admin/products/{product_id}",
+        headers=admin_headers,
+        json={"price": 15000, "stock": 5},
+    )
+    assert updated.status_code == 200, updated.text
+    body = updated.json()
+    assert body["price"] == 15000
+    assert body["stock"] == 5
+
+    sold_out = client.patch(
+        f"/api/v1/admin/products/{product_id}",
+        headers=admin_headers,
+        json={"is_active": False},
+    )
+    assert sold_out.status_code == 200
+    assert sold_out.json()["is_active"] is False
+    assert sold_out.json()["is_available"] is False
+
+
+def test_order_quote_includes_stock(auth_headers):
+    admin_headers = _admin_login()
+    product_post = _create_admin_product(admin_headers, name="재고테스트", price=20000)
+    product_id = product_post["product"]["id"]
+
+    quote = client.post(
+        "/api/v1/orders/quote",
+        headers=auth_headers,
+        json={"product_id": product_id, "quantity": 1},
+    )
+    assert quote.status_code == 200
+    body = quote.json()
+    assert body["stock"] == 10
+    assert body["image_url"]
+
+
+def test_cart_and_cancel(auth_headers):
+    admin_headers = _admin_login()
+    product_a = _create_admin_product(admin_headers, name="장바구니A", price=10000)
+    product_b = _create_admin_product(admin_headers, name="장바구니B", price=15000)
+
+    add1 = client.post(
+        "/api/v1/cart/items",
+        headers=auth_headers,
+        json={"product_id": product_a["product"]["id"], "quantity": 2},
+    )
+    assert add1.status_code == 200, add1.text
+    assert add1.json()["subtotal"] == 20000
+
+    add2 = client.post(
+        "/api/v1/cart/items",
+        headers=auth_headers,
+        json={"product_id": product_b["product"]["id"], "quantity": 1},
+    )
+    assert add2.status_code == 200
+    assert add2.json()["total_amount"] == 39000
+
+    checkout = client.post(
+        "/api/v1/cart/checkout",
+        headers=auth_headers,
+        json={
+            "shipping_name": "Test User",
+            **SHIPPING_PAYLOAD,
+        },
+    )
+    assert checkout.status_code == 201, checkout.text
+    order = checkout.json()["order"]
+    assert len(order["items"]) == 2
+    assert order["subtotal"] == 35000
+
+    confirm = client.post(f"/api/v1/payments/mock/{order['id']}/confirm", headers=auth_headers)
+    assert confirm.status_code == 200
+
+    cancel = client.post(f"/api/v1/orders/{order['id']}/cancel", headers=auth_headers)
+    assert cancel.status_code == 200, cancel.text
+    assert cancel.json()["status"] == "cancelled"
+
+    cart_after = client.get("/api/v1/cart", headers=auth_headers)
+    assert cart_after.status_code == 200
+    assert len(cart_after.json()["items"]) == 0
+
+
+def test_cancel_pending_order(auth_headers):
+    admin_headers = _admin_login()
+    product_post = _create_admin_product(admin_headers, name="취소테스트", price=20000)
+    product_id = product_post["product"]["id"]
+
+    order_res = client.post(
+        "/api/v1/orders",
+        headers=auth_headers,
+        json={
+            "product_id": product_id,
+            "quantity": 1,
+            "shipping_name": "Test User",
+            **SHIPPING_PAYLOAD,
+        },
+    )
+    assert order_res.status_code == 201
+    order_id = order_res.json()["order"]["id"]
+
+    cancel = client.post(f"/api/v1/orders/{order_id}/cancel", headers=auth_headers)
+    assert cancel.status_code == 200, cancel.text
+    assert cancel.json()["status"] == "cancelled"

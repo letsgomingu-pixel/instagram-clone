@@ -12,6 +12,10 @@ class AdminStatsOut(BaseModel):
     total_comments: int
     total_likes: int
     posts_7d: int
+    orders_today: int = 0
+    revenue_today: int = 0
+    pending_shipment: int = 0
+    paid_orders: int = 0
 
 
 class AdminUserOut(UserOut):

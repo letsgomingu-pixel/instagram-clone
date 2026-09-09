@@ -11,12 +11,24 @@ export interface OrderQuote {
   shipping_fee: number;
   total_amount: number;
   base_shipping_fee: number;
+  stock: number;
+  image_url?: string | null;
+}
+
+export interface OrderItem {
+  id: number;
+  product_id: number;
+  product?: Product | null;
+  quantity: number;
+  unit_price: number;
+  subtotal: number;
 }
 
 export interface Order {
   id: number;
   product_id: number;
   product?: Product | null;
+  items?: OrderItem[];
   quantity: number;
   unit_price: number;
   subtotal: number;
@@ -83,7 +95,17 @@ export async function confirmMockPayment(orderId: number): Promise<Order> {
   return data;
 }
 
+export async function confirmPortOnePayment(orderId: number): Promise<Order> {
+  const { data } = await api.post<Order>(`/payments/${orderId}/confirm`);
+  return data;
+}
+
 export async function getPaymentConfig(): Promise<{ mock: boolean; store_id?: string; channel_key?: string }> {
   const { data } = await api.get<{ mock: boolean; store_id?: string; channel_key?: string }>('/payments/config');
+  return data;
+}
+
+export async function cancelOrder(orderId: number): Promise<Order> {
+  const { data } = await api.post<Order>(`/orders/${orderId}/cancel`);
   return data;
 }

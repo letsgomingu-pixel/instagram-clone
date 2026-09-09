@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { ImagePlus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { createAdminProduct, getAdminProducts } from '@/api/admin';
+import { createAdminProduct, getAdminProducts, updateAdminProduct } from '@/api/admin';
 import { Button } from '@/components/common/Button';
 import { MediaImage } from '@/components/common/MediaImage';
 import { Spinner } from '@/components/common/Spinner';
@@ -40,6 +40,11 @@ export function AdminProductsPage() {
   const [caption, setCaption] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editPrice, setEditPrice] = useState('');
+  const [editStock, setEditStock] = useState('');
+  const [editActive, setEditActive] = useState(true);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -118,6 +123,37 @@ export function AdminProductsPage() {
       toast.error('상품 등록에 실패했습니다.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const startEdit = (post: Post) => {
+    if (!post.product) return;
+    setEditingId(post.product.id);
+    setEditPrice(String(post.product.price));
+    setEditStock(String(post.product.stock));
+    setEditActive(post.product.is_active);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const handleUpdate = async (productId: number) => {
+    if (!editPrice.trim() || Number(editPrice) < 0) return toast.error('가격을 입력해주세요.');
+    setUpdatingId(productId);
+    try {
+      await updateAdminProduct(productId, {
+        price: Number(editPrice),
+        stock: Number(editStock) || 0,
+        is_active: editActive,
+      });
+      toast.success('상품이 수정되었습니다.');
+      setEditingId(null);
+      load();
+    } catch {
+      toast.error('상품 수정에 실패했습니다.');
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -285,9 +321,59 @@ export function AdminProductsPage() {
                   <MediaImage src={post.image_url} alt={post.product?.name || '상품'} className="w-full h-full object-cover" />
                 </div>
                 {post.product && <ProductInfo product={post.product} compact />}
-                <div className="px-4 py-3 text-xs text-ig-text-secondary flex justify-between">
-                  <span>#{post.id}</span>
-                  <span>{post.product ? formatPrice(post.product.price) : ''}</span>
+                <div className="px-4 py-3 space-y-3">
+                  <div className="text-xs text-ig-text-secondary flex justify-between">
+                    <span>#{post.id}</span>
+                    <span>{post.product ? formatPrice(post.product.price) : ''}</span>
+                  </div>
+                  {post.product && editingId === post.product.id ? (
+                    <div className="space-y-2 border-t border-ig-border pt-3">
+                      <label className="block text-xs">
+                        <span className="font-medium">가격 (원)</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={editPrice}
+                          onChange={(e) => setEditPrice(e.target.value)}
+                          className="mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
+                        />
+                      </label>
+                      <label className="block text-xs">
+                        <span className="font-medium">재고</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={editStock}
+                          onChange={(e) => setEditStock(e.target.value)}
+                          className="mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
+                        />
+                      </label>
+                      <label className="flex items-center gap-2 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={editActive}
+                          onChange={(e) => setEditActive(e.target.checked)}
+                        />
+                        <span>판매 중 (해제 시 품절 처리)</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          loading={updatingId === post.product.id}
+                          onClick={() => handleUpdate(post.product!.id)}
+                        >
+                          저장
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={cancelEdit}>
+                          취소
+                        </Button>
+                      </div>
+                    </div>
+                  ) : post.product ? (
+                    <Button size="sm" variant="secondary" fullWidth onClick={() => startEdit(post)}>
+                      수정
+                    </Button>
+                  ) : null}
                 </div>
               </article>
             ))}

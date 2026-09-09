@@ -12,6 +12,7 @@ def settings_to_out(settings: UserSettings) -> UserSettingsOut:
         notify_follows=settings.notify_follows,
         notify_mentions=settings.notify_mentions,
         notify_orders=settings.notify_orders,
+        notify_orders_email=settings.notify_orders_email,
         is_private=settings.is_private,
         show_activity_status=settings.show_activity_status,
         allow_story_replies=settings.allow_story_replies,

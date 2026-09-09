@@ -129,7 +129,7 @@ export function PostModal({ post, onClose }: PostModalProps) {
           </div>
 
           {post.post_type === 'product' && post.product && (
-            <ProductInfo product={post.product} showBuyButton />
+            <ProductInfo product={post.product} showBuyButton showCartButton />
           )}
 
           {post.post_type === 'review' && (

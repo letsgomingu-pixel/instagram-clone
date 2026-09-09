@@ -21,11 +21,19 @@ class OrderQuoteOut(BaseModel):
     shipping_fee: int
     total_amount: int
     base_shipping_fee: int
+    stock: int
+    image_url: str | None = None
+
+
+class OrderItemCreate(BaseModel):
+    product_id: int
+    quantity: int = Field(ge=1, le=99)
 
 
 class OrderCreate(ShippingFields):
-    product_id: int
-    quantity: int = Field(ge=1, le=99)
+    product_id: int | None = None
+    quantity: int | None = Field(default=None, ge=1, le=99)
+    items: list[OrderItemCreate] | None = None
     shipping_name: str = Field(min_length=1, max_length=100)
 
 
@@ -39,10 +47,20 @@ class PaymentPrepareOut(BaseModel):
     order_name: str
 
 
+class OrderItemOut(BaseModel):
+    id: int
+    product_id: int
+    product: ProductOut | None = None
+    quantity: int
+    unit_price: int
+    subtotal: int
+
+
 class OrderOut(BaseModel):
     id: int
     product_id: int
     product: ProductOut | None = None
+    items: list[OrderItemOut] = []
     quantity: int
     unit_price: int
     subtotal: int

@@ -10,6 +10,19 @@ export interface HashtagSearchOut {
   post_count: number;
 }
 
+export interface ProductSearchOut {
+  id: number;
+  post_id: number;
+  name: string;
+  price: number;
+  unit: string;
+  storage_type: 'fresh' | 'frozen' | 'dried' | 'smoked';
+  availability: 'year_round' | 'seasonal';
+  stock: number;
+  image_url?: string | null;
+  is_available: boolean;
+}
+
 export interface CollectionOut {
   id: number;
   name: string;

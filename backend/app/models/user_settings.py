@@ -20,6 +20,7 @@ class UserSettings(Base):
     notify_follows: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     notify_mentions: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     notify_orders: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notify_orders_email: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     is_private: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     show_activity_status: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     allow_story_replies: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)

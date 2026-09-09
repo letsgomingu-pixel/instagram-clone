@@ -31,3 +31,5 @@ class Product(Base):
     seller = relationship("User", back_populates="products")
     post = relationship("Post", back_populates="product", foreign_keys=[post_id])
     orders = relationship("Order", back_populates="product")
+    cart_items = relationship("CartItem", back_populates="product", cascade="all, delete-orphan")
+    order_items = relationship("OrderItem", back_populates="product")

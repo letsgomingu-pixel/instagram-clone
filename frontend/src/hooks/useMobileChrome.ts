@@ -68,6 +68,17 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
       };
     }
 
+    if (pathname === '/cart') {
+      return {
+        showHeader: true,
+        showHeaderNav: false,
+        showBottomNav: true,
+        headerVariant: 'back-title',
+        title: '장바구니',
+        backTo: '/',
+      };
+    }
+
     if (pathname === '/orders') {
       return {
         showHeader: true,

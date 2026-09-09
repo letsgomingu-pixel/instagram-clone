@@ -10,6 +10,10 @@ export interface AdminStats {
   total_comments: number;
   total_likes: number;
   posts_7d: number;
+  orders_today: number;
+  revenue_today: number;
+  pending_shipment: number;
+  paid_orders: number;
 }
 
 export interface AdminUser extends User {
@@ -81,6 +85,17 @@ export async function getAdminProducts(page = 1, limit = 20): Promise<PaginatedR
   return data;
 }
 
+export interface UpdateProductPayload {
+  price?: number;
+  stock?: number;
+  is_active?: boolean;
+}
+
+export async function updateAdminProduct(productId: number, payload: UpdateProductPayload): Promise<Product> {
+  const { data } = await api.patch<Product>(`/admin/products/${productId}`, payload);
+  return data;
+}
+
 export interface AdminOrder {
   id: number;
   user_id: number;
@@ -121,5 +136,10 @@ export async function updateAdminOrder(
   payload: { status?: 'preparing' | 'shipped' | 'delivered'; tracking_number?: string },
 ): Promise<AdminOrder> {
   const { data } = await api.patch<AdminOrder>(`/admin/orders/${orderId}`, payload);
+  return data;
+}
+
+export async function cancelAdminOrder(orderId: number): Promise<AdminOrder> {
+  const { data } = await api.post<AdminOrder>(`/admin/orders/${orderId}/cancel`);
   return data;
 }

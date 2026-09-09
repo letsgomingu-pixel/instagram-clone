@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Comment, Like, Post, User
+from app.models import Comment, Like, Order, Post, User
 from app.schemas.admin import AdminStatsOut, AdminUserOut
 from app.schemas.post import PostOut
 from app.services.posts import build_posts_out
@@ -27,6 +27,35 @@ def get_admin_stats(db: Session) -> AdminStatsOut:
     total_likes = db.scalar(select(func.count()).select_from(Like)) or 0
     posts_7d = db.scalar(select(func.count()).select_from(Post).where(Post.created_at >= week_ago)) or 0
 
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    orders_today = (
+        db.scalar(
+            select(func.count())
+            .select_from(Order)
+            .where(Order.created_at >= today_start, Order.status.notin_(("pending", "failed")))
+        )
+        or 0
+    )
+    revenue_today = (
+        db.scalar(
+            select(func.coalesce(func.sum(Order.total_amount), 0))
+            .select_from(Order)
+            .where(Order.created_at >= today_start, Order.status.notin_(("pending", "failed", "cancelled")))
+        )
+        or 0
+    )
+    pending_shipment = (
+        db.scalar(
+            select(func.count())
+            .select_from(Order)
+            .where(Order.status.in_(("paid", "preparing")))
+        )
+        or 0
+    )
+    paid_orders = (
+        db.scalar(select(func.count()).select_from(Order).where(Order.status == "paid")) or 0
+    )
+
     return AdminStatsOut(
         total_users=total_users,
         active_users=active_users,
@@ -36,6 +65,10 @@ def get_admin_stats(db: Session) -> AdminStatsOut:
         total_comments=total_comments,
         total_likes=total_likes,
         posts_7d=posts_7d,
+        orders_today=orders_today,
+        revenue_today=int(revenue_today),
+        pending_shipment=pending_shipment,
+        paid_orders=paid_orders,
     )
 
 

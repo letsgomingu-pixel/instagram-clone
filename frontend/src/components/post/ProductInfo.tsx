@@ -1,5 +1,9 @@
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { isAxiosError } from 'axios';
 import type { Product } from '@/types';
+import * as cartApi from '@/api/cart';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 const STORAGE_LABELS: Record<Product['storage_type'], string> = {
   fresh: '신선',
@@ -18,6 +22,7 @@ interface ProductInfoProps {
   compact?: boolean;
   productPostId?: number;
   showBuyButton?: boolean;
+  showCartButton?: boolean;
 }
 
 export function formatPrice(price: number) {
@@ -28,7 +33,23 @@ export function ProductInfo({
   product,
   compact = false,
   showBuyButton = false,
+  showCartButton = false,
 }: ProductInfoProps) {
+  const { requireAuth } = useRequireAuth();
+
+  const handleAddToCart = () => {
+    requireAuth(async () => {
+      try {
+        await cartApi.addToCart(product.id, 1);
+        toast.success('장바구니에 담았습니다.');
+      } catch (error) {
+        const message = isAxiosError(error) && typeof error.response?.data?.detail === 'string'
+          ? error.response.data.detail
+          : '장바구니 추가에 실패했습니다.';
+        toast.error(message);
+      }
+    });
+  };
   const badges = [
     STORAGE_LABELS[product.storage_type],
     AVAILABILITY_LABELS[product.availability],
@@ -64,23 +85,34 @@ export function ProductInfo({
         </p>
       )}
 
-      {showBuyButton && (
-        <div className="mt-3">
-          {product.is_available ? (
-            <Link
-              to={`/checkout/${product.id}`}
-              className="block w-full text-center py-2.5 rounded-lg bg-ig-primary text-white text-sm font-semibold hover:opacity-90"
-            >
-              구매하기
-            </Link>
-          ) : (
+      {(showBuyButton || showCartButton) && (
+        <div className={`mt-3 ${showBuyButton && showCartButton ? 'grid grid-cols-2 gap-2' : ''}`}>
+          {showCartButton && product.is_available && (
             <button
               type="button"
-              disabled
-              className="block w-full text-center py-2.5 rounded-lg bg-ig-secondary text-ig-text-secondary text-sm font-semibold cursor-not-allowed"
+              onClick={handleAddToCart}
+              className="w-full text-center py-2.5 rounded-lg border border-ig-border text-sm font-semibold hover:bg-ig-secondary"
             >
-              구매 불가
+              장바구니
             </button>
+          )}
+          {showBuyButton && (
+            product.is_available ? (
+              <Link
+                to={`/checkout/${product.id}`}
+                className="block w-full text-center py-2.5 rounded-lg bg-ig-primary text-white text-sm font-semibold hover:opacity-90"
+              >
+                구매하기
+              </Link>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="block w-full text-center py-2.5 rounded-lg bg-ig-secondary text-ig-text-secondary text-sm font-semibold cursor-not-allowed"
+              >
+                구매 불가
+              </button>
+            )
           )}
         </div>
       )}

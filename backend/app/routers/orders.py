@@ -6,6 +6,7 @@ from app.services.orders import (
     build_order_out,
     build_order_quote,
     build_orders_out,
+    cancel_order_for_user,
     create_order,
     get_order_for_user,
     list_orders_for_user,
@@ -42,3 +43,8 @@ def my_orders(
 def get_order(order_id: int, current_user: CurrentUser, db: DbSession):
     order = get_order_for_user(db, order_id, current_user)
     return build_order_out(db, order, current_user)
+
+
+@router.post("/{order_id}/cancel", response_model=OrderOut)
+def cancel_order_route(order_id: int, current_user: CurrentUser, db: DbSession):
+    return cancel_order_for_user(db, order_id, current_user)

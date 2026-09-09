@@ -87,6 +87,7 @@ export function OrderDetailPage() {
   const [order, setOrder] = useState<ordersApi.Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     if (!orderId) return;
@@ -110,6 +111,23 @@ export function OrderDetailPage() {
     );
   }
 
+  const canCancel = order && (order.status === 'pending' || order.status === 'paid');
+
+  const handleCancel = async () => {
+    if (!order || !canCancel) return;
+    if (!window.confirm('주문을 취소하시겠습니까?')) return;
+    setCancelling(true);
+    try {
+      const updated = await ordersApi.cancelOrder(order.id);
+      setOrder(updated);
+      toast.success('주문이 취소되었습니다.');
+    } catch {
+      toast.error('주문 취소에 실패했습니다.');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   if (error || !order) {
     return (
       <div className="max-w-[560px] mx-auto feed-card p-8 text-center space-y-4">
@@ -129,7 +147,14 @@ export function OrderDetailPage() {
           <OrderStatusBadge status={order.status} />
         </div>
 
-        {order.product && <ProductInfo product={order.product} compact />}
+        {(order.items && order.items.length > 0 ? order.items : order.product ? [{ product: order.product, quantity: order.quantity, subtotal: order.subtotal }] : []).map((item, index) => (
+          item.product ? (
+            <div key={index} className={index > 0 ? 'mt-3 pt-3 border-t border-ig-border' : ''}>
+              <ProductInfo product={item.product} compact />
+              <p className="text-xs text-ig-text-secondary mt-1 px-3">{item.quantity}개 · {formatPrice(item.subtotal)}</p>
+            </div>
+          ) : null
+        ))}
 
         <div className="mt-4 space-y-2 text-sm">
           <div className="flex justify-between">
@@ -160,6 +185,12 @@ export function OrderDetailPage() {
           [{order.postcode}] {order.address_line1} {order.address_line2}
         </p>
       </div>
+
+      {canCancel && (
+        <Button variant="secondary" fullWidth loading={cancelling} onClick={handleCancel}>
+          주문 취소
+        </Button>
+      )}
 
       {order.can_review && (
         <Link

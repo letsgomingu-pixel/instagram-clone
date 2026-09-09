@@ -35,6 +35,7 @@ import { SettingsIndexPage } from '@/pages/settings/SettingsIndexPage';
 import { ReelsPage } from '@/pages/ReelsPage';
 import { SettingsBlockedPage } from '@/pages/settings/SettingsBlockedPage';
 import { CollectionDetailPage } from '@/pages/CollectionDetailPage';
+import { CartPage } from '@/pages/CartPage';
 import { CheckoutPage } from '@/pages/CheckoutPage';
 import { OrdersPage, OrderDetailPage } from '@/pages/OrdersPage';
 import { OrderReviewPage } from '@/pages/OrderReviewPage';
@@ -92,6 +93,7 @@ export default function App() {
                   <Route path="/messages/group/:conversationId" element={<MessagesPage />} />
                   <Route path="/messages/:username" element={<MessagesPage />} />
                   <Route path="/archive" element={<ArchivedPostsPage />} />
+                  <Route path="/cart" element={<CartPage />} />
                   <Route path="/checkout/:productId" element={<CheckoutPage />} />
                   <Route path="/orders" element={<OrdersPage />} />
                   <Route path="/orders/:orderId" element={<OrderDetailPage />} />

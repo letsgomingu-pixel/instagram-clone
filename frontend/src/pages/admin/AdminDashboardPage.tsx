@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { getAdminStats, type AdminStats } from '@/api/admin';
+import { formatPrice } from '@/components/post/ProductInfo';
 import { Spinner } from '@/components/common/Spinner';
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
     <div className="bg-white border border-ig-border rounded-xl p-5">
       <p className="text-sm text-ig-text-secondary mb-2">{label}</p>
-      <p className="text-3xl font-semibold">{value.toLocaleString()}</p>
+      <p className="text-3xl font-semibold">{typeof value === 'number' ? value.toLocaleString() : value}</p>
     </div>
   );
 }
@@ -36,6 +37,16 @@ export function AdminDashboardPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold mb-6">통계 대시보드</h1>
+
+      <section className="mb-8">
+        <h2 className="text-sm font-semibold text-ig-text-secondary mb-3 uppercase tracking-wide">주문·매출 (오늘)</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <StatCard label="오늘 주문" value={stats.orders_today} />
+          <StatCard label="오늘 매출" value={formatPrice(stats.revenue_today)} />
+          <StatCard label="발송 대기" value={stats.pending_shipment} />
+          <StatCard label="결제 완료 (미처리)" value={stats.paid_orders} />
+        </div>
+      </section>
 
       <section className="mb-8">
         <h2 className="text-sm font-semibold text-ig-text-secondary mb-3 uppercase tracking-wide">회원</h2>

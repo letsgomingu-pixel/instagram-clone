@@ -1,10 +1,13 @@
 from datetime import date
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from fastapi import HTTPException
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session, joinedload
 
 from app.models import Post, Product
-from app.schemas.product import ProductCreate, ProductOut
+from app.models.product import AVAILABILITY_TYPES, STORAGE_TYPES
+from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
+from app.schemas.search import ProductSearchOut
 
 
 def _is_in_season(product: Product, today: date | None = None) -> bool:
@@ -89,4 +92,81 @@ def create_product_listing(
     db.add(product)
     db.flush()
     return product
+
+
+def update_product(db: Session, product_id: int, data: ProductUpdate) -> Product:
+    product = db.scalar(
+        select(Product)
+        .where(Product.id == product_id)
+        .options(joinedload(Product.post))
+    )
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    if data.price is not None:
+        product.price = data.price
+    if data.stock is not None:
+        product.stock = data.stock
+    if data.is_active is not None:
+        product.is_active = data.is_active
+
+    db.commit()
+    db.refresh(product)
+    return product
+
+
+def search_products(
+    db: Session,
+    *,
+    q: str | None = None,
+    storage_type: str | None = None,
+    availability: str | None = None,
+    in_season: bool | None = None,
+    limit: int = 20,
+) -> list[ProductSearchOut]:
+    if storage_type and storage_type not in STORAGE_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid storage_type")
+    if availability and availability not in AVAILABILITY_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid availability")
+
+    stmt = (
+        select(Product)
+        .join(Post, Product.post_id == Post.id)
+        .where(Post.post_type == "product", Product.is_active.is_(True))
+        .options(joinedload(Product.post))
+        .order_by(Product.created_at.desc())
+        .limit(limit * 3 if in_season is not None else limit)
+    )
+
+    if q and q.strip():
+        pattern = f"%{q.strip()}%"
+        stmt = stmt.where(or_(Product.name.ilike(pattern), Post.caption.ilike(pattern)))
+    if storage_type:
+        stmt = stmt.where(Product.storage_type == storage_type)
+    if availability:
+        stmt = stmt.where(Product.availability == availability)
+
+    products = db.scalars(stmt).all()
+    results: list[ProductSearchOut] = []
+    for product in products:
+        out = build_product_out(product)
+        if in_season is not None and out.is_in_season != in_season:
+            continue
+        results.append(
+            ProductSearchOut(
+                id=product.id,
+                post_id=product.post_id,
+                name=product.name,
+                price=product.price,
+                unit=product.unit,
+                storage_type=product.storage_type,
+                availability=product.availability,
+                stock=product.stock,
+                image_url=product.post.image_url if product.post else None,
+                is_available=out.is_available,
+            )
+        )
+        if len(results) >= limit:
+            break
+    return results
 

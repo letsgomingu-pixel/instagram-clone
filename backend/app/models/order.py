@@ -36,6 +36,21 @@ class Order(Base):
     user = relationship("User", back_populates="orders")
     product = relationship("Product", back_populates="orders")
     payment = relationship("Payment", back_populates="order", uselist=False, cascade="all, delete-orphan")
+    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+
+
+class OrderItem(Base):
+    __tablename__ = "order_items"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id", ondelete="RESTRICT"), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False)
+    unit_price: Mapped[int] = mapped_column(Integer, nullable=False)
+    subtotal: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    order = relationship("Order", back_populates="items")
+    product = relationship("Product", back_populates="order_items")
 
 
 class Payment(Base):

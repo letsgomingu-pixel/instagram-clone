@@ -8,7 +8,8 @@ from app.models.hidden_post import HiddenPost
 from app.models.like import Like
 from app.models.login_session import LoginSession
 from app.models.notification import Notification
-from app.models.order import Order, Payment
+from app.models.cart import CartItem
+from app.models.order import Order, OrderItem, Payment
 from app.models.post import Post
 from app.models.post_media import PostMedia
 from app.models.post_report import PostReport
@@ -35,7 +36,9 @@ __all__ = [
     "Post",
     "PostMedia",
     "Product",
+    "CartItem",
     "Order",
+    "OrderItem",
     "Payment",
     "Comment",
     "CommentLike",

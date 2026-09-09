@@ -17,6 +17,14 @@ class Settings(BaseSettings):
 
     base_shipping_fee: int = 4000
 
+    email_enabled: bool = False
+    email_from: str = "noreply@iamnotafishmonger.com"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
+
     portone_store_id: str = ""
     portone_channel_key: str = ""
     portone_api_secret: str = ""

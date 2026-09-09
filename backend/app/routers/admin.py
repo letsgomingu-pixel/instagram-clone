@@ -9,7 +9,7 @@ from app.models import Post, PostMedia
 from app.schemas.admin import AdminMessageOut, AdminStatsOut, AdminUserOut, AdminUserStatusUpdate
 from app.schemas.order import AdminOrderOut, AdminOrderUpdate
 from app.schemas.post import PostOut
-from app.schemas.product import ProductCreate
+from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
 from app.services.admin import (
     delete_post,
     delete_user,
@@ -21,8 +21,8 @@ from app.services.admin import (
 )
 from app.services.hashtags import attach_hashtags_to_post
 from app.services.posts import build_post_out
-from app.services.orders import build_admin_order_out, list_admin_orders, update_admin_order
-from app.services.products import create_product_listing
+from app.services.orders import build_admin_order_out, cancel_order_for_admin, list_admin_orders, update_admin_order
+from app.services.products import build_product_out, create_product_listing, update_product
 from app.utils.hashtags import extract_hashtags
 from app.utils.media import save_post_media
 from app.utils.pagination import PaginatedResponse, paginate, pagination_params
@@ -169,6 +169,19 @@ async def admin_create_product(
     return build_post_out(db, post, admin)
 
 
+@router.patch("/products/{product_id}", response_model=ProductOut)
+def admin_update_product(
+    product_id: int,
+    body: ProductUpdate,
+    _admin: AdminUser,
+    db: DbSession,
+):
+    if body.price is None and body.stock is None and body.is_active is None:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    product = update_product(db, product_id, body)
+    return build_product_out(product)
+
+
 @router.delete("/posts/{post_id}", response_model=AdminMessageOut)
 def admin_delete_post(post_id: int, _admin: AdminUser, db: DbSession):
     delete_post(db, post_id)
@@ -197,4 +210,10 @@ def admin_update_order(
     db: DbSession,
 ):
     order = update_admin_order(db, order_id, body, admin)
+    return build_admin_order_out(db, order)
+
+
+@router.post("/orders/{order_id}/cancel", response_model=AdminOrderOut)
+def admin_cancel_order(order_id: int, _admin: AdminUser, db: DbSession):
+    order = cancel_order_for_admin(db, order_id)
     return build_admin_order_out(db, order)

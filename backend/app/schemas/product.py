@@ -55,3 +55,9 @@ class ProductCreate(BaseModel):
             if not season_start or not v:
                 raise ValueError("season_start and season_end are required for seasonal products")
         return v
+
+
+class ProductUpdate(BaseModel):
+    price: int | None = Field(default=None, ge=0)
+    stock: int | None = Field(default=None, ge=0)
+    is_active: bool | None = None

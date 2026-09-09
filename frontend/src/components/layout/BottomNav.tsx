@@ -1,5 +1,5 @@
 import { NavLink, Link } from 'react-router-dom';
-import { Package } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { Avatar } from '@/components/common/Avatar';
 import { ReelsIcon } from '@/components/common/ReelsIcon';
 import {
@@ -46,12 +46,12 @@ export function BottomNav() {
         </button>
       ) : isAuthenticated ? (
         <NavLink
-          to="/orders"
+          to="/cart"
           className="flex flex-1 items-center justify-center min-h-[49px]"
-          aria-label="내 주문"
+          aria-label="장바구니"
         >
           {({ isActive }) => (
-            <Package size={24} strokeWidth={isActive ? 2.5 : 1.75} className={isActive ? 'text-ig-text' : 'text-ig-text-secondary'} />
+            <ShoppingCart size={24} strokeWidth={isActive ? 2.5 : 1.75} className={isActive ? 'text-ig-text' : 'text-ig-text-secondary'} />
           )}
         </NavLink>
       ) : null}

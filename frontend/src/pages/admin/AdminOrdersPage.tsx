@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
+  cancelAdminOrder,
   getAdminOrders,
   updateAdminOrder,
   type AdminOrder,
@@ -84,6 +85,20 @@ export function AdminOrdersPage() {
       load();
     } catch {
       toast.error('상태 변경에 실패했습니다.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleCancel = async (order: AdminOrder) => {
+    if (!window.confirm(`주문 #${order.id}을(를) 취소/환불 처리하시겠습니까?`)) return;
+    setUpdatingId(order.id);
+    try {
+      await cancelAdminOrder(order.id);
+      toast.success('주문이 취소되었습니다.');
+      load();
+    } catch {
+      toast.error('주문 취소에 실패했습니다.');
     } finally {
       setUpdatingId(null);
     }
@@ -210,7 +225,7 @@ export function AdminOrdersPage() {
                             <span className="text-xs text-ig-text-secondary">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 space-y-2">
                           {next ? (
                             <Button
                               size="sm"
@@ -219,7 +234,18 @@ export function AdminOrdersPage() {
                             >
                               {next.label}
                             </Button>
-                          ) : (
+                          ) : null}
+                          {['pending', 'paid', 'preparing'].includes(order.status) && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              disabled={updatingId === order.id}
+                              onClick={() => handleCancel(order)}
+                            >
+                              취소/환불
+                            </Button>
+                          )}
+                          {!next && !['pending', 'paid', 'preparing'].includes(order.status) && (
                             <span className="text-xs text-ig-text-secondary">-</span>
                           )}
                         </td>

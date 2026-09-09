@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 
 from app.dependencies import CurrentUser, DbSession
 from app.schemas.order import OrderOut
-from app.services.orders import confirm_mock_payment, handle_portone_webhook
+from app.services.orders import confirm_mock_payment, confirm_portone_payment, handle_portone_webhook
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -28,3 +28,8 @@ async def portone_webhook(request: Request, db: DbSession):
 @router.post("/mock/{order_id}/confirm", response_model=OrderOut)
 def mock_confirm_payment(order_id: int, current_user: CurrentUser, db: DbSession):
     return confirm_mock_payment(db, order_id, current_user)
+
+
+@router.post("/{order_id}/confirm", response_model=OrderOut)
+async def portone_confirm_payment(order_id: int, current_user: CurrentUser, db: DbSession):
+    return await confirm_portone_payment(db, order_id, current_user)
