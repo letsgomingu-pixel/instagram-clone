@@ -36,7 +36,7 @@ export function AdminProductsPage() {
   const [availability, setAvailability] = useState<Product['availability']>('year_round');
   const [seasonStart, setSeasonStart] = useState('');
   const [seasonEnd, setSeasonEnd] = useState('');
-  const [stock, setStock] = useState('0');
+  const [stock, setStock] = useState('10');
   const [caption, setCaption] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -81,7 +81,7 @@ export function AdminProductsPage() {
     setAvailability('year_round');
     setSeasonStart('');
     setSeasonEnd('');
-    setStock('0');
+    setStock('10');
     setCaption('');
     setFiles([]);
     setPreviews([]);

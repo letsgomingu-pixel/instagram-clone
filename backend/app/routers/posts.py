@@ -204,6 +204,9 @@ async def create_post(
     location: str | None = Form(None),
     tagged_usernames: str | None = Form(None),
 ):
+    if not current_user.is_admin:
+        raise HTTPException(status_code=403, detail="Only sellers can create posts")
+
     uploads: list[UploadFile] = []
     if image:
         uploads.append(image)

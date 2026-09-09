@@ -106,8 +106,20 @@ def list_admin_products(db: Session, viewer: User, page: int, limit: int) -> tup
 
 
 def delete_post(db: Session, post_id: int) -> None:
+    from app.models import Order, Product
+
     post = db.get(Post, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
+
+    product = db.scalar(select(Product).where(Product.post_id == post_id))
+    if product:
+        order_count = (
+            db.scalar(select(func.count()).select_from(Order).where(Order.product_id == product.id)) or 0
+        )
+        if order_count > 0:
+            raise HTTPException(status_code=400, detail="Cannot delete product with existing orders")
+        db.delete(product)
+
     db.delete(post)
     db.commit()

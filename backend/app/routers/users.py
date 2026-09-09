@@ -82,6 +82,11 @@ def suggested(db: DbSession, viewer: OptionalUser = None, limit: int = Query(10,
     return get_suggested_users(db, viewer, limit=limit)
 
 
+@router.get("/me", response_model=UserOut)
+def read_me(current_user: CurrentUser, db: DbSession):
+    return build_user_out(db, current_user, current_user)
+
+
 @router.put("/me", response_model=UserOut)
 def update_me(body: UserUpdate, current_user: CurrentUser, db: DbSession):
     if body.username is not None:

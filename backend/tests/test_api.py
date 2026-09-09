@@ -360,14 +360,8 @@ def test_explore():
 
 
 def test_get_post_detail(auth_headers):
-    created = client.post(
-        "/api/v1/posts",
-        headers=auth_headers,
-        files={"image": ("test.jpg", _make_image_bytes(), "image/jpeg")},
-        data={"caption": "detail test"},
-    )
-    assert created.status_code == 201
-    post_id = created.json()["id"]
+    created = _create_test_post()
+    post_id = created["id"]
 
     r = client.get(f"/api/v1/posts/{post_id}", headers=auth_headers)
     assert r.status_code == 200
@@ -379,13 +373,7 @@ def test_get_post_detail(auth_headers):
 
 
 def test_post_likes_list(auth_headers):
-    created = client.post(
-        "/api/v1/posts",
-        headers=auth_headers,
-        files={"image": ("test.jpg", _make_image_bytes(), "image/jpeg")},
-    )
-    assert created.status_code == 201
-    post_id = created.json()["id"]
+    post_id = _create_test_post()["id"]
 
     liked = client.post(f"/api/v1/posts/{post_id}/like", headers=auth_headers)
     assert liked.status_code == 200
@@ -398,13 +386,7 @@ def test_post_likes_list(auth_headers):
 
 
 def test_post_comments_list(auth_headers):
-    created = client.post(
-        "/api/v1/posts",
-        headers=auth_headers,
-        files={"image": ("test.jpg", _make_image_bytes(), "image/jpeg")},
-    )
-    assert created.status_code == 201
-    post_id = created.json()["id"]
+    post_id = _create_test_post()["id"]
 
     client.post(
         f"/api/v1/posts/{post_id}/comments",
@@ -418,13 +400,7 @@ def test_post_comments_list(auth_headers):
 
 
 def test_delete_comment(auth_headers):
-    created = client.post(
-        "/api/v1/posts",
-        headers=auth_headers,
-        files={"image": ("test.jpg", _make_image_bytes(), "image/jpeg")},
-    )
-    assert created.status_code == 201
-    post_id = created.json()["id"]
+    post_id = _create_test_post()["id"]
 
     created_comment = client.post(
         f"/api/v1/posts/{post_id}/comments",
@@ -471,10 +447,11 @@ def test_add_comment(auth_headers):
     assert "user" in body
 
 
-def test_create_post(auth_headers):
+def test_create_post():
+    headers = _admin_login()
     r = client.post(
         "/api/v1/posts",
-        headers=auth_headers,
+        headers=headers,
         files={"image": ("test.jpg", _make_image_bytes(), "image/jpeg")},
         data={"caption": "pytest upload", "location": "Seoul"},
     )
@@ -486,20 +463,21 @@ def test_create_post(auth_headers):
     assert body["media"][0]["media_type"] == "image"
 
 
-def test_delete_own_post(auth_headers):
+def test_delete_own_post():
+    headers = _admin_login()
     created = client.post(
         "/api/v1/posts",
-        headers=auth_headers,
+        headers=headers,
         files={"image": ("test.jpg", _make_image_bytes(), "image/jpeg")},
         data={"caption": "to delete"},
     )
     assert created.status_code == 201
     post_id = created.json()["id"]
 
-    deleted = client.delete(f"/api/v1/posts/{post_id}", headers=auth_headers)
+    deleted = client.delete(f"/api/v1/posts/{post_id}", headers=headers)
     assert deleted.status_code == 204
 
-    missing = client.get(f"/api/v1/posts/{post_id}", headers=auth_headers)
+    missing = client.get(f"/api/v1/posts/{post_id}", headers=headers)
     assert missing.status_code == 404
 
 
@@ -808,9 +786,10 @@ def test_search_users(auth_headers):
 
 
 def test_post_edit_archive_hide_report(auth_headers):
+    admin_headers = _admin_login()
     created = client.post(
         "/api/v1/posts",
-        headers=auth_headers,
+        headers=admin_headers,
         files={"image": ("test.jpg", _make_image_bytes(), "image/jpeg")},
         data={"caption": "parity test"},
     )
@@ -819,7 +798,7 @@ def test_post_edit_archive_hide_report(auth_headers):
 
     edit = client.patch(
         f"/api/v1/posts/{own_post_id}",
-        headers=auth_headers,
+        headers=admin_headers,
         json={"caption": "pytest edited caption", "location": "Seoul"},
     )
     assert edit.status_code == 200, edit.text
@@ -838,17 +817,17 @@ def test_post_edit_archive_hide_report(auth_headers):
         )
         assert report.status_code == 204, report.text
 
-    archive = client.post(f"/api/v1/posts/{own_post_id}/archive", headers=auth_headers)
+    archive = client.post(f"/api/v1/posts/{own_post_id}/archive", headers=admin_headers)
     assert archive.status_code == 200, archive.text
 
-    archived = client.get("/api/v1/posts/archived", headers=auth_headers)
+    archived = client.get("/api/v1/posts/archived", headers=admin_headers)
     assert archived.status_code == 200
     assert any(p["id"] == own_post_id for p in archived.json()["items"])
 
-    unarchive = client.delete(f"/api/v1/posts/{own_post_id}/archive", headers=auth_headers)
+    unarchive = client.delete(f"/api/v1/posts/{own_post_id}/archive", headers=admin_headers)
     assert unarchive.status_code == 200, unarchive.text
 
-    client.delete(f"/api/v1/posts/{own_post_id}", headers=auth_headers)
+    client.delete(f"/api/v1/posts/{own_post_id}", headers=admin_headers)
 
 
 def test_private_follow_request_flow():
@@ -958,14 +937,18 @@ def test_admin_users_and_posts():
     assert posts.status_code == 200
     assert posts.json()["total"] >= 1
 
-    post_id = posts.json()["items"][0]["id"]
-    deleted = client.delete(f"/api/v1/admin/posts/{post_id}", headers=headers)
+    disposable = _create_admin_product(headers, name="삭제테스트", price=10000)
+    deleted = client.delete(f"/api/v1/admin/posts/{disposable['id']}", headers=headers)
     assert deleted.status_code == 200
 
 
 def test_admin_forbidden_for_regular_user(auth_headers):
     r = client.get("/api/v1/admin/stats", headers=auth_headers)
     assert r.status_code == 403
+
+
+def _create_test_post(headers: dict | None = None) -> dict:
+    return _create_admin_product(headers or _admin_login())
 
 
 def _create_admin_product(headers: dict, *, name: str = "광어회", price: int = 35000) -> dict:
@@ -1137,6 +1120,26 @@ def test_admin_order_management(auth_headers):
     assert detail.status_code == 200
     assert detail.json()["can_review"] is True
     assert detail.json()["review_post_id"] is None
+
+
+def test_get_users_me(auth_headers):
+    r = client.get("/api/v1/users/me", headers=auth_headers)
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["username"] == "letsgomingu"
+    assert body["phone"]
+    assert body["postcode"]
+    assert body["address_line1"]
+
+
+def test_consumer_cannot_create_standard_post(auth_headers):
+    r = client.post(
+        "/api/v1/posts",
+        headers=auth_headers,
+        data={"caption": "blocked"},
+        files={"image": ("x.jpg", _make_image_bytes(), "image/jpeg")},
+    )
+    assert r.status_code == 403
 
 
 def test_create_review_after_delivery(auth_headers):
