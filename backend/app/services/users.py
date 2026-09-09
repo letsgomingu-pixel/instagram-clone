@@ -95,6 +95,12 @@ def build_user_out(
         else {}
     )
 
+    from app.services.privacy import is_user_active_now
+
+    active_now = None
+    if viewer and not is_own and is_following(db, viewer.id, user.id):
+        active_now = is_user_active_now(db, user.id)
+
     return UserOut(
         id=user.id,
         username=user.username,
@@ -111,6 +117,7 @@ def build_user_out(
         is_admin=user.is_admin,
         is_private=user_is_private(db, user.id),
         is_requested=has_pending_request(db, viewer.id if viewer else None, user.id),
+        is_active_now=active_now,
         **shipping_fields,
     )
 

@@ -1,5 +1,6 @@
 import { useState, type RefObject } from 'react';
 import { PostSmileIcon } from '@/components/post/PostActionIcons';
+import { EmojiPicker } from '@/components/comment/EmojiPicker';
 import { Button } from '@/components/common/Button';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
@@ -10,6 +11,7 @@ interface CommentInputProps {
 
 export function CommentInput({ onSubmit, inputRef }: CommentInputProps) {
   const [content, setContent] = useState('');
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const { requireAuth, isAuthenticated } = useRequireAuth();
 
   const handleInteract = () => {
@@ -31,9 +33,21 @@ export function CommentInput({ onSubmit, inputRef }: CommentInputProps) {
 
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t border-ig-border pt-3">
-      <button type="button" aria-label="이모티콘" className="text-ig-text-secondary hover:text-ig-text">
-        <PostSmileIcon />
-      </button>
+      <div className="relative">
+        <button
+          type="button"
+          aria-label="이모티콘"
+          className="text-ig-text-secondary hover:text-ig-text"
+          onClick={() => handleInteract() && setEmojiOpen((v) => !v)}
+        >
+          <PostSmileIcon />
+        </button>
+        <EmojiPicker
+          open={emojiOpen}
+          onClose={() => setEmojiOpen(false)}
+          onSelect={(emoji) => setContent((c) => c + emoji)}
+        />
+      </div>
       <input
         ref={inputRef}
         type="text"

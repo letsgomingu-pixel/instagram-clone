@@ -68,6 +68,17 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
   const isOwn = !!user && !!story && story.user.id === user.id;
 
+  const sendStoryReply = useCallback(async () => {
+    if (!replyText.trim() || !item) return;
+    try {
+      await storiesApi.replyToStory(item.id, replyText.trim());
+      setReplyText('');
+      toast.success('답장을 보냈습니다.');
+    } catch {
+      toast.error('스토리 답장이 허용되지 않습니다.');
+    }
+  }, [item, replyText]);
+
   useEffect(() => {
     setShowViewers(false);
     if (!story || !isOwn) {
@@ -516,16 +527,20 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
               onFocus={() => !isAuthenticated && requireAuth()}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && replyText.trim() && item) {
-                  requireAuth(async () => {
-                    await storiesApi.replyToStory(item.id, replyText.trim());
-                    setReplyText('');
-                    toast.success('답장을 보냈습니다.');
-                  });
+                  requireAuth(() => void sendStoryReply());
                 }
               }}
               readOnly={!isAuthenticated}
               className="flex-1 bg-transparent border border-white/50 rounded-full px-4 py-2.5 text-sm text-white placeholder:text-white/70"
             />
+            <button
+              type="button"
+              disabled={!replyText.trim() || !isAuthenticated}
+              onClick={() => requireAuth(() => void sendStoryReply())}
+              className="text-sm font-semibold text-white disabled:opacity-40 px-2"
+            >
+              보내기
+            </button>
           </div>
         )}
 

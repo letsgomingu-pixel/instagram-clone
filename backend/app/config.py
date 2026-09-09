@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     media_root: str = "./media"
     max_upload_size_mb: int = 10
     allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000"
+    frontend_url: str = "http://localhost:5173"
     # Auto-creates admin/pass123 and letsgomingu/12345 demo accounts on every startup.
     # Convenient for local dev, dangerous on a public server — keep this False in production.
     seed_demo_users: bool = True

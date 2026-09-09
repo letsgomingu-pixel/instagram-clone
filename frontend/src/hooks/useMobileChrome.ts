@@ -90,7 +90,7 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
       };
     }
 
-    if (pathname === '/reels') {
+    if (pathname === '/reels' || pathname.startsWith('/reels/')) {
       return {
         showHeader: true,
         showHeaderNav: true,

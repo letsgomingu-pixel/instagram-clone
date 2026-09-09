@@ -371,6 +371,9 @@ def like_comment(post_id: int, comment_id: int, current_user: CurrentUser, db: D
 @router.post("/{post_id}/comments", response_model=CommentOut, status_code=201)
 def add_comment(post_id: int, body: CommentCreate, current_user: CurrentUser, db: DbSession):
     post = get_post_or_404(db, post_id)
+    from app.services.privacy import assert_can_comment
+
+    assert_can_comment(db, post.user_id, current_user.id)
     parent = None
     if body.parent_id:
         parent = db.scalar(

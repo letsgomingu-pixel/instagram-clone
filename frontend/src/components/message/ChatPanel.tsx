@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ImagePlus, Info, Phone, Users, Video } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useCall } from '@/contexts/CallContext';
 import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
 import { NavIcon } from '@/components/post/PostActionIcons';
@@ -35,11 +37,13 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const prevMessageCountRef = useRef(0);
   const { user } = useAuth();
+  const { startCall, status: callStatus } = useCall();
 
   useEffect(() => {
     const count = conversation?.messages.length ?? 0;
@@ -168,21 +172,77 @@ export function ChatPanel({
               <Avatar src={participant?.avatar_url} alt={participant?.username ?? ''} size="sm" />
               <div className="min-w-0 text-left">
                 <p className="text-base font-semibold truncate">{participant?.username}</p>
-                <p className="text-xs text-ig-text-secondary truncate">{participant?.full_name}</p>
+                <p className="text-xs text-ig-text-secondary truncate">
+                  {participant?.is_active_now ? '활동 중' : participant?.full_name}
+                </p>
               </div>
             </Link>
           )}
         </div>
         <div className="flex items-center gap-4 text-ig-text">
-          {!isGroup && (
+          {!isGroup && participant ? (
             <>
-              <button aria-label="음성 통화"><NavIcon icon={Phone} /></button>
-              <button aria-label="영상 통화"><NavIcon icon={Video} /></button>
+              <button
+                type="button"
+                aria-label="음성 통화"
+                disabled={callStatus !== 'idle'}
+                onClick={() => {
+                  if (callStatus !== 'idle') return;
+                  void startCall(
+                    {
+                      id: participant.id,
+                      username: participant.username,
+                      full_name: participant.full_name,
+                      avatar_url: participant.avatar_url,
+                    },
+                    'audio',
+                  ).catch(() => toast.error('통화를 시작할 수 없습니다.'));
+                }}
+              >
+                <NavIcon icon={Phone} />
+              </button>
+              <button
+                type="button"
+                aria-label="영상 통화"
+                disabled={callStatus !== 'idle'}
+                onClick={() => {
+                  if (callStatus !== 'idle') return;
+                  void startCall(
+                    {
+                      id: participant.id,
+                      username: participant.username,
+                      full_name: participant.full_name,
+                      avatar_url: participant.avatar_url,
+                    },
+                    'video',
+                  ).catch(() => toast.error('통화를 시작할 수 없습니다.'));
+                }}
+              >
+                <NavIcon icon={Video} />
+              </button>
             </>
+          ) : null}
+          {!isGroup && (
+            <button type="button" aria-label="대화 정보" onClick={() => setInfoOpen((v) => !v)}>
+              <NavIcon icon={Info} />
+            </button>
           )}
-          <button aria-label="대화 정보"><NavIcon icon={Info} /></button>
         </div>
       </div>
+
+      {infoOpen && !isGroup && participant && (
+        <div className="px-4 py-3 border-b border-ig-border bg-ig-secondary shrink-0">
+          <Link to={`/profile/${participant.username}`} className="text-sm font-semibold text-ig-link hover:underline">
+            @{participant.username} 프로필 보기
+          </Link>
+          {participant.full_name && (
+            <p className="text-xs text-ig-text-secondary mt-1">{participant.full_name}</p>
+          )}
+          {participant.is_active_now && (
+            <p className="text-xs text-green-600 mt-1">현재 활동 중</p>
+          )}
+        </div>
+      )}
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
         {loadingOlder && (

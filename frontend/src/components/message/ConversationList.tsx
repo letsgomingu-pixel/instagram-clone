@@ -11,7 +11,6 @@ interface ConversationListProps {
   activeConversationKey?: string;
   currentUserId: number;
   onSelect: (conversation: Conversation) => void;
-  onNewGroup?: () => void;
   onNewMessage?: () => void;
 }
 
@@ -20,7 +19,6 @@ export function ConversationList({
   activeConversationKey,
   currentUserId,
   onSelect,
-  onNewGroup,
   onNewMessage,
 }: ConversationListProps) {
   const { user } = useAuth();
@@ -57,15 +55,6 @@ export function ConversationList({
               className="text-xs font-semibold text-ig-primary hover:underline"
             >
               새 메시지
-            </button>
-          )}
-          {onNewGroup && (
-            <button
-              type="button"
-              onClick={onNewGroup}
-              className="text-xs font-semibold text-ig-primary hover:underline"
-            >
-              새 그룹
             </button>
           )}
         </div>

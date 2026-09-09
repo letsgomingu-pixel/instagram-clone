@@ -11,6 +11,7 @@ import * as usersApi from '@/api/users';
 import * as postsApi from '@/api/posts';
 import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/contexts/AppContext';
+import { useProfileMenu } from '@/contexts/ProfileMenuContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import type { Post, Reel, User } from '@/types';
 
@@ -20,6 +21,7 @@ export function ProfilePage() {
   const { user: currentUser, isAuthenticated } = useAuth();
   const { followUser, unfollowUser, setActiveReelIndex, setProfileReels } = useApp();
   const { requireAuth } = useRequireAuth();
+  const { setProfileMenu } = useProfileMenu();
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [userReels, setUserReels] = useState<Reel[]>([]);
@@ -94,6 +96,43 @@ export function ProfilePage() {
       cancelled = true;
     };
   }, [username, currentUser?.username, currentUser?.avatar_url, currentUser?.id, isAuthenticated]);
+
+  useEffect(() => {
+    const isOwnProfile =
+      !!currentUser && !!profileUser && profileUser.username === currentUser.username;
+    if (!profileUser || isOwnProfile) {
+      setProfileMenu(null, null);
+      return;
+    }
+    setProfileMenu(profileUser, {
+      blockedByMe,
+      onBlock: () =>
+        requireAuth(async () => {
+          await usersApi.blockUser(profileUser.id);
+          setBlockedByMe(true);
+          toast.success(`${profileUser.username}님을 차단했습니다.`);
+        }),
+      onUnblock: () =>
+        requireAuth(async () => {
+          await usersApi.unblockUser(profileUser.id);
+          setBlockedByMe(false);
+          toast.success(`${profileUser.username}님 차단을 해제했습니다.`);
+        }),
+      onReport: async (reason, details) => {
+        await new Promise<void>((resolve, reject) => {
+          requireAuth(async () => {
+            try {
+              await usersApi.reportUser(profileUser.id, reason, details);
+              resolve();
+            } catch (e) {
+              reject(e);
+            }
+          });
+        });
+      },
+    });
+    return () => setProfileMenu(null, null);
+  }, [profileUser, currentUser, blockedByMe, requireAuth, setProfileMenu]);
 
   // Re-fetch the "저장됨" tab every time it's opened (not just on the initial
   // profile load) so a post saved/unsaved elsewhere in the app while this
@@ -243,6 +282,15 @@ export function ProfilePage() {
                   setBlockedByMe(false);
                   toast.success(`${profileUser.username}님 차단을 해제했습니다.`);
                 })
+            : undefined
+        }
+        blockedByMe={blockedByMe}
+        onReport={
+          !isOwn
+            ? async (reason, details) => {
+                await usersApi.reportUser(profileUser.id, reason, details);
+                toast.success('신고가 접수되었습니다.');
+              }
             : undefined
         }
       />

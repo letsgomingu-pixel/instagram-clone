@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.user import UserOut
 
@@ -31,3 +31,8 @@ class ReelCommentOut(BaseModel):
     user: UserOut
     content: str
     created_at: str
+
+
+class ReelReportCreate(BaseModel):
+    reason: str = Field(min_length=1, max_length=50)
+    details: str | None = Field(None, max_length=500)

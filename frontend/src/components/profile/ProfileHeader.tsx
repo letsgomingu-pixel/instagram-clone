@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Grid3X3, Bookmark, Settings, UserPlus, UserSquare2 } from 'lucide-react';
+import { Grid3X3, Bookmark, MoreHorizontal, Settings, UserPlus, UserSquare2 } from 'lucide-react';
+import { ProfileOptionsMenu } from '@/components/profile/ProfileOptionsMenu';
 
 import { ReelsIcon } from '@/components/common/ReelsIcon';
 
@@ -40,6 +42,10 @@ interface ProfileHeaderProps {
 
   onUnblock?: () => void;
 
+  onReport?: (reason: string, details?: string) => Promise<void>;
+
+  blockedByMe?: boolean;
+
 }
 
 
@@ -69,8 +75,10 @@ export function ProfileHeader({
   onShowFollowing,
   onBlock,
   onUnblock,
+  onReport,
+  blockedByMe,
 }: ProfileHeaderProps) {
-
+  const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const { user: currentUser, isAuthenticated } = useAuth();
 
   const isOwn = isAuthenticated && (user.is_own_profile || user.username === currentUser?.username);
@@ -258,13 +266,35 @@ export function ProfileHeader({
                         차단
                       </button>
                     ) : (
-                      <button
+                      <Link
+                        to="/suggested"
                         className="h-8 w-8 flex items-center justify-center rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors"
                         aria-label="비슷한 계정"
                       >
                         <UserPlus size={16} />
-                      </button>
+                      </Link>
                     )}
+
+                    <div className="relative hidden md:block">
+                      <button
+                        type="button"
+                        onClick={() => setDesktopMenuOpen((v) => !v)}
+                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors"
+                        aria-label="옵션"
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+                      {desktopMenuOpen && (
+                        <ProfileOptionsMenu
+                          username={user.username}
+                          blockedByMe={blockedByMe}
+                          onBlock={onBlock}
+                          onUnblock={onUnblock}
+                          onReport={onReport}
+                          onClose={() => setDesktopMenuOpen(false)}
+                        />
+                      )}
+                    </div>
 
                   </>
 

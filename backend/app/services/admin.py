@@ -4,8 +4,8 @@ from fastapi import HTTPException
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Comment, Like, Order, Post, User
-from app.schemas.admin import AdminStatsOut, AdminUserOut
+from app.models import Comment, Like, Order, Post, PostReport, Reel, ReelReport, User, UserReport
+from app.schemas.admin import AdminPostReportOut, AdminReelReportOut, AdminStatsOut, AdminUserOut, AdminUserReportOut
 from app.schemas.post import PostOut
 from app.services.posts import build_posts_out
 from app.services.users import build_user_out
@@ -156,3 +156,89 @@ def delete_post(db: Session, post_id: int) -> None:
 
     db.delete(post)
     db.commit()
+
+
+def list_admin_post_reports(db: Session, page: int, limit: int) -> tuple[list[AdminPostReportOut], int]:
+    total = db.scalar(select(func.count()).select_from(PostReport)) or 0
+    offset = (page - 1) * limit
+    rows = db.scalars(
+        select(PostReport)
+        .options(joinedload(PostReport.post).joinedload(Post.user))
+        .order_by(desc(PostReport.created_at))
+        .offset(offset)
+        .limit(limit)
+    ).all()
+    reporter_ids = {r.reporter_id for r in rows}
+    reporters = {
+        u.id: u.username
+        for u in db.scalars(select(User).where(User.id.in_(reporter_ids))).all()
+    } if reporter_ids else {}
+    items = [
+        AdminPostReportOut(
+            id=r.id,
+            post_id=r.post_id,
+            post_image_url=r.post.image_url if r.post else None,
+            post_caption=r.post.caption if r.post else None,
+            post_author_username=r.post.user.username if r.post and r.post.user else "unknown",
+            reporter_username=reporters.get(r.reporter_id, "unknown"),
+            reason=r.reason,
+            details=r.details,
+            created_at=to_iso(r.created_at),
+        )
+        for r in rows
+    ]
+    return items, total
+
+
+def list_admin_user_reports(db: Session, page: int, limit: int) -> tuple[list[AdminUserReportOut], int]:
+    total = db.scalar(select(func.count()).select_from(UserReport)) or 0
+    offset = (page - 1) * limit
+    rows = db.scalars(
+        select(UserReport).order_by(desc(UserReport.created_at)).offset(offset).limit(limit)
+    ).all()
+    user_ids = {r.reporter_id for r in rows} | {r.reported_user_id for r in rows}
+    users = {u.id: u.username for u in db.scalars(select(User).where(User.id.in_(user_ids))).all()} if user_ids else {}
+    items = [
+        AdminUserReportOut(
+            id=r.id,
+            reported_user_id=r.reported_user_id,
+            reported_username=users.get(r.reported_user_id, "unknown"),
+            reporter_username=users.get(r.reporter_id, "unknown"),
+            reason=r.reason,
+            details=r.details,
+            created_at=to_iso(r.created_at),
+        )
+        for r in rows
+    ]
+    return items, total
+
+
+def list_admin_reel_reports(db: Session, page: int, limit: int) -> tuple[list[AdminReelReportOut], int]:
+    total = db.scalar(select(func.count()).select_from(ReelReport)) or 0
+    offset = (page - 1) * limit
+    rows = db.scalars(
+        select(ReelReport)
+        .options(joinedload(ReelReport.reel).joinedload(Reel.user))
+        .order_by(desc(ReelReport.created_at))
+        .offset(offset)
+        .limit(limit)
+    ).all()
+    reporter_ids = {r.reporter_id for r in rows}
+    reporters = {
+        u.id: u.username
+        for u in db.scalars(select(User).where(User.id.in_(reporter_ids))).all()
+    } if reporter_ids else {}
+    items = [
+        AdminReelReportOut(
+            id=r.id,
+            reel_id=r.reel_id,
+            reel_caption=r.reel.caption if r.reel else None,
+            reel_author_username=r.reel.user.username if r.reel and r.reel.user else "unknown",
+            reporter_username=reporters.get(r.reporter_id, "unknown"),
+            reason=r.reason,
+            details=r.details,
+            created_at=to_iso(r.created_at),
+        )
+        for r in rows
+    ]
+    return items, total

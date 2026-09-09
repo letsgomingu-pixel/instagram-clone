@@ -122,7 +122,7 @@ export function LoginForm() {
           </Button>
         </form>
 
-        <Link to="#" className="block text-xs text-ig-link text-center mt-4 hover:underline">
+        <Link to="/forgot-password" className="block text-xs text-ig-link text-center mt-4 hover:underline">
           비밀번호를 잊으셨나요?
         </Link>
       </div>

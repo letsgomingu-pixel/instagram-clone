@@ -33,3 +33,12 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     user: UserOut
     trust_token: str | None = None
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=10)
+    password: str = Field(min_length=8)

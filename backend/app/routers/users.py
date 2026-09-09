@@ -4,13 +4,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
 from app.dependencies import CurrentSessionId, CurrentUser, DbSession, OptionalUser
-from app.models import Follow, Post, PostTag, User
+from app.models import Follow, Post, PostTag, User, UserReport
 from app.schemas.user import (
     AccountDeactivateRequest,
     FollowResponse,
     ShippingUpdate,
     SuggestedUserOut,
     UserOut,
+    UserReportCreate,
     UserUpdate,
     UsernameCheck,
 )
@@ -343,6 +344,24 @@ def block_status(user_id: int, current_user: CurrentUser, db: DbSession):
         "is_blocked": is_blocked(db, current_user.id, user_id),
         "blocked_by_me": is_blocked_by_viewer(db, current_user.id, user_id),
     }
+
+
+@router.post("/{user_id}/report", status_code=204)
+def report_user(user_id: int, body: UserReportCreate, current_user: CurrentUser, db: DbSession):
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot report yourself")
+    target = db.get(User, user_id)
+    if not target or not target.is_active:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.add(
+        UserReport(
+            reporter_id=current_user.id,
+            reported_user_id=user_id,
+            reason=body.reason,
+            details=body.details,
+        )
+    )
+    db.commit()
 
 
 @router.get("/{username}/posts", response_model=PaginatedResponse)

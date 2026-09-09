@@ -46,3 +46,7 @@ export async function createReel(form: FormData): Promise<Reel> {
 export async function deleteReel(reelId: number): Promise<void> {
   await api.delete(`/reels/${reelId}`);
 }
+
+export async function reportReel(reelId: number, reason: string, details?: string): Promise<void> {
+  await api.post(`/reels/${reelId}/report`, { reason, details });
+}

@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ConversationList } from '@/components/message/ConversationList';
 import { ChatPanel } from '@/components/message/ChatPanel';
-import { NewGroupModal } from '@/components/message/NewGroupModal';
 import { NewMessageModal } from '@/components/message/NewMessageModal';
 import * as conversationsApi from '@/api/conversations';
 import type { Conversation, Message } from '@/types';
@@ -22,21 +21,16 @@ function mergeConversation(prev: Conversation[], incoming: Conversation): Conver
 }
 
 export function MessagesPage() {
-  const { username, conversationId } = useParams<{ username?: string; conversationId?: string }>();
+  const { username } = useParams<{ username?: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
-  const [showNewGroup, setShowNewGroup] = useState(false);
   const [showNewMessage, setShowNewMessage] = useState(false);
   const [loadingOlder, setLoadingOlder] = useState(false);
 
-  // A single stable key identifying "what's currently open" — either
-  // `user:<username>` (1:1) or `group:<conversationId>` — used both to find
-  // the active conversation in state and to avoid re-fetching stale data
-  // for a route we've since navigated away from.
-  const activeKey = conversationId ? `group:${conversationId}` : username ? `user:${username}` : null;
+  const activeKey = username ? `user:${username}` : null;
   const activeKeyRef = useRef(activeKey);
 
   useEffect(() => {
@@ -49,12 +43,10 @@ export function MessagesPage() {
     return data;
   }, []);
 
-  const fetchActive = useCallback((key: string): Promise<Conversation> => {
-    if (key.startsWith('group:')) {
-      return conversationsApi.getGroupMessages(Number(key.slice('group:'.length)));
-    }
-    return conversationsApi.getMessages(key.slice('user:'.length));
-  }, []);
+  const fetchActive = useCallback(
+    (key: string): Promise<Conversation> => conversationsApi.getMessages(key.slice('user:'.length)),
+    [],
+  );
 
   const refreshActiveChat = useCallback(
     async (key: string) => {
@@ -144,9 +136,7 @@ export function MessagesPage() {
 
   const handleSelect = useCallback(
     (conversation: Conversation) => {
-      if (conversation.is_group) {
-        navigate(`/messages/group/${conversation.id}`);
-      } else if (conversation.participant) {
+      if (conversation.participant) {
         navigate(`/messages/${conversation.participant.username}`);
       }
     },
@@ -157,14 +147,6 @@ export function MessagesPage() {
     navigate('/messages');
   }, [navigate]);
 
-  const handleGroupCreated = useCallback(
-    (conversation: Conversation) => {
-      setConversations((prev) => mergeConversation(prev, conversation));
-      navigate(`/messages/group/${conversation.id}`);
-    },
-    [navigate],
-  );
-
   const handleSend = useCallback(
     (content: string) => {
       // Returns a promise (and rejects on failure) so ChatPanel can keep the
@@ -172,9 +154,7 @@ export function MessagesPage() {
       // losing what they typed when the request fails.
       if (!activeKey || !user) return Promise.reject(new Error('No active conversation'));
 
-      const sendPromise = activeKey.startsWith('group:')
-        ? conversationsApi.sendGroupMessage(Number(activeKey.slice('group:'.length)), content)
-        : conversationsApi.sendMessage(activeKey.slice('user:'.length), content);
+      const sendPromise = conversationsApi.sendMessage(activeKey.slice('user:'.length), content);
 
       return sendPromise
         .then(async (newMessage: Message) => {
@@ -211,9 +191,7 @@ export function MessagesPage() {
     (file: File) => {
       if (!activeKey || !user) return Promise.reject(new Error('No active conversation'));
 
-      const sendPromise = activeKey.startsWith('group:')
-        ? conversationsApi.sendGroupMessageWithImage(Number(activeKey.slice('group:'.length)), file)
-        : conversationsApi.sendMessageWithImage(activeKey.slice('user:'.length), file);
+      const sendPromise = conversationsApi.sendMessageWithImage(activeKey.slice('user:'.length), file);
 
       return sendPromise
         .then(async (newMessage: Message) => {
@@ -264,12 +242,7 @@ export function MessagesPage() {
 
     setLoadingOlder(true);
     try {
-      const older = activeKey.startsWith('group:')
-        ? await conversationsApi.getGroupMessages(
-            Number(activeKey.slice('group:'.length)),
-            firstMessage.id,
-          )
-        : await conversationsApi.getMessages(activeKey.slice('user:'.length), firstMessage.id);
+      const older = await conversationsApi.getMessages(activeKey.slice('user:'.length), firstMessage.id);
 
       setConversations((prev) => {
         const index = prev.findIndex((c) => conversationRouteKey(c) === activeKey);
@@ -295,11 +268,13 @@ export function MessagesPage() {
 
   const sortedConversations = useMemo(
     () =>
-      [...conversations].sort(
-        (a, b) =>
-          new Date(b.last_message.created_at).getTime() -
-          new Date(a.last_message.created_at).getTime(),
-      ),
+      [...conversations]
+        .filter((c) => !c.is_group)
+        .sort(
+          (a, b) =>
+            new Date(b.last_message.created_at).getTime() -
+            new Date(a.last_message.created_at).getTime(),
+        ),
     [conversations],
   );
 
@@ -327,7 +302,6 @@ export function MessagesPage() {
               activeConversationKey={activeKey ?? undefined}
               currentUserId={user?.id ?? 0}
               onSelect={handleSelect}
-              onNewGroup={() => setShowNewGroup(true)}
               onNewMessage={() => setShowNewMessage(true)}
             />
           </div>
@@ -352,11 +326,6 @@ export function MessagesPage() {
         </div>
       </div>
 
-      <NewGroupModal
-        isOpen={showNewGroup}
-        onClose={() => setShowNewGroup(false)}
-        onCreated={handleGroupCreated}
-      />
       <NewMessageModal
         isOpen={showNewMessage}
         onClose={() => setShowNewMessage(false)}

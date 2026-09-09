@@ -133,3 +133,7 @@ export async function getBlockedUsers(): Promise<User[]> {
 export async function deactivateAccount(password: string): Promise<void> {
   await api.post('/users/me/deactivate', { password });
 }
+
+export async function reportUser(userId: number, reason: string, details?: string): Promise<void> {
+  await api.post(`/users/${userId}/report`, { reason, details });
+}

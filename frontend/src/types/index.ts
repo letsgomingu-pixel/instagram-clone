@@ -18,6 +18,7 @@ export interface User {
   is_admin?: boolean;
   is_private?: boolean;
   is_requested?: boolean;
+  is_active_now?: boolean | null;
 }
 
 export interface PostMedia {

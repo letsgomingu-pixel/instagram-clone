@@ -24,7 +24,7 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
   const isHome = location.pathname === '/';
   const isSuggested = location.pathname === '/suggested';
   const isExplore = location.pathname === '/explore' || location.pathname === '/search';
-  const isReels = location.pathname === '/reels';
+  const isReels = location.pathname === '/reels' || location.pathname.startsWith('/reels/');
   const isMessages = location.pathname.startsWith('/messages');
   const isNotifications = location.pathname.startsWith('/notifications');
   const isSettings = location.pathname.startsWith('/settings');

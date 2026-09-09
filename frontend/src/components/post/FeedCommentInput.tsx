@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PostSmileIcon } from '@/components/post/PostActionIcons';
+import { EmojiPicker } from '@/components/comment/EmojiPicker';
 import { Button } from '@/components/common/Button';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
@@ -9,6 +10,7 @@ interface FeedCommentInputProps {
 
 export function FeedCommentInput({ onSubmit }: FeedCommentInputProps) {
   const [content, setContent] = useState('');
+  const [emojiOpen, setEmojiOpen] = useState(false);
   const { requireAuth, isAuthenticated } = useRequireAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -36,9 +38,21 @@ export function FeedCommentInput({ onSubmit }: FeedCommentInputProps) {
         readOnly={!isAuthenticated}
         className="flex-1 min-w-0 text-[14px] placeholder:text-ig-text-secondary bg-transparent outline-none"
       />
-      <button type="button" className="shrink-0 opacity-80 hover:opacity-50" aria-label="이모티콘">
-        <PostSmileIcon />
-      </button>
+      <div className="relative shrink-0">
+        <button
+          type="button"
+          className="opacity-80 hover:opacity-50"
+          aria-label="이모티콘"
+          onClick={() => { if (isAuthenticated) setEmojiOpen((v) => !v); else requireAuth(); }}
+        >
+          <PostSmileIcon />
+        </button>
+        <EmojiPicker
+          open={emojiOpen}
+          onClose={() => setEmojiOpen(false)}
+          onSelect={(emoji) => setContent((c) => c + emoji)}
+        />
+      </div>
       <Button
         type="submit"
         variant="text"

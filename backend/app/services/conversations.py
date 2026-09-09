@@ -263,6 +263,9 @@ def send_story_reply(db: Session, viewer: User, story_item_id: int, content: str
     owner = db.get(User, story.user_id)
     if not owner:
         raise HTTPException(status_code=404, detail="Story owner not found")
+    from app.services.privacy import assert_story_replies_allowed
+
+    assert_story_replies_allowed(db, owner.id)
     return send_message(db, viewer, owner.username, content=content, story_item_id=story_item_id)
 
 

@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Menu, MoreHorizontal } from 'lucide-react';
+import { ProfileOptionsMenu } from '@/components/profile/ProfileOptionsMenu';
+import { useProfileMenu } from '@/contexts/ProfileMenuContext';
 import { InstagramLogo } from '@/components/common/InstagramLogo';
 import { NavBadge } from '@/components/common/NavBadge';
 import { MobileHeaderIconStrip } from '@/components/layout/MobileHeaderIconStrip';
@@ -20,6 +23,8 @@ export function MobileHeader({ config }: MobileHeaderProps) {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { messageCount, notificationCount } = useUnreadBadges();
+  const { profileUser, actions } = useProfileMenu();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   if (!config.showHeader || config.headerVariant === 'none') return null;
 
@@ -97,9 +102,25 @@ export function MobileHeader({ config }: MobileHeaderProps) {
             <h1 className="absolute left-1/2 -translate-x-1/2 text-[16px] font-semibold truncate max-w-[45%]">
               {config.title}
             </h1>
-            <button type="button" className="p-1 -mr-1" aria-label="옵션">
-              <NavIcon icon={MoreHorizontal} />
-            </button>
+            {!isOwnProfile && profileUser && actions ? (
+              <div className="relative">
+                <button type="button" className="p-1 -mr-1" aria-label="옵션" onClick={() => setMenuOpen((v) => !v)}>
+                  <NavIcon icon={MoreHorizontal} />
+                </button>
+                {menuOpen && (
+                  <ProfileOptionsMenu
+                    username={profileUser.username}
+                    blockedByMe={actions.blockedByMe}
+                    onBlock={actions.onBlock}
+                    onUnblock={actions.onUnblock}
+                    onReport={actions.onReport}
+                    onClose={() => setMenuOpen(false)}
+                  />
+                )}
+              </div>
+            ) : (
+              <div className="w-6" aria-hidden />
+            )}
           </>
         )}
       </div>

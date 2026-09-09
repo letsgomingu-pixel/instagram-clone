@@ -8,6 +8,7 @@ const navItems = [
   { to: '/admin/orders', label: '주문 관리', end: false },
   { to: '/admin/users', label: '회원 관리', end: false },
   { to: '/admin/posts', label: '게시물 관리', end: false },
+  { to: '/admin/reports', label: '신고 관리', end: false },
 ];
 
 export function AdminLayout() {

@@ -8,8 +8,8 @@ import {
   ChevronUp,
   ChevronDown,
   Music2,
-  Trash2,
 } from 'lucide-react';
+import { ReelOptionsMenu } from '@/components/reels/ReelOptionsMenu';
 
 import {
   ACTION_ICON_SIZE,
@@ -53,7 +53,7 @@ interface ReelsViewerProps {
 
 export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) {
 
-  const { toggleReelLike, followUser, markReelViewed } = useApp();
+  const { toggleReelLike, followUser, markReelViewed, refreshReels } = useApp();
 
   const { user: currentUser } = useAuth();
 
@@ -173,7 +173,7 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
   const handleShare = async () => {
 
-    const url = `${window.location.origin}/reels`;
+    const url = `${window.location.origin}/reels/${reel.id}`;
 
     try {
 
@@ -206,6 +206,8 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
       await reelsApi.deleteReel(reel.id);
 
       toast.success('릴스가 삭제되었습니다.');
+
+      await refreshReels();
 
       onClose();
 
@@ -397,28 +399,18 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
             </button>
 
-            {menuOpen && isOwnReel && (
-
-              <div className="absolute right-0 bottom-full mb-2 min-w-[140px] rounded-xl border border-white/20 bg-black/90 py-2 shadow-lg">
-
-                <button
-
-                  type="button"
-
-                  onClick={() => void handleDeleteReel()}
-
-                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-white/10"
-
-                >
-
-                  <Trash2 size={16} />
-
-                  삭제
-
-                </button>
-
-              </div>
-
+            {menuOpen && (
+              <ReelOptionsMenu
+                reelId={reel.id}
+                isOwnReel={isOwnReel}
+                onDelete={() => void handleDeleteReel()}
+                onReport={
+                  !isOwnReel
+                    ? (reason) => reelsApi.reportReel(reel.id, reason)
+                    : undefined
+                }
+                onClose={() => setMenuOpen(false)}
+              />
             )}
 
           </div>

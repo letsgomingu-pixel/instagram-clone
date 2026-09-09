@@ -5,8 +5,16 @@ from pydantic import ValidationError
 from sqlalchemy import select
 
 from app.dependencies import AdminUser, DbSession
-from app.models import Post, PostMedia
-from app.schemas.admin import AdminMessageOut, AdminStatsOut, AdminUserOut, AdminUserStatusUpdate
+from app.models import Post, PostMedia, Reel
+from app.schemas.admin import (
+    AdminMessageOut,
+    AdminPostReportOut,
+    AdminReelReportOut,
+    AdminStatsOut,
+    AdminUserOut,
+    AdminUserReportOut,
+    AdminUserStatusUpdate,
+)
 from app.schemas.order import AdminOrderOut, AdminOrderUpdate
 from app.schemas.post import PostOut
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
@@ -14,8 +22,11 @@ from app.services.admin import (
     delete_post,
     delete_user,
     get_admin_stats,
+    list_admin_post_reports,
     list_admin_posts,
     list_admin_products,
+    list_admin_reel_reports,
+    list_admin_user_reports,
     list_admin_users,
     set_user_active,
 )
@@ -188,6 +199,16 @@ def admin_delete_post(post_id: int, _admin: AdminUser, db: DbSession):
     return AdminMessageOut(message="Post deleted")
 
 
+@router.delete("/reels/{reel_id}", response_model=AdminMessageOut)
+def admin_delete_reel(reel_id: int, _admin: AdminUser, db: DbSession):
+    reel = db.get(Reel, reel_id)
+    if not reel:
+        raise HTTPException(status_code=404, detail="Reel not found")
+    db.delete(reel)
+    db.commit()
+    return AdminMessageOut(message="Reel deleted")
+
+
 @router.get("/orders", response_model=PaginatedResponse)
 def admin_orders(
     admin: AdminUser,
@@ -217,3 +238,39 @@ def admin_update_order(
 def admin_cancel_order(order_id: int, _admin: AdminUser, db: DbSession):
     order = cancel_order_for_admin(db, order_id)
     return build_admin_order_out(db, order)
+
+
+@router.get("/reports/posts", response_model=PaginatedResponse)
+def admin_post_reports(
+    _admin: AdminUser,
+    db: DbSession,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+):
+    page, limit, _ = pagination_params(page, limit)
+    items, total = list_admin_post_reports(db, page, limit)
+    return paginate(items, total, page, limit)
+
+
+@router.get("/reports/users", response_model=PaginatedResponse)
+def admin_user_reports(
+    _admin: AdminUser,
+    db: DbSession,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+):
+    page, limit, _ = pagination_params(page, limit)
+    items, total = list_admin_user_reports(db, page, limit)
+    return paginate(items, total, page, limit)
+
+
+@router.get("/reports/reels", response_model=PaginatedResponse)
+def admin_reel_reports(
+    _admin: AdminUser,
+    db: DbSession,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+):
+    page, limit, _ = pagination_params(page, limit)
+    items, total = list_admin_reel_reports(db, page, limit)
+    return paginate(items, total, page, limit)

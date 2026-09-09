@@ -34,6 +34,7 @@ class UserOut(BaseModel):
     is_admin: bool = False
     is_private: bool = False
     is_requested: bool = False
+    is_active_now: bool | None = None
     phone: str | None = None
     postcode: str | None = None
     address_line1: str | None = None
@@ -57,3 +58,8 @@ class FollowResponse(BaseModel):
 
 class AccountDeactivateRequest(BaseModel):
     password: str = Field(min_length=1)
+
+
+class UserReportCreate(BaseModel):
+    reason: str = Field(min_length=1, max_length=50)
+    details: str | None = Field(None, max_length=500)

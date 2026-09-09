@@ -38,9 +38,13 @@ export function ProfileSavedTab({ savedPosts }: ProfileSavedTabProps) {
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-[3px] md:gap-1 mb-1">
-          <div className="relative aspect-square bg-ig-secondary border border-ig-border flex flex-col items-center justify-center gap-2">
+          <div
+            className="relative aspect-square bg-ig-secondary border-2 border-ig-primary flex flex-col items-center justify-center gap-2"
+            aria-current="true"
+          >
             <Bookmark size={24} className="text-ig-text" />
             <span className="text-[12px] font-semibold px-2 text-center">모든 게시물</span>
+            <span className="text-[10px] text-ig-text-secondary">{savedPosts.length}개</span>
           </div>
           {collections.map((col) => (
             <Link

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Music2, Trash2 } from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
+import { Music2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
   DoubleTapHeartIcon,
@@ -14,6 +14,7 @@ import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
 import { CreateReelModal } from '@/components/reels/CreateReel';
 import { ReelCommentsModal } from '@/components/reels/ReelCommentsModal';
+import { ReelOptionsMenu } from '@/components/reels/ReelOptionsMenu';
 import * as reelsApi from '@/api/reels';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -79,7 +80,7 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
   };
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/reels`;
+    const url = `${window.location.origin}/reels/${reel.id}`;
     try {
       if (navigator.share) await navigator.share({ url, title: `${reel.user.username}의 릴스` });
       else {
@@ -141,17 +142,18 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
             <button onClick={() => setMenuOpen((v) => !v)} className="text-white" aria-label="더보기">
               <PostMoreIcon size={REEL_ACTION_ICON_SIZE} tone="reels" />
             </button>
-            {menuOpen && isOwnReel && (
-              <div className="absolute right-0 bottom-full mb-2 min-w-[140px] rounded-xl border border-white/20 bg-black/90 py-2 shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => void handleDeleteReel()}
-                  className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-400 hover:bg-white/10"
-                >
-                  <Trash2 size={16} />
-                  삭제
-                </button>
-              </div>
+            {menuOpen && (
+              <ReelOptionsMenu
+                reelId={reel.id}
+                isOwnReel={isOwnReel}
+                onDelete={() => void handleDeleteReel()}
+                onReport={
+                  !isOwnReel
+                    ? (reason) => reelsApi.reportReel(reel.id, reason)
+                    : undefined
+                }
+                onClose={() => setMenuOpen(false)}
+              />
             )}
           </div>
         </div>
@@ -188,11 +190,21 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
 }
 
 export function ReelsPage() {
+  const { reelId } = useParams<{ reelId?: string }>();
   const { reels, markReelViewed } = useApp();
   const { requireAuth } = useRequireAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [createOpen, setCreateOpen] = useState(false);
+
+  useEffect(() => {
+    if (!reelId || reels.length === 0) return;
+    const idx = reels.findIndex((r) => r.id === Number(reelId));
+    if (idx >= 0 && containerRef.current) {
+      setActiveIndex(idx);
+      containerRef.current.scrollTop = idx * containerRef.current.clientHeight;
+    }
+  }, [reelId, reels]);
 
   useEffect(() => {
     const container = containerRef.current;

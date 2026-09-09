@@ -6,7 +6,8 @@ from sqlalchemy.orm import joinedload
 
 from app.dependencies import CurrentUser, DbSession, OptionalUser
 from app.models import Reel, ReelComment, ReelLike, ReelView
-from app.schemas.reel import ReelCommentOut, ReelLikeResponse, ReelOut, ReelViewResponse
+from app.models import ReelReport
+from app.schemas.reel import ReelCommentOut, ReelLikeResponse, ReelOut, ReelReportCreate, ReelViewResponse
 from app.services.stories_reels import build_reels_out, create_reel, get_reels_feed
 from app.services.users import build_user_out
 from app.utils.datetime_fmt import to_iso
@@ -159,6 +160,9 @@ def add_reel_comment(reel_id: int, body: ReelCommentCreate, current_user: Curren
     reel = db.get(Reel, reel_id)
     if not reel:
         raise HTTPException(status_code=404, detail="Reel not found")
+    from app.services.privacy import assert_can_comment
+
+    assert_can_comment(db, reel.user_id, current_user.id)
     comment = ReelComment(reel_id=reel_id, user_id=current_user.id, content=body.content)
     db.add(comment)
     db.execute(update(Reel).where(Reel.id == reel_id).values(comment_count=Reel.comment_count + 1))
@@ -170,6 +174,22 @@ def add_reel_comment(reel_id: int, body: ReelCommentCreate, current_user: Curren
         content=comment.content,
         created_at=to_iso(comment.created_at),
     )
+
+
+@router.post("/{reel_id}/report", status_code=204)
+def report_reel(reel_id: int, body: ReelReportCreate, current_user: CurrentUser, db: DbSession):
+    reel = db.get(Reel, reel_id)
+    if not reel:
+        raise HTTPException(status_code=404, detail="Reel not found")
+    db.add(
+        ReelReport(
+            reporter_id=current_user.id,
+            reel_id=reel_id,
+            reason=body.reason,
+            details=body.details,
+        )
+    )
+    db.commit()
 
 
 @router.delete("/{reel_id}", status_code=204)

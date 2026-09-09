@@ -29,3 +29,36 @@ class AdminUserStatusUpdate(BaseModel):
 
 class AdminMessageOut(BaseModel):
     message: str
+
+
+class AdminPostReportOut(BaseModel):
+    id: int
+    post_id: int
+    post_image_url: str | None
+    post_caption: str | None
+    post_author_username: str
+    reporter_username: str
+    reason: str
+    details: str | None
+    created_at: str
+
+
+class AdminUserReportOut(BaseModel):
+    id: int
+    reported_user_id: int
+    reported_username: str
+    reporter_username: str
+    reason: str
+    details: str | None
+    created_at: str
+
+
+class AdminReelReportOut(BaseModel):
+    id: int
+    reel_id: int
+    reel_caption: str | None
+    reel_author_username: str
+    reporter_username: str
+    reason: str
+    details: str | None
+    created_at: str

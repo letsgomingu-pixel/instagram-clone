@@ -1305,3 +1305,38 @@ def test_cancel_pending_order(auth_headers):
     cancel = client.post(f"/api/v1/orders/{order_id}/cancel", headers=auth_headers)
     assert cancel.status_code == 200, cancel.text
     assert cancel.json()["status"] == "cancelled"
+
+
+def test_forgot_password_always_succeeds():
+    r = client.post("/api/v1/auth/forgot-password", json={"email": "unknown@example.com"})
+    assert r.status_code == 204
+    r2 = client.post("/api/v1/auth/forgot-password", json={"email": SEED_EMAIL})
+    assert r2.status_code == 204
+
+
+def test_reset_password_invalid_token():
+    r = client.post(
+        "/api/v1/auth/reset-password",
+        json={"token": "invalid-token-value", "password": "newpass123"},
+    )
+    assert r.status_code == 400
+
+
+def test_user_report(auth_headers):
+    target = client.get("/api/v1/users/suggested", headers=auth_headers).json()[0]
+    r = client.post(
+        f"/api/v1/users/{target['id']}/report",
+        headers=auth_headers,
+        json={"reason": "spam"},
+    )
+    assert r.status_code == 204
+
+
+def test_admin_reports(auth_headers):
+    admin_headers = _admin_login()
+    posts = client.get("/api/v1/admin/reports/posts", headers=admin_headers)
+    assert posts.status_code == 200
+    users = client.get("/api/v1/admin/reports/users", headers=admin_headers)
+    assert users.status_code == 200
+    reels = client.get("/api/v1/admin/reports/reels", headers=admin_headers)
+    assert reels.status_code == 200

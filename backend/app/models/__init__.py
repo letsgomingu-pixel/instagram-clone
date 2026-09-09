@@ -12,7 +12,10 @@ from app.models.cart import CartItem
 from app.models.order import Order, OrderItem, Payment
 from app.models.post import Post
 from app.models.post_media import PostMedia
+from app.models.password_reset_token import PasswordResetToken
 from app.models.post_report import PostReport
+from app.models.reel_report import ReelReport
+from app.models.user_report import UserReport
 from app.models.post_tag import PostTag
 from app.models.product import Product
 from app.models.recent_search import RecentSearch
@@ -49,6 +52,9 @@ __all__ = [
     "PostHashtag",
     "HiddenPost",
     "PostReport",
+    "UserReport",
+    "ReelReport",
+    "PasswordResetToken",
     "SavedPost",
     "SavedCollection",
     "SavedCollectionItem",

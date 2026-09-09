@@ -107,6 +107,10 @@ def create_mention_notifications(
         target = db.scalar(select(User).where(User.username.ilike(username)))
         if not target or target.id == actor.id:
             continue
+        from app.services.privacy import can_mention_user
+
+        if not can_mention_user(db, target.id, actor.id):
+            continue
         if not user_allows_notification(db, target.id, "notify_mentions"):
             continue
         db.add(

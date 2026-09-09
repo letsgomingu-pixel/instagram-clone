@@ -70,11 +70,9 @@ export function SearchPage() {
       return;
     }
 
-    if (debouncedQuery.length >= 1) {
+    if (debouncedQuery.length >= 1 && isAuthenticated) {
       usersApi.searchUsersApi(debouncedQuery).then(setResults).catch(() => setResults([]));
-      if (isAuthenticated) {
-        searchApi.searchHashtags(debouncedQuery).then(setHashtagResults).catch(() => setHashtagResults([]));
-      }
+      searchApi.searchHashtags(debouncedQuery).then(setHashtagResults).catch(() => setHashtagResults([]));
     } else {
       setResults([]);
       setHashtagResults([]);
@@ -163,6 +161,15 @@ export function SearchPage() {
 
       {hasSearchInput ? (
         <div className="bg-white border border-ig-border md:rounded-lg overflow-hidden">
+          {!isAuthenticated && debouncedQuery.length >= 1 && (
+            <div className="px-4 py-3 border-b border-ig-border bg-ig-secondary text-sm text-ig-text-secondary">
+              계정·해시태그 검색은{' '}
+              <Link to="/login" className="text-ig-link font-semibold hover:underline">
+                로그인
+              </Link>
+              이 필요합니다. 상품 검색은 로그인 없이 이용할 수 있습니다.
+            </div>
+          )}
           {productResults.length > 0 && (
             <div className="border-b border-ig-border">
               <p className="px-4 py-2 text-xs font-semibold text-ig-text-secondary bg-ig-secondary">상품</p>

@@ -3,6 +3,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AppProvider } from '@/contexts/AppContext';
+import { ProfileMenuProvider } from '@/contexts/ProfileMenuContext';
+import { CallProvider } from '@/contexts/CallContext';
+import { CallOverlay } from '@/components/message/CallOverlay';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { SettingsLayout } from '@/components/settings/SettingsLayout';
 import { AdminGuestRoute, AdminRoute } from '@/components/auth/AdminRoute';
@@ -42,6 +45,10 @@ import { OrderReviewPage } from '@/pages/OrderReviewPage';
 import { ArchivedPostsPage } from '@/pages/ArchivedPostsPage';
 import { SuggestedUsersPage } from '@/pages/SuggestedUsersPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
+import { InfoPage } from '@/pages/InfoPage';
+import { AdminReportsPage } from '@/pages/admin/AdminReportsPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -53,12 +60,16 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <CallProvider>
         <AppProvider>
+          <ProfileMenuProvider>
           <BrowserRouter>
             <Routes>
               <Route element={<GuestRoute />}>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
               </Route>
 
               <Route element={<AdminGuestRoute />}>
@@ -72,6 +83,7 @@ export default function App() {
                   <Route path="/admin/products" element={<AdminProductsPage />} />
                   <Route path="/admin/posts" element={<AdminPostsPage />} />
                   <Route path="/admin/orders" element={<AdminOrdersPage />} />
+                  <Route path="/admin/reports" element={<AdminReportsPage />} />
                 </Route>
               </Route>
 
@@ -80,6 +92,8 @@ export default function App() {
                 <Route path="/explore" element={<ExplorePage />} />
                 <Route path="/explore/tags/:tag" element={<HashtagPage />} />
                 <Route path="/reels" element={<ReelsPage />} />
+                <Route path="/reels/:reelId" element={<ReelsPage />} />
+                <Route path="/info/:slug" element={<InfoPage />} />
                 <Route path="/search" element={<SearchPage />} />
                 <Route path="/suggested" element={<SuggestedUsersPage />} />
                 <Route path="/profile/:username" element={<ProfilePage />} />
@@ -90,7 +104,6 @@ export default function App() {
               <Route element={<ProtectedRoute />}>
                 <Route element={<MainLayout showSuggestions={false} />}>
                   <Route path="/messages" element={<MessagesPage />} />
-                  <Route path="/messages/group/:conversationId" element={<MessagesPage />} />
                   <Route path="/messages/:username" element={<MessagesPage />} />
                   <Route path="/archive" element={<ArchivedPostsPage />} />
                   <Route path="/cart" element={<CartPage />} />
@@ -116,6 +129,8 @@ export default function App() {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </BrowserRouter>
+          </ProfileMenuProvider>
+          <CallOverlay />
 
           <Toaster
             position="top-center"
@@ -128,6 +143,7 @@ export default function App() {
             }}
           />
         </AppProvider>
+        </CallProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

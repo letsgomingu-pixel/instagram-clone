@@ -49,6 +49,10 @@ export async function deleteAdminPost(postId: number): Promise<void> {
   await api.delete(`/admin/posts/${postId}`);
 }
 
+export async function deleteAdminReel(reelId: number): Promise<void> {
+  await api.delete(`/admin/reels/${reelId}`);
+}
+
 export interface CreateProductPayload {
   name: string;
   price: number;
@@ -141,5 +145,53 @@ export async function updateAdminOrder(
 
 export async function cancelAdminOrder(orderId: number): Promise<AdminOrder> {
   const { data } = await api.post<AdminOrder>(`/admin/orders/${orderId}/cancel`);
+  return data;
+}
+
+export interface AdminPostReport {
+  id: number;
+  post_id: number;
+  post_image_url: string | null;
+  post_caption: string | null;
+  post_author_username: string;
+  reporter_username: string;
+  reason: string;
+  details: string | null;
+  created_at: string;
+}
+
+export interface AdminUserReport {
+  id: number;
+  reported_user_id: number;
+  reported_username: string;
+  reporter_username: string;
+  reason: string;
+  details: string | null;
+  created_at: string;
+}
+
+export interface AdminReelReport {
+  id: number;
+  reel_id: number;
+  reel_caption: string | null;
+  reel_author_username: string;
+  reporter_username: string;
+  reason: string;
+  details: string | null;
+  created_at: string;
+}
+
+export async function getAdminPostReports(page = 1, limit = 20): Promise<PaginatedResponse<AdminPostReport>> {
+  const { data } = await api.get<PaginatedResponse<AdminPostReport>>('/admin/reports/posts', { params: { page, limit } });
+  return data;
+}
+
+export async function getAdminUserReports(page = 1, limit = 20): Promise<PaginatedResponse<AdminUserReport>> {
+  const { data } = await api.get<PaginatedResponse<AdminUserReport>>('/admin/reports/users', { params: { page, limit } });
+  return data;
+}
+
+export async function getAdminReelReports(page = 1, limit = 20): Promise<PaginatedResponse<AdminReelReport>> {
+  const { data } = await api.get<PaginatedResponse<AdminReelReport>>('/admin/reports/reels', { params: { page, limit } });
   return data;
 }

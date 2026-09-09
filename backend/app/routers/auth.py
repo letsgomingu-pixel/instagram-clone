@@ -3,7 +3,9 @@ from sqlalchemy import func, or_, select
 
 from app.dependencies import CurrentUser, DbSession
 from app.models import User
-from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
+from app.schemas.auth import ForgotPasswordRequest, LoginRequest, RegisterRequest, ResetPasswordRequest, TokenResponse
+from app.services.email import send_login_alert_email
+from app.services.password_reset import request_password_reset, reset_password
 from app.schemas.user import UserOut
 from app.services.security import maybe_set_trust_token, record_login_session, verify_login_totp
 from app.services.settings import get_or_create_settings
@@ -33,6 +35,10 @@ def login(body: LoginRequest, request: Request, db: DbSession):
     trust_token = maybe_set_trust_token(session, trust_device=body.trust_device)
     db.commit()
     db.refresh(session)
+
+    send_login_alert_email(
+        db, user=user, device_name=session.device_name, ip_address=session.ip_address
+    )
 
     token = create_access_token(user.id, user.username, session_id=session.id)
     return TokenResponse(
@@ -78,3 +84,13 @@ def register(body: RegisterRequest, request: Request, db: DbSession):
 @router.get("/me", response_model=UserOut)
 def me(current_user: CurrentUser, db: DbSession):
     return build_user_out(db, current_user, current_user)
+
+
+@router.post("/forgot-password", status_code=204)
+def forgot_password(body: ForgotPasswordRequest, db: DbSession):
+    request_password_reset(db, body.email)
+
+
+@router.post("/reset-password", status_code=204)
+def reset_password_route(body: ResetPasswordRequest, db: DbSession):
+    reset_password(db, body.token, body.password)

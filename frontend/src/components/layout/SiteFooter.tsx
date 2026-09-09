@@ -1,16 +1,12 @@
+import { Link } from 'react-router-dom';
 import { cn } from '@/utils/cn';
 
-const FOOTER_LINKS = [
-  '소개',
-  '도움말',
-  '홍보 센터',
-  '개발자 센터',
-  '채용 정보',
-  '개인정보처리방침',
-  '약관',
-  '위치',
-  '언어',
-] as const;
+const FOOTER_LINKS: { label: string; to: string }[] = [
+  { label: '소개', to: '/info/about' },
+  { label: '도움말', to: '/info/help' },
+  { label: '개인정보처리방침', to: '/info/privacy' },
+  { label: '약관', to: '/info/terms' },
+];
 
 interface SiteFooterProps {
   className?: string;
@@ -21,11 +17,11 @@ export function SiteFooter({ className }: SiteFooterProps) {
     <footer className={cn('text-xs text-ig-text-secondary leading-5 text-center', className)}>
       <p className="flex flex-wrap justify-center gap-x-1 gap-y-0.5">
         {FOOTER_LINKS.map((item, i) => (
-          <span key={item}>
+          <span key={item.to}>
             {i > 0 && ' · '}
-            <a href="#" className="hover:underline">
-              {item}
-            </a>
+            <Link to={item.to} className="hover:underline">
+              {item.label}
+            </Link>
           </span>
         ))}
       </p>

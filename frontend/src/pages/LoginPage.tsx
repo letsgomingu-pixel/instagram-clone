@@ -1,12 +1,13 @@
+import { Link } from 'react-router-dom';
 import { LoginForm } from '@/components/auth/LoginForm';
 
 const FOOTER_LINKS = [
-  '회사 소개',
-  '도매 안내',
-  '소매 안내',
-  '이용약관',
-  '개인정보처리방침',
-  '고객센터',
+  { label: '회사 소개', to: '/info/about' },
+  { label: '도매 안내', to: '/info/wholesale' },
+  { label: '소매 안내', to: '/info/retail' },
+  { label: '이용약관', to: '/info/terms' },
+  { label: '개인정보처리방침', to: '/info/privacy' },
+  { label: '고객센터', to: '/info/help' },
 ] as const;
 
 export function LoginPage() {
@@ -19,15 +20,12 @@ export function LoginPage() {
       <footer className="py-6">
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-ig-text-secondary mb-4 px-4">
           {FOOTER_LINKS.map((item) => (
-            <a key={item} href="#" className="hover:underline">
-              {item}
-            </a>
+            <Link key={item.to} to={item.to} className="hover:underline">
+              {item.label}
+            </Link>
           ))}
         </div>
-        <div className="flex justify-center gap-4 text-xs text-ig-text-secondary">
-          <span>한국어</span>
-          <span>© 2026 i am not a fishmonger</span>
-        </div>
+        <p className="text-center text-xs text-ig-text-secondary">© 2026 i am not a fishmonger</p>
       </footer>
     </div>
   );
