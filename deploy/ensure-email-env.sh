@@ -7,6 +7,15 @@ set -euo pipefail
 DEPLOY_PATH="${DEPLOY_PATH:-/var/www/iamnotafishmonger}"
 ENV_FILE="${ENV_FILE:-$DEPLOY_PATH/backend/.env}"
 
+# Optional server-side credentials (not in git):
+#   /etc/instagram-smtp.env  — create once on EC2, chmod 600
+if [[ -f /etc/instagram-smtp.env ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source /etc/instagram-smtp.env
+  set +a
+fi
+
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "[ensure-email-env] $ENV_FILE not found — skipping" >&2
   exit 0
