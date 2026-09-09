@@ -21,6 +21,7 @@ from app.services.notifications import create_post_activity_notifications, creat
 from app.services.posts import (
     build_post_out,
     build_posts_out,
+    create_review_post,
     delete_post_comment,
     delete_post_by_owner,
     get_explore_posts,
@@ -65,9 +66,12 @@ def feed(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=30),
     cursor: str | None = Query(None),
+    tab: str = Query("products", pattern="^(products|reviews)$"),
 ):
     page, limit, _ = pagination_params(page, limit)
-    posts, total, next_cursor = get_home_feed_posts(db, current_user, page, limit, cursor=cursor)
+    posts, total, next_cursor = get_home_feed_posts(
+        db, current_user, page, limit, cursor=cursor, tab=tab
+    )
     items = build_posts_out(db, posts, current_user)
     next_page = page + 1 if page * limit < total and not cursor else None
     if cursor and len(posts) == limit:
@@ -83,9 +87,10 @@ def explore(
     viewer: OptionalUser = None,
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=30),
+    tab: str = Query("products", pattern="^(products|reviews)$"),
 ):
     page, limit, offset = pagination_params(page, limit)
-    posts, total = get_explore_posts(db, viewer, offset, limit)
+    posts, total = get_explore_posts(db, viewer, offset, limit, tab=tab)
     items = build_posts_out(db, list(posts), viewer)
     return paginate(items, total, page, limit)
 
@@ -155,6 +160,40 @@ def report_post_route(post_id: int, body: PostReportCreate, current_user: Curren
     report_post(db, post_id, current_user, reason=body.reason, details=body.details)
 
 
+@router.post("/reviews", response_model=PostOut, status_code=201)
+async def create_review(
+    current_user: CurrentUser,
+    db: DbSession,
+    order_id: int = Form(...),
+    rating: int = Form(..., ge=1, le=5),
+    caption: str | None = Form(None),
+    image: UploadFile | None = File(None),
+    files: list[UploadFile] = File(default=[]),
+):
+    uploads: list[UploadFile] = []
+    if image:
+        uploads.append(image)
+    uploads.extend(files)
+    if not uploads:
+        raise HTTPException(status_code=400, detail="At least one media file is required")
+    if len(uploads) > 10:
+        raise HTTPException(status_code=400, detail="Maximum 10 media items allowed")
+
+    saved_media: list[tuple[str, str]] = []
+    for upload in uploads:
+        saved_media.append(save_post_media(upload, "posts"))
+
+    post = create_review_post(
+        db,
+        current_user,
+        order_id=order_id,
+        rating=rating,
+        caption=caption,
+        saved_media=saved_media,
+    )
+    return build_post_out(db, post, current_user)
+
+
 @router.post("", response_model=PostOut, status_code=201)
 async def create_post(
     current_user: CurrentUser,
@@ -186,6 +225,7 @@ async def create_post(
         location=location,
         like_count=0,
         comment_count=0,
+        post_type="standard",
     )
     db.add(post)
     db.flush()

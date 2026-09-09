@@ -1,12 +1,13 @@
 import { StoryBar } from '@/components/story/StoryBar';
 import { SuggestedUsersStrip } from '@/components/layout/SuggestedUsersStrip';
 import { FeedPostSkeleton } from '@/components/post/FeedPostSkeleton';
+import { FeedTabs } from '@/components/post/FeedTabs';
 import { PostCard } from '@/components/post/PostCard';
 import { useApp } from '@/contexts/AppContext';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 
 export function HomePage() {
-  const { posts, loading, feedHasMore, feedLoadingMore, loadMoreFeed } = useApp();
+  const { posts, loading, feedTab, setFeedTab, feedHasMore, feedLoadingMore, loadMoreFeed } = useApp();
 
   const sentinelRef = useInfiniteScroll(() => {
     void loadMoreFeed();
@@ -32,10 +33,16 @@ export function HomePage() {
     );
   }
 
+  const emptyMessage =
+    feedTab === 'products'
+      ? { title: '등록된 상품이 없습니다', desc: '판매자가 올린 수산물 상품이 여기에 표시됩니다.' }
+      : { title: '리뷰가 없습니다', desc: '배송 완료 후 구매자가 작성한 리뷰가 여기에 표시됩니다.' };
+
   return (
     <div>
       <StoryBar />
       <SuggestedUsersStrip />
+      <FeedTabs activeTab={feedTab} onChange={setFeedTab} />
 
       {posts.length === 0 ? (
         <div className="feed-card py-20 px-6 text-center">
@@ -53,10 +60,8 @@ export function HomePage() {
               <path d="m21 15-5-5L5 21" />
             </svg>
           </div>
-          <p className="text-[22px] font-light mb-2 font-brand">피드에 게시물이 없습니다</p>
-          <p className="text-sm text-ig-text-secondary leading-[18px]">
-            친구를 팔로우하여 새로운 사진과 동영상을 확인해보세요.
-          </p>
+          <p className="text-[22px] font-light mb-2 font-brand">{emptyMessage.title}</p>
+          <p className="text-sm text-ig-text-secondary leading-[18px]">{emptyMessage.desc}</p>
         </div>
       ) : (
         posts.map((post) => <PostCard key={post.id} post={post} />)

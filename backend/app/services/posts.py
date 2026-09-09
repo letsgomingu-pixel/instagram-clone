@@ -1,12 +1,15 @@
 from datetime import datetime, timezone
 
+from fastapi import HTTPException
 from sqlalchemy import and_, case, desc, func, or_, select, update
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Comment, CommentLike, HiddenPost, Like, Notification, Post, PostMedia, PostReport, PostTag, SavedPost, User
+from app.models import Comment, CommentLike, HiddenPost, Like, Notification, Post, PostMedia, PostReport, PostTag, Product, SavedPost, User
+from app.models.product import FEED_TABS
 from app.schemas.notification import NotificationOut
 from app.schemas.post import CommentOut, PostMediaOut, PostOut
 from app.services.blocks import blocked_user_ids
+from app.services.products import _products_for_posts
 from app.services.users import build_user_out, get_following_ids
 from app.utils.hashtags import extract_hashtags
 from app.utils.cursor import cursor_from_post, decode_cursor
@@ -146,7 +149,7 @@ def _comments_for_posts(db: Session, post_ids: list[int], viewer: User | None, l
     return grouped
 
 
-def build_post_out(db: Session, post: Post, viewer: User | None, *, comments_map=None, tags_map=None, media_map=None, liked=None, saved=None) -> PostOut:
+def build_post_out(db: Session, post: Post, viewer: User | None, *, comments_map=None, tags_map=None, media_map=None, products_map=None, liked=None, saved=None) -> PostOut:
     post_ids = [post.id]
     if comments_map is None:
         comments_map = _comments_for_posts(db, post_ids, viewer)
@@ -154,6 +157,8 @@ def build_post_out(db: Session, post: Post, viewer: User | None, *, comments_map
         tags_map = _tagged_users_for_posts(db, post_ids, viewer)
     if media_map is None:
         media_map = _media_for_posts(db, post_ids)
+    if products_map is None:
+        products_map = _products_for_posts(db, [post])
     if liked is None and viewer:
         liked = _liked_post_ids(db, viewer.id, post_ids)
     elif liked is None:
@@ -172,6 +177,9 @@ def build_post_out(db: Session, post: Post, viewer: User | None, *, comments_map
         image_url=cover_url,
         caption=post.caption,
         location=post.location,
+        post_type=post.post_type,
+        product=products_map.get(post.id),
+        rating=post.rating,
         like_count=post.like_count,
         comment_count=post.comment_count,
         is_liked=post.id in liked,
@@ -183,43 +191,67 @@ def build_post_out(db: Session, post: Post, viewer: User | None, *, comments_map
     )
 
 
-def get_home_feed_posts(
-    db: Session, user: User, page: int, limit: int, *, cursor: str | None = None
+def _tab_post_type(tab: str) -> str:
+    if tab == "reviews":
+        return "review"
+    return "product"
+
+
+def _apply_feed_filters(
+    db: Session,
+    base,
+    viewer: User | None,
+    *,
+    post_type: str | None = None,
+):
+    if post_type:
+        base = base.where(Post.post_type == post_type)
+    blocked = blocked_user_ids(db, viewer.id) if viewer else set()
+    if blocked:
+        base = base.where(Post.user_id.notin_(blocked))
+    if viewer:
+        hidden = _hidden_post_ids(db, viewer.id)
+        if hidden:
+            base = base.where(Post.id.notin_(hidden))
+    return base
+
+
+def get_tab_feed_posts(
+    db: Session,
+    viewer: User | None,
+    page: int,
+    limit: int,
+    *,
+    tab: str = "products",
+    cursor: str | None = None,
 ) -> tuple[list[Post], int, str | None]:
-    """Following posts first, then others. Supports cursor-based pagination."""
-    following_ids = get_following_ids(db, user.id)
-    following_ids.add(user.id)
-    blocked = blocked_user_ids(db, user.id)
-    priority = case((Post.user_id.in_(following_ids), 0), else_=1)
+    """Chronological product/review feed for the home tabs."""
+    if tab not in FEED_TABS:
+        tab = "products"
+    post_type = _tab_post_type(tab)
 
     base = (
         select(Post)
         .join(User, Post.user_id == User.id)
-        .where(User.is_active.is_(True), Post.is_archived.is_(False))
+        .where(User.is_active.is_(True), Post.is_archived.is_(False), Post.post_type == post_type)
     )
-    if blocked:
-        base = base.where(Post.user_id.notin_(blocked))
-    hidden = _hidden_post_ids(db, user.id)
-    if hidden:
-        base = base.where(Post.id.notin_(hidden))
+    base = _apply_feed_filters(db, base, viewer)
 
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     if total == 0:
         return [], 0, None
 
-    query = base.options(joinedload(Post.user)).order_by(priority, desc(Post.created_at), desc(Post.id))
+    query = base.options(joinedload(Post.user)).order_by(desc(Post.created_at), desc(Post.id))
 
     if cursor:
         try:
             decoded = decode_cursor(cursor)
-            c_priority = int(decoded["p"])
             c_time = datetime.fromisoformat(decoded["t"])
             c_id = int(decoded["id"])
             query = query.where(
                 or_(
-                    priority > c_priority,
-                    and_(priority == c_priority, Post.created_at < c_time),
-                    and_(priority == c_priority, Post.created_at == c_time, Post.id < c_id),
+                    Post.created_at < c_time,
+                    and_(Post.created_at == c_time, Post.id < c_id),
                 )
             )
             posts = db.scalars(query.limit(limit)).all()
@@ -233,33 +265,35 @@ def get_home_feed_posts(
     next_cursor = None
     if posts_list and len(posts_list) == limit:
         last = posts_list[-1]
-        last_priority = 0 if last.user_id in following_ids else 1
-        next_cursor = cursor_from_post(priority=last_priority, created_at=last.created_at, post_id=last.id)
+        next_cursor = cursor_from_post(priority=0, created_at=last.created_at, post_id=last.id)
     return posts_list, total, next_cursor
 
 
+def get_home_feed_posts(
+    db: Session, user: User, page: int, limit: int, *, cursor: str | None = None, tab: str = "products"
+) -> tuple[list[Post], int, str | None]:
+    """Authenticated home feed — product/review tabs."""
+    return get_tab_feed_posts(db, user, page, limit, tab=tab, cursor=cursor)
+
+
 def get_explore_posts(
-    db: Session, viewer: User | None, offset: int, limit: int
+    db: Session, viewer: User | None, offset: int, limit: int, *, tab: str = "products"
 ) -> tuple[list[Post], int]:
-    """Engagement-weighted explore feed with recency decay."""
-    blocked: set[int] = set()
+    """Guest/authenticated explore — product/review tabs with engagement weighting."""
+    if tab not in FEED_TABS:
+        tab = "products"
+    post_type = _tab_post_type(tab)
+
     following: set[int] = set()
     if viewer:
-        blocked = blocked_user_ids(db, viewer.id)
         following = get_following_ids(db, viewer.id)
-
     follow_boost = case((Post.user_id.in_(following), 5), else_=0) if following else 0
     score = Post.like_count * 2 + Post.comment_count * 3 + follow_boost
 
     base = select(Post).join(User, Post.user_id == User.id).where(
-        User.is_active.is_(True), Post.is_archived.is_(False)
+        User.is_active.is_(True), Post.is_archived.is_(False), Post.post_type == post_type
     )
-    if blocked:
-        base = base.where(Post.user_id.notin_(blocked))
-    if viewer:
-        hidden = _hidden_post_ids(db, viewer.id)
-        if hidden:
-            base = base.where(Post.id.notin_(hidden))
+    base = _apply_feed_filters(db, base, viewer)
 
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     posts = db.scalars(
@@ -275,6 +309,7 @@ def build_posts_out(db: Session, posts: list[Post], viewer: User | None) -> list
     comments_map = _comments_for_posts(db, post_ids, viewer)
     tags_map = _tagged_users_for_posts(db, post_ids, viewer)
     media_map = _media_for_posts(db, post_ids)
+    products_map = _products_for_posts(db, posts)
     liked = _liked_post_ids(db, viewer.id, post_ids) if viewer else set()
     saved = _saved_post_ids(db, viewer.id, post_ids) if viewer else set()
     return [
@@ -285,6 +320,7 @@ def build_posts_out(db: Session, posts: list[Post], viewer: User | None) -> list
             comments_map=comments_map,
             tags_map=tags_map,
             media_map=media_map,
+            products_map=products_map,
             liked=liked,
             saved=saved,
         )
@@ -474,6 +510,71 @@ def report_post(db: Session, post_id: int, user: User, *, reason: str, details: 
     get_post_or_404(db, post_id)
     db.add(PostReport(reporter_id=user.id, post_id=post_id, reason=reason, details=details))
     db.commit()
+
+
+def create_review_post(
+    db: Session,
+    user: User,
+    *,
+    order_id: int,
+    rating: int,
+    caption: str | None,
+    saved_media: list[tuple[str, str]],
+) -> Post:
+    from app.models import Order
+
+    order = db.scalar(
+        select(Order)
+        .where(Order.id == order_id, Order.user_id == user.id)
+        .options(joinedload(Order.product))
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.status != "delivered":
+        raise HTTPException(status_code=400, detail="Reviews are only allowed after delivery")
+    existing = db.scalar(
+        select(Post.id).where(Post.post_type == "review", Post.order_id == order_id)
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="Review already exists for this order")
+
+    cover_url = saved_media[0][0]
+    post = Post(
+        user_id=user.id,
+        image_url=cover_url,
+        caption=caption,
+        like_count=0,
+        comment_count=0,
+        post_type="review",
+        reviewed_product_id=order.product_id,
+        order_id=order.id,
+        rating=rating,
+    )
+    db.add(post)
+    db.flush()
+
+    for position, (media_url, media_type) in enumerate(saved_media):
+        db.add(
+            PostMedia(
+                post_id=post.id,
+                media_url=media_url,
+                media_type=media_type,
+                position=position,
+            )
+        )
+
+    db.commit()
+    db.refresh(post)
+    post.user = user
+
+    tag_names = extract_hashtags(caption)
+    if tag_names:
+        from app.services.hashtags import attach_hashtags_to_post
+
+        attach_hashtags_to_post(db, post, tag_names)
+        db.commit()
+
+    return post
 
 
 def list_archived_posts(db: Session, user: User, offset: int, limit: int) -> tuple[list[Post], int]:

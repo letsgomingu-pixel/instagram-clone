@@ -8,6 +8,7 @@ from app.models import Follow, Post, PostTag, User
 from app.schemas.user import (
     AccountDeactivateRequest,
     FollowResponse,
+    ShippingUpdate,
     SuggestedUserOut,
     UserOut,
     UserUpdate,
@@ -101,6 +102,25 @@ def update_me(body: UserUpdate, current_user: CurrentUser, db: DbSession):
         current_user.bio = body.bio
     if body.website is not None:
         current_user.website = body.website or None
+
+    shipping_values = (body.phone, body.postcode, body.address_line1, body.address_line2)
+    if any(v is not None for v in shipping_values):
+        if not all(v is not None for v in shipping_values):
+            raise HTTPException(
+                status_code=400,
+                detail="All shipping fields are required",
+            )
+        validated = ShippingUpdate(
+            phone=body.phone,
+            postcode=body.postcode,
+            address_line1=body.address_line1,
+            address_line2=body.address_line2,
+        )
+        current_user.phone = validated.phone
+        current_user.postcode = validated.postcode
+        current_user.address_line1 = validated.address_line1
+        current_user.address_line2 = validated.address_line2
+
     db.commit()
     db.refresh(current_user)
     return build_user_out(db, current_user, current_user)

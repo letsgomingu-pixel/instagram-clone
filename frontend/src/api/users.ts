@@ -11,6 +11,10 @@ export async function updateProfile(payload: {
   full_name?: string;
   bio?: string;
   website?: string;
+  phone?: string;
+  postcode?: string;
+  address_line1?: string;
+  address_line2?: string;
 }): Promise<User> {
   const { data } = await api.put<User>('/users/me', payload);
   return data;

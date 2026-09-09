@@ -7,6 +7,7 @@ import { LikeListModal } from '@/components/post/LikeListModal';
 import { PostCaption } from '@/components/post/PostCaption';
 import { MultilineText } from '@/components/common/MultilineText';
 import { PostMediaCarousel } from '@/components/post/PostMediaCarousel';
+import { ProductInfo } from '@/components/post/ProductInfo';
 import { PostOptionsMenu } from '@/components/post/PostOptionsMenu';
 import {
   DoubleTapHeartIcon,
@@ -146,6 +147,25 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
         showHeart={showHeart}
         heartIcon={<DoubleTapHeartIcon className="animate-heart-pop drop-shadow-lg" />}
       />
+
+      {post.post_type === 'product' && post.product && (
+        <ProductInfo product={post.product} showBuyButton />
+      )}
+
+      {post.post_type === 'review' && (
+        <div className="px-4 py-2 border-t border-ig-border bg-[#fafafa] space-y-1">
+          {post.rating != null && (
+            <p className="text-[13px] font-semibold text-amber-600">
+              {'★'.repeat(post.rating)}{'☆'.repeat(5 - post.rating)}
+            </p>
+          )}
+          {post.product && (
+            <p className="text-[12px] text-ig-text-secondary">
+              {post.product.name} 구매 리뷰
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="px-4 pb-4">
         <div className="flex items-center justify-between py-1">

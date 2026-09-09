@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.db_init import init_db
-from app.routers import admin, auth, collections, hashtags, health, posts, reels, search, social, stories, users
+from app.routers import admin, auth, collections, hashtags, health, orders, payments, posts, reels, search, social, stories, users
 from app.services.admin_bootstrap import ensure_admin_user, ensure_seed_test_user
 from app.utils.media import ensure_media_dirs
 
@@ -46,6 +46,8 @@ app.include_router(social.notifications_router, prefix=prefix)
 app.include_router(hashtags.router, prefix=prefix)
 app.include_router(collections.router, prefix=prefix)
 app.include_router(search.router, prefix=prefix)
+app.include_router(orders.router, prefix=prefix)
+app.include_router(payments.router, prefix=prefix)
 app.include_router(admin.router, prefix=prefix)
 
 

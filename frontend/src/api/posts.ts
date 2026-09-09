@@ -1,19 +1,20 @@
-import type { Comment, PaginatedResponse, Post, User } from '@/types';
+import type { Comment, FeedTab, PaginatedResponse, Post, User } from '@/types';
 import { api } from './client';
 
 export async function getFeed(
   page = 1,
   limit = 10,
   cursor?: string | null,
+  tab: FeedTab = 'products',
 ): Promise<PaginatedResponse<Post>> {
-  const params: Record<string, string | number> = { page, limit };
+  const params: Record<string, string | number> = { page, limit, tab };
   if (cursor) params.cursor = cursor;
   const { data } = await api.get<PaginatedResponse<Post>>('/posts/feed', { params });
   return data;
 }
 
-export async function getExplore(page = 1, limit = 30): Promise<PaginatedResponse<Post>> {
-  const { data } = await api.get<PaginatedResponse<Post>>('/posts/explore', { params: { page, limit } });
+export async function getExplore(page = 1, limit = 30, tab: FeedTab = 'products'): Promise<PaginatedResponse<Post>> {
+  const { data } = await api.get<PaginatedResponse<Post>>('/posts/explore', { params: { page, limit, tab } });
   return data;
 }
 
@@ -29,6 +30,23 @@ export async function getPost(postId: number): Promise<Post> {
 
 export async function createPost(form: FormData): Promise<Post> {
   const { data } = await api.post<Post>('/posts', form);
+  return data;
+}
+
+export interface CreateReviewPayload {
+  order_id: number;
+  rating: number;
+  caption?: string;
+  files: File[];
+}
+
+export async function createReview(payload: CreateReviewPayload): Promise<Post> {
+  const form = new FormData();
+  form.append('order_id', String(payload.order_id));
+  form.append('rating', String(payload.rating));
+  if (payload.caption) form.append('caption', payload.caption);
+  payload.files.forEach((file) => form.append('files', file, file.name));
+  const { data } = await api.post<Post>('/posts/reviews', form);
   return data;
 }
 

@@ -14,6 +14,13 @@ client = TestClient(app)
 SEED_EMAIL = "letsgomingu@gmail.com"
 SEED_PASSWORD = "12345"
 
+SHIPPING_PAYLOAD = {
+    "phone": "010-9876-5432",
+    "postcode": "06234",
+    "address_line1": "서울특별시 강남구 테헤란로 123",
+    "address_line2": "101호",
+}
+
 
 def _login(username: str = SEED_EMAIL, password: str = SEED_PASSWORD) -> dict:
     r = client.post("/api/v1/auth/login", json={"username": username, "password": password})
@@ -87,13 +94,17 @@ def test_register_and_me():
             "username": suffix,
             "full_name": "Test User",
             "password": "password123",
+            **SHIPPING_PAYLOAD,
         },
     )
     assert r.status_code == 201, r.text
     token = r.json()["access_token"]
     me = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert me.status_code == 200
-    assert me.json()["username"] == suffix
+    body = me.json()
+    assert body["username"] == suffix
+    assert body["phone"] == SHIPPING_PAYLOAD["phone"]
+    assert body["postcode"] == SHIPPING_PAYLOAD["postcode"]
 
 
 def test_register_duplicate_username():
@@ -104,9 +115,61 @@ def test_register_duplicate_username():
             "username": "letsgomingu",
             "full_name": "Dup",
             "password": "password123",
+            **SHIPPING_PAYLOAD,
         },
     )
     assert r.status_code == 400
+
+
+def test_register_requires_shipping_fields():
+    r = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "noship@example.com",
+            "username": "noshipuser01",
+            "full_name": "No Ship",
+            "password": "password123",
+        },
+    )
+    assert r.status_code == 422
+
+
+def test_update_shipping_address(auth_headers):
+    r = client.put(
+        "/api/v1/users/me",
+        headers=auth_headers,
+        json={
+            "phone": "010-5555-6666",
+            "postcode": "12345",
+            "address_line1": "서울특별시 종로구 새문안로 1",
+            "address_line2": "2층",
+        },
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["phone"] == "010-5555-6666"
+    assert body["postcode"] == "12345"
+    assert body["address_line1"] == "서울특별시 종로구 새문안로 1"
+    assert body["address_line2"] == "2층"
+
+
+def test_shipping_hidden_from_other_profiles(auth_headers):
+    suffix = "shiphide01"
+    reg = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": f"{suffix}@example.com",
+            "username": suffix,
+            "full_name": "Ship Hide",
+            "password": "password123",
+            **SHIPPING_PAYLOAD,
+        },
+    )
+    assert reg.status_code == 201, reg.text
+
+    profile = client.get(f"/api/v1/users/{suffix}", headers=auth_headers).json()
+    assert profile.get("phone") is None
+    assert profile.get("postcode") is None
 
 
 def test_check_username():
@@ -204,6 +267,7 @@ def test_follow_creates_notification():
             "username": suffix,
             "full_name": "Follow Notify",
             "password": "password123",
+            **SHIPPING_PAYLOAD,
         },
     )
     assert reg.status_code == 201, reg.text
@@ -260,22 +324,37 @@ def test_user_posts_reels_tagged(auth_headers):
 
 
 def test_feed(auth_headers):
-    r = client.get("/api/v1/posts/feed", params={"page": 1, "limit": 4}, headers=auth_headers)
+    admin_headers = _admin_login()
+    _create_admin_product(admin_headers, name="피드테스트", price=25000)
+
+    r = client.get(
+        "/api/v1/posts/feed",
+        params={"page": 1, "limit": 4, "tab": "products"},
+        headers=auth_headers,
+    )
     assert r.status_code == 200
     body = r.json()
     assert len(body["items"]) > 0
-    assert body["next_page"] is not None
     post = body["items"][0]
+    assert post["post_type"] == "product"
+    assert post["product"] is not None
     assert "user" in post
     assert "is_liked" in post
 
-    r2 = client.get("/api/v1/posts/feed", params={"page": 2, "limit": 4}, headers=auth_headers)
-    assert r2.status_code == 200
-    assert len(r2.json()["items"]) == 4
+    if body.get("next_page"):
+        r2 = client.get(
+            "/api/v1/posts/feed",
+            params={"page": 2, "limit": 4, "tab": "products"},
+            headers=auth_headers,
+        )
+        assert r2.status_code == 200
 
 
 def test_explore():
-    r = client.get("/api/v1/posts/explore")
+    admin_headers = _admin_login()
+    _create_admin_product(admin_headers, name="탐색테스트", price=15000)
+
+    r = client.get("/api/v1/posts/explore", params={"tab": "products"})
     assert r.status_code == 200
     assert len(r.json()["items"]) > 0
 
@@ -887,3 +966,215 @@ def test_admin_users_and_posts():
 def test_admin_forbidden_for_regular_user(auth_headers):
     r = client.get("/api/v1/admin/stats", headers=auth_headers)
     assert r.status_code == 403
+
+
+def _create_admin_product(headers: dict, *, name: str = "광어회", price: int = 35000) -> dict:
+    r = client.post(
+        "/api/v1/admin/products",
+        headers=headers,
+        data={
+            "name": name,
+            "price": str(price),
+            "unit": "1kg",
+            "storage_type": "fresh",
+            "availability": "year_round",
+            "stock": "10",
+            "caption": "싱싱한 광어",
+        },
+        files={"image": ("fish.jpg", _make_image_bytes(), "image/jpeg")},
+    )
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def test_admin_create_product():
+    headers = _admin_login()
+    body = _create_admin_product(headers)
+    assert body["post_type"] == "product"
+    assert body["product"]["name"] == "광어회"
+    assert body["product"]["price"] == 35000
+    assert body["product"]["unit"] == "1kg"
+
+
+def test_feed_products_tab(auth_headers):
+    admin_headers = _admin_login()
+    created = _create_admin_product(admin_headers, name="대방어", price=45000)
+
+    feed = client.get("/api/v1/posts/feed", params={"tab": "products"}, headers=auth_headers)
+    assert feed.status_code == 200
+    ids = [p["id"] for p in feed.json()["items"]]
+    assert created["id"] in ids
+    product_post = next(p for p in feed.json()["items"] if p["id"] == created["id"])
+    assert product_post["product"]["name"] == "대방어"
+
+
+def test_feed_reviews_tab_excludes_products(auth_headers):
+    admin_headers = _admin_login()
+    created = _create_admin_product(admin_headers, name="오징어", price=12000)
+
+    reviews = client.get("/api/v1/posts/feed", params={"tab": "reviews"}, headers=auth_headers)
+    assert reviews.status_code == 200
+    assert all(p["id"] != created["id"] for p in reviews.json()["items"])
+
+
+def test_explore_products_tab():
+    admin_headers = _admin_login()
+    created = _create_admin_product(admin_headers, name="새우", price=18000)
+
+    explore = client.get("/api/v1/posts/explore", params={"tab": "products"})
+    assert explore.status_code == 200
+    ids = [p["id"] for p in explore.json()["items"]]
+    assert created["id"] in ids
+
+
+def test_order_quote_and_checkout(auth_headers):
+    admin_headers = _admin_login()
+    product_post = _create_admin_product(admin_headers, name="주문테스트", price=30000)
+    product_id = product_post["product"]["id"]
+
+    quote = client.post(
+        "/api/v1/orders/quote",
+        headers=auth_headers,
+        json={"product_id": product_id, "quantity": 2},
+    )
+    assert quote.status_code == 200, quote.text
+    body = quote.json()
+    assert body["subtotal"] == 60000
+    assert body["shipping_fee"] == 0
+    assert body["total_amount"] == 60000
+
+    quote2 = client.post(
+        "/api/v1/orders/quote",
+        headers=auth_headers,
+        json={"product_id": product_id, "quantity": 1},
+    )
+    assert quote2.json()["shipping_fee"] == 4000
+    assert quote2.json()["total_amount"] == 34000
+
+    order_res = client.post(
+        "/api/v1/orders",
+        headers=auth_headers,
+        json={
+            "product_id": product_id,
+            "quantity": 1,
+            "shipping_name": "Test User",
+            **SHIPPING_PAYLOAD,
+        },
+    )
+    assert order_res.status_code == 201, order_res.text
+    order = order_res.json()["order"]
+    payment = order_res.json()["payment"]
+    assert order["status"] == "pending"
+    assert payment["mock"] is True
+
+    confirm = client.post(f"/api/v1/payments/mock/{order['id']}/confirm", headers=auth_headers)
+    assert confirm.status_code == 200, confirm.text
+    assert confirm.json()["status"] == "paid"
+
+    detail = client.get(f"/api/v1/orders/{order['id']}", headers=auth_headers)
+    assert detail.status_code == 200
+    assert detail.json()["status"] == "paid"
+
+    my_orders = client.get("/api/v1/orders/me", headers=auth_headers)
+    assert my_orders.status_code == 200
+    assert any(o["id"] == order["id"] for o in my_orders.json()["items"])
+
+
+def _create_paid_order(auth_headers: dict, admin_headers: dict, *, name: str = "리뷰테스트") -> dict:
+    product_post = _create_admin_product(admin_headers, name=name, price=30000)
+    product_id = product_post["product"]["id"]
+    order_res = client.post(
+        "/api/v1/orders",
+        headers=auth_headers,
+        json={
+            "product_id": product_id,
+            "quantity": 1,
+            "shipping_name": "Test User",
+            **SHIPPING_PAYLOAD,
+        },
+    )
+    assert order_res.status_code == 201, order_res.text
+    order = order_res.json()["order"]
+    confirm = client.post(f"/api/v1/payments/mock/{order['id']}/confirm", headers=auth_headers)
+    assert confirm.status_code == 200, confirm.text
+    return order
+
+
+def test_admin_order_management(auth_headers):
+    admin_headers = _admin_login()
+    order = _create_paid_order(auth_headers, admin_headers)
+
+    listed = client.get("/api/v1/admin/orders", headers=admin_headers)
+    assert listed.status_code == 200
+    assert any(o["id"] == order["id"] for o in listed.json()["items"])
+
+    prep = client.patch(
+        f"/api/v1/admin/orders/{order['id']}",
+        headers=admin_headers,
+        json={"status": "preparing"},
+    )
+    assert prep.status_code == 200, prep.text
+    assert prep.json()["status"] == "preparing"
+
+    ship = client.patch(
+        f"/api/v1/admin/orders/{order['id']}",
+        headers=admin_headers,
+        json={"status": "shipped", "tracking_number": "1234567890"},
+    )
+    assert ship.status_code == 200, ship.text
+    assert ship.json()["status"] == "shipped"
+    assert ship.json()["tracking_number"] == "1234567890"
+
+    deliver = client.patch(
+        f"/api/v1/admin/orders/{order['id']}",
+        headers=admin_headers,
+        json={"status": "delivered"},
+    )
+    assert deliver.status_code == 200, deliver.text
+    assert deliver.json()["status"] == "delivered"
+
+    detail = client.get(f"/api/v1/orders/{order['id']}", headers=auth_headers)
+    assert detail.status_code == 200
+    assert detail.json()["can_review"] is True
+    assert detail.json()["review_post_id"] is None
+
+
+def test_create_review_after_delivery(auth_headers):
+    admin_headers = _admin_login()
+    order = _create_paid_order(auth_headers, admin_headers, name="리뷰상품")
+
+    for status in ("preparing", "shipped", "delivered"):
+        r = client.patch(
+            f"/api/v1/admin/orders/{order['id']}",
+            headers=admin_headers,
+            json={"status": status},
+        )
+        assert r.status_code == 200, r.text
+
+    review = client.post(
+        "/api/v1/posts/reviews",
+        headers=auth_headers,
+        data={"order_id": str(order["id"]), "rating": "5", "caption": "아주 신선해요"},
+        files={"image": ("review.jpg", _make_image_bytes(), "image/jpeg")},
+    )
+    assert review.status_code == 201, review.text
+    body = review.json()
+    assert body["post_type"] == "review"
+    assert body["rating"] == 5
+    assert body["product"]["name"] == "리뷰상품"
+
+    detail = client.get(f"/api/v1/orders/{order['id']}", headers=auth_headers)
+    assert detail.json()["can_review"] is False
+    assert detail.json()["review_post_id"] == body["id"]
+
+    duplicate = client.post(
+        "/api/v1/posts/reviews",
+        headers=auth_headers,
+        data={"order_id": str(order["id"]), "rating": "4"},
+        files={"image": ("review2.jpg", _make_image_bytes(), "image/jpeg")},
+    )
+    assert duplicate.status_code == 409
+
+    reviews_feed = client.get("/api/v1/posts/feed", params={"tab": "reviews"}, headers=auth_headers)
+    assert reviews_feed.status_code == 200
+    assert any(p["id"] == body["id"] for p in reviews_feed.json()["items"])

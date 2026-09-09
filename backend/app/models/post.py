@@ -17,6 +17,12 @@ class Post(Base):
     like_count: Mapped[int] = mapped_column(Integer, default=0)
     comment_count: Mapped[int] = mapped_column(Integer, default=0)
     is_archived: Mapped[bool] = mapped_column(default=False, server_default="false")
+    post_type: Mapped[str] = mapped_column(String(20), nullable=False, default="standard")
+    reviewed_product_id: Mapped[int | None] = mapped_column(
+        ForeignKey("products.id", ondelete="SET NULL"), nullable=True
+    )
+    order_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), onupdate=func.now())
 
@@ -31,3 +37,5 @@ class Post(Base):
         cascade="all, delete-orphan",
         order_by="PostMedia.position",
     )
+    product = relationship("Product", back_populates="post", uselist=False, foreign_keys="Product.post_id")
+    reviewed_product = relationship("Product", foreign_keys=[reviewed_product_id], viewonly=True)

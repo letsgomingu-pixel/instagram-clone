@@ -3,11 +3,16 @@ import { isAxiosError } from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { InstagramLogo } from '@/components/common/InstagramLogo';
 import { Button } from '@/components/common/Button';
+import { AddressFields } from '@/components/address/AddressFields';
 import { useDebounce } from '@/hooks/useDebounce';
 import {
   validateEmail,
   validateUsername,
   validatePassword,
+  validatePhone,
+  validatePostcode,
+  validateAddressLine1,
+  validateAddressLine2,
   getPasswordStrength,
   getPasswordStrengthLabel,
 } from '@/utils/validateForm';
@@ -20,6 +25,10 @@ export function SignupForm() {
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+  const [postcode, setPostcode] = useState('');
+  const [addressLine1, setAddressLine1] = useState('');
+  const [addressLine2, setAddressLine2] = useState('');
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -62,8 +71,29 @@ export function SignupForm() {
 
     if (!fullName.trim()) return toast.error('이름을 입력해주세요.');
 
+    const phoneVal = validatePhone(phone);
+    if (!phoneVal.valid) return toast.error(phoneVal.message!);
+
+    const postcodeVal = validatePostcode(postcode);
+    if (!postcodeVal.valid) return toast.error(postcodeVal.message!);
+
+    const address1Val = validateAddressLine1(addressLine1);
+    if (!address1Val.valid) return toast.error(address1Val.message!);
+
+    const address2Val = validateAddressLine2(addressLine2);
+    if (!address2Val.valid) return toast.error(address2Val.message!);
+
     try {
-      await register({ email, username, full_name: fullName, password });
+      await register({
+        email,
+        username,
+        full_name: fullName,
+        password,
+        phone: phone.trim(),
+        postcode: postcode.trim(),
+        address_line1: addressLine1.trim(),
+        address_line2: addressLine2.trim(),
+      });
       toast.success('가입을 환영합니다!');
       navigate(from, { replace: true });
     } catch (error) {
@@ -83,11 +113,19 @@ export function SignupForm() {
   };
 
   const isValid =
-    email && username && fullName && password.length >= 8 && !usernameTaken;
+    email &&
+    username &&
+    fullName &&
+    password.length >= 8 &&
+    !usernameTaken &&
+    phone.trim() &&
+    postcode.trim() &&
+    addressLine1.trim() &&
+    addressLine2.trim();
 
   return (
-    <div className="w-full max-w-[350px]">
-      <div className="bg-ig-surface border border-ig-border rounded-xl px-10 py-10 mb-3 shadow-sm">
+    <div className="w-full max-w-[420px]">
+      <div className="bg-ig-surface border border-ig-border rounded-xl px-8 py-8 mb-3 shadow-sm">
         <div className="flex justify-center mb-3">
           <InstagramLogo className="text-[22px] leading-tight text-center" />
         </div>
@@ -124,6 +162,22 @@ export function SignupForm() {
             onChange={(e) => setFullName(e.target.value)}
             className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs"
           />
+
+          <div className="pt-1 pb-1">
+            <p className="text-[11px] font-semibold text-ig-text-secondary mb-2">배송지 정보</p>
+            <AddressFields
+              phone={phone}
+              postcode={postcode}
+              addressLine1={addressLine1}
+              addressLine2={addressLine2}
+              onPhoneChange={setPhone}
+              onPostcodeChange={setPostcode}
+              onAddressLine1Change={setAddressLine1}
+              onAddressLine2Change={setAddressLine2}
+              compact
+            />
+          </div>
+
           <div>
             <input
               type="password"

@@ -9,6 +9,7 @@ import bcrypt
 from sqlalchemy import delete, func, select
 
 from app.database import SessionLocal
+from app.constants.shipping import DEFAULT_SHIPPING
 from app.db_init import init_db
 from app.utils.media import create_seed_image
 from app.models import (
@@ -158,6 +159,7 @@ def seed(reset: bool = False) -> None:
                 bio=data.get("bio"),
                 website=data.get("website"),
                 avatar_url=avatar(data["avatar"]),
+                **DEFAULT_SHIPPING,
             )
             db.add(user)
             db.flush()

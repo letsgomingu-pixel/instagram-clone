@@ -83,6 +83,18 @@ def build_user_out(
 
     from app.services.follow_requests import has_pending_request
 
+    is_own = viewer.id == user.id if viewer else False
+    shipping_fields = (
+        {
+            "phone": user.phone,
+            "postcode": user.postcode,
+            "address_line1": user.address_line1,
+            "address_line2": user.address_line2,
+        }
+        if is_own
+        else {}
+    )
+
     return UserOut(
         id=user.id,
         username=user.username,
@@ -95,10 +107,11 @@ def build_user_out(
         follower_count=follower_count,
         following_count=following_count,
         is_following=is_following(db, viewer.id if viewer else None, user.id),
-        is_own_profile=viewer.id == user.id if viewer else False,
+        is_own_profile=is_own,
         is_admin=user.is_admin,
         is_private=user_is_private(db, user.id),
         is_requested=has_pending_request(db, viewer.id if viewer else None, user.id),
+        **shipping_fields,
     )
 
 

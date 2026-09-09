@@ -1,0 +1,160 @@
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { ProductInfo, formatPrice } from '@/components/post/ProductInfo';
+import { Spinner } from '@/components/common/Spinner';
+import * as ordersApi from '@/api/orders';
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: '결제 대기',
+  paid: '결제 완료',
+  preparing: '상품 준비 중',
+  shipped: '배송 중',
+  delivered: '배송 완료',
+  cancelled: '주문 취소',
+  failed: '결제 실패',
+};
+
+function OrderStatusBadge({ status }: { status: string }) {
+  return (
+    <span className="text-xs font-semibold px-2 py-1 rounded bg-ig-secondary text-ig-text">
+      {STATUS_LABELS[status] || status}
+    </span>
+  );
+}
+
+export function OrdersPage() {
+  const [orders, setOrders] = useState<ordersApi.Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    ordersApi
+      .getMyOrders()
+      .then((data) => setOrders(data.items))
+      .catch(() => toast.error('주문 내역을 불러오지 못했습니다.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Spinner />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-[560px] mx-auto">
+      <div className="feed-card p-6">
+        <h1 className="text-xl font-semibold mb-6">내 주문</h1>
+        {orders.length === 0 ? (
+          <p className="text-sm text-ig-text-secondary text-center py-12">주문 내역이 없습니다.</p>
+        ) : (
+          <ul className="divide-y divide-ig-border">
+            {orders.map((order) => (
+              <li key={order.id} className="py-4">
+                <Link to={`/orders/${order.id}`} className="block hover:opacity-80">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-sm">{order.product?.name || `상품 #${order.product_id}`}</p>
+                      <p className="text-xs text-ig-text-secondary mt-1">
+                        {order.quantity}개 · {formatPrice(order.total_amount)}
+                      </p>
+                      <p className="text-xs text-ig-text-secondary mt-1">{order.created_at.slice(0, 10)}</p>
+                    </div>
+                    <OrderStatusBadge status={order.status} />
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function OrderDetailPage() {
+  const { orderId } = useParams<{ orderId: string }>();
+  const [order, setOrder] = useState<ordersApi.Order | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!orderId) return;
+    ordersApi
+      .getOrder(Number(orderId))
+      .then(setOrder)
+      .catch(() => toast.error('주문 정보를 불러오지 못했습니다.'))
+      .finally(() => setLoading(false));
+  }, [orderId]);
+
+  if (loading || !order) {
+    return (
+      <div className="flex justify-center py-20">
+        <Spinner />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-[560px] mx-auto space-y-4">
+      <div className="feed-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-semibold">주문 #{order.id}</h1>
+          <OrderStatusBadge status={order.status} />
+        </div>
+
+        {order.product && <ProductInfo product={order.product} compact />}
+
+        <div className="mt-4 space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-ig-text-secondary">상품 금액</span>
+            <span>{formatPrice(order.subtotal)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-ig-text-secondary">배송비</span>
+            <span>{order.shipping_fee === 0 ? '무료' : formatPrice(order.shipping_fee)}</span>
+          </div>
+          <div className="flex justify-between font-bold pt-2 border-t border-ig-border">
+            <span>결제 금액</span>
+            <span className="text-ig-primary">{formatPrice(order.total_amount)}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="feed-card p-6 text-sm space-y-2">
+        <h2 className="font-semibold mb-2">배송지</h2>
+        <p>{order.shipping_name}</p>
+        <p>{order.phone}</p>
+        <p>
+          [{order.postcode}] {order.address_line1} {order.address_line2}
+        </p>
+        {order.tracking_number && (
+          <p className="pt-2 text-ig-text-secondary">송장번호: {order.tracking_number}</p>
+        )}
+      </div>
+
+      {order.can_review && (
+        <Link
+          to={`/orders/${order.id}/review`}
+          className="feed-card p-4 block text-center text-sm font-semibold text-white bg-ig-primary rounded-xl hover:opacity-90"
+        >
+          리뷰 작성하기
+        </Link>
+      )}
+
+      {order.review_post_id && (
+        <Link
+          to={`/p/${order.review_post_id}`}
+          className="feed-card p-4 block text-center text-sm font-semibold text-ig-primary hover:underline"
+        >
+          작성한 리뷰 보기
+        </Link>
+      )}
+
+      <Link to="/orders" className="block text-center text-sm text-ig-primary hover:underline">
+        주문 목록으로
+      </Link>
+    </div>
+  );
+}

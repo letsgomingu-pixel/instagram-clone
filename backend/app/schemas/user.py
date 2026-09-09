@@ -1,11 +1,21 @@
 from pydantic import BaseModel, EmailStr, Field
 
+from app.schemas.shipping import ShippingFields
+
 
 class UserUpdate(BaseModel):
     username: str | None = Field(None, min_length=3, max_length=30)
     full_name: str | None = Field(None, max_length=100)
     bio: str | None = Field(None, max_length=150)
     website: str | None = Field(None, max_length=255)
+    phone: str | None = Field(None, min_length=1, max_length=20)
+    postcode: str | None = Field(None, min_length=5, max_length=10)
+    address_line1: str | None = Field(None, min_length=1, max_length=255)
+    address_line2: str | None = Field(None, min_length=1, max_length=255)
+
+
+class ShippingUpdate(ShippingFields):
+    pass
 
 
 class UserOut(BaseModel):
@@ -24,6 +34,10 @@ class UserOut(BaseModel):
     is_admin: bool = False
     is_private: bool = False
     is_requested: bool = False
+    phone: str | None = None
+    postcode: str | None = None
+    address_line1: str | None = None
+    address_line2: str | None = None
 
     model_config = {"from_attributes": True}
 

@@ -15,6 +15,24 @@ class Settings(BaseSettings):
     # Convenient for local dev, dangerous on a public server — keep this False in production.
     seed_demo_users: bool = True
 
+    base_shipping_fee: int = 4000
+    free_shipping_threshold: int = 50000
+
+    portone_store_id: str = ""
+    portone_channel_key: str = ""
+    portone_api_secret: str = ""
+    portone_webhook_secret: str = ""
+    # When true (or API secret missing), use mock payment confirm for local/tests.
+    portone_mock: bool = True
+
+    @property
+    def portone_enabled(self) -> bool:
+        return bool(self.portone_store_id and self.portone_channel_key and self.portone_api_secret)
+
+    @property
+    def use_mock_payments(self) -> bool:
+        return self.portone_mock or not self.portone_enabled
+
     # Media storage: "local" writes to MEDIA_ROOT on disk (default, matches
     # existing deployments). "s3" uploads to S3 and returns CDN URLs instead
     # — see deploy/POSTGRES_AND_S3.md before switching this.

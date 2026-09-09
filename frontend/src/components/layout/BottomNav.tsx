@@ -16,6 +16,7 @@ export function BottomNav() {
   const { user, isAuthenticated } = useAuth();
   const { setCreatePostOpen } = useApp();
   const { requireAuth } = useRequireAuth();
+  const showCreate = Boolean(user?.is_admin);
 
   const handleCreate = () => requireAuth(() => setCreatePostOpen(true));
 
@@ -36,7 +37,7 @@ export function BottomNav() {
       <button
         type="button"
         onClick={handleCreate}
-        className="flex flex-1 items-center justify-center min-h-[49px]"
+        className={`flex flex-1 items-center justify-center min-h-[49px] ${showCreate ? '' : 'hidden'}`}
         aria-label="만들기"
       >
         <NavCreateIcon />

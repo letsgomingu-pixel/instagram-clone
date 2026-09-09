@@ -1,5 +1,6 @@
 from sqlalchemy import select
 
+from app.constants.shipping import DEFAULT_SHIPPING
 from app.database import SessionLocal
 from app.models import User, UserSettings
 from app.services.settings import get_or_create_settings
@@ -49,6 +50,7 @@ def ensure_admin_user() -> None:
             full_name=ADMIN_FULL_NAME,
             is_admin=True,
             is_active=True,
+            **DEFAULT_SHIPPING,
         )
         db.add(user)
         db.flush()
@@ -70,6 +72,7 @@ def ensure_seed_test_user() -> None:
                 password_hash=hash_password(SEED_PASSWORD),
                 full_name=SEED_FULL_NAME,
                 is_active=True,
+                **DEFAULT_SHIPPING,
             )
             db.add(user)
             db.flush()

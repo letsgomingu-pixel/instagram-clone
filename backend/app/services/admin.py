@@ -86,14 +86,23 @@ def delete_user(db: Session, user_id: int, admin: User) -> None:
     db.commit()
 
 
-def list_admin_posts(db: Session, viewer: User, page: int, limit: int) -> tuple[list[PostOut], int]:
-    total = db.scalar(select(func.count()).select_from(Post)) or 0
+def list_admin_posts(
+    db: Session, viewer: User, page: int, limit: int, *, post_type: str | None = None
+) -> tuple[list[PostOut], int]:
+    base = select(Post)
+    if post_type:
+        base = base.where(Post.post_type == post_type)
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     offset = (page - 1) * limit
     posts = db.scalars(
-        select(Post).options(joinedload(Post.user)).order_by(desc(Post.created_at)).offset(offset).limit(limit)
+        base.options(joinedload(Post.user)).order_by(desc(Post.created_at)).offset(offset).limit(limit)
     ).all()
     items = build_posts_out(db, list(posts), viewer)
     return items, total
+
+
+def list_admin_products(db: Session, viewer: User, page: int, limit: int) -> tuple[list[PostOut], int]:
+    return list_admin_posts(db, viewer, page, limit, post_type="product")
 
 
 def delete_post(db: Session, post_id: int) -> None:

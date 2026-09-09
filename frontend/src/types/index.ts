@@ -6,6 +6,10 @@ export interface User {
   bio?: string;
   website?: string;
   avatar_url?: string;
+  phone?: string;
+  postcode?: string;
+  address_line1?: string;
+  address_line2?: string;
   post_count: number;
   follower_count: number;
   following_count: number;
@@ -23,12 +27,32 @@ export interface PostMedia {
   position: number;
 }
 
+export interface Product {
+  id: number;
+  name: string;
+  price: number;
+  unit: string;
+  storage_type: 'fresh' | 'frozen' | 'dried' | 'smoked';
+  availability: 'year_round' | 'seasonal';
+  season_start?: string | null;
+  season_end?: string | null;
+  stock: number;
+  is_active: boolean;
+  is_in_season: boolean;
+  is_available: boolean;
+}
+
+export type FeedTab = 'products' | 'reviews';
+
 export interface Post {
   id: number;
   user: User;
   image_url: string;
   caption?: string;
   location?: string;
+  post_type?: 'standard' | 'product' | 'review';
+  product?: Product | null;
+  rating?: number | null;
   like_count: number;
   comment_count: number;
   is_liked: boolean;
@@ -113,6 +137,17 @@ export interface RegisterData {
   username: string;
   full_name: string;
   password: string;
+  phone: string;
+  postcode: string;
+  address_line1: string;
+  address_line2: string;
+}
+
+export interface ShippingAddress {
+  phone: string;
+  postcode: string;
+  address_line1: string;
+  address_line2: string;
 }
 
 export interface PaginatedResponse<T> {

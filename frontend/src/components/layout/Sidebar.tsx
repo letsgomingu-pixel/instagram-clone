@@ -68,6 +68,10 @@ export function Sidebar() {
 
   const handleCreate = () => requireAuth(() => setCreatePostOpen(true));
 
+  const visibleNavItems = navItems.filter(
+    (item) => item.action !== 'create' || user?.is_admin,
+  );
+
 
 
   return (
@@ -90,7 +94,7 @@ export function Sidebar() {
 
       <nav className="flex flex-col gap-1 flex-1">
 
-        {navItems.map(({ to, label, action, isReels, renderIcon }) =>
+        {visibleNavItems.map(({ to, label, action, isReels, renderIcon }) =>
 
           action === 'create' ? (
 

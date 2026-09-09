@@ -4,6 +4,8 @@ import { cn } from '@/utils/cn';
 
 const settingsNavItems = [
   { to: '/settings/edit', label: '프로필 편집' },
+  { to: '/settings/shipping', label: '배송지 관리' },
+  { to: '/orders', label: '내 주문' },
   { to: '/settings/notifications', label: '알림' },
   { to: '/settings/privacy', label: '개인정보 보호' },
   { to: '/settings/blocked', label: '차단한 계정' },

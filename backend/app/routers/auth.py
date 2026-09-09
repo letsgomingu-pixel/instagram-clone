@@ -58,6 +58,10 @@ def register(body: RegisterRequest, request: Request, db: DbSession):
         email=body.email,
         password_hash=hash_password(body.password),
         full_name=body.full_name,
+        phone=body.phone,
+        postcode=body.postcode,
+        address_line1=body.address_line1,
+        address_line2=body.address_line2,
     )
     db.add(user)
     db.flush()

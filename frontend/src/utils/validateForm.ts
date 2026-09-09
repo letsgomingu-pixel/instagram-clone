@@ -24,6 +24,34 @@ export function validatePassword(password: string): ValidationResult {
   return { valid: true };
 }
 
+export function validatePhone(phone: string): ValidationResult {
+  const normalized = phone.trim();
+  if (!normalized) return { valid: false, message: '휴대폰 번호를 입력해주세요.' };
+  if (!/^01[0-9]-?\d{3,4}-?\d{4}$/.test(normalized)) {
+    return { valid: false, message: '올바른 휴대폰 번호 형식이 아닙니다.' };
+  }
+  return { valid: true };
+}
+
+export function validatePostcode(postcode: string): ValidationResult {
+  const normalized = postcode.trim();
+  if (!normalized) return { valid: false, message: '우편번호를 검색해주세요.' };
+  if (!/^\d{5}$/.test(normalized)) {
+    return { valid: false, message: '우편번호는 5자리 숫자여야 합니다.' };
+  }
+  return { valid: true };
+}
+
+export function validateAddressLine1(address: string): ValidationResult {
+  if (!address.trim()) return { valid: false, message: '주소를 검색해주세요.' };
+  return { valid: true };
+}
+
+export function validateAddressLine2(address: string): ValidationResult {
+  if (!address.trim()) return { valid: false, message: '상세주소를 입력해주세요.' };
+  return { valid: true };
+}
+
 export function getPasswordStrength(password: string): 'weak' | 'medium' | 'strong' {
   if (password.length < 8) return 'weak';
   const hasUpper = /[A-Z]/.test(password);

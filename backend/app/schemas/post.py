@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+from app.schemas.product import ProductOut
 from app.schemas.user import UserOut
 
 
@@ -41,12 +42,21 @@ class PostReportCreate(BaseModel):
     details: str | None = Field(None, max_length=500)
 
 
+class ReviewCreate(BaseModel):
+    order_id: int
+    rating: int = Field(ge=1, le=5)
+    caption: str | None = Field(None, max_length=2200)
+
+
 class PostOut(BaseModel):
     id: int
     user: UserOut
     image_url: str
     caption: str | None = None
     location: str | None = None
+    post_type: str = "standard"
+    product: ProductOut | None = None
+    rating: int | None = None
     like_count: int
     comment_count: int
     is_liked: bool = False

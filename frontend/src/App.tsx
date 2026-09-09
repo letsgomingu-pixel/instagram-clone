@@ -11,7 +11,9 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
 import { AdminLoginPage } from '@/pages/admin/AdminLoginPage';
 import { AdminPostsPage } from '@/pages/admin/AdminPostsPage';
+import { AdminProductsPage } from '@/pages/admin/AdminProductsPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
+import { AdminOrdersPage } from '@/pages/admin/AdminOrdersPage';
 import { HomePage } from '@/pages/HomePage';
 import { ExplorePage } from '@/pages/ExplorePage';
 import { HashtagPage } from '@/pages/HashtagPage';
@@ -24,6 +26,7 @@ import { SignupPage } from '@/pages/SignupPage';
 import { MessagesPage } from '@/pages/MessagesPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
 import { SettingsEditProfilePage } from '@/pages/settings/SettingsEditProfilePage';
+import { SettingsShippingPage } from '@/pages/settings/SettingsShippingPage';
 import { SettingsNotificationsPage } from '@/pages/settings/SettingsNotificationsPage';
 import { SettingsPrivacyPage } from '@/pages/settings/SettingsPrivacyPage';
 import { SettingsSecurityPage } from '@/pages/settings/SettingsSecurityPage';
@@ -32,6 +35,9 @@ import { SettingsIndexPage } from '@/pages/settings/SettingsIndexPage';
 import { ReelsPage } from '@/pages/ReelsPage';
 import { SettingsBlockedPage } from '@/pages/settings/SettingsBlockedPage';
 import { CollectionDetailPage } from '@/pages/CollectionDetailPage';
+import { CheckoutPage } from '@/pages/CheckoutPage';
+import { OrdersPage, OrderDetailPage } from '@/pages/OrdersPage';
+import { OrderReviewPage } from '@/pages/OrderReviewPage';
 import { ArchivedPostsPage } from '@/pages/ArchivedPostsPage';
 import { SuggestedUsersPage } from '@/pages/SuggestedUsersPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
@@ -62,7 +68,9 @@ export default function App() {
                 <Route element={<AdminLayout />}>
                   <Route path="/admin" element={<AdminDashboardPage />} />
                   <Route path="/admin/users" element={<AdminUsersPage />} />
+                  <Route path="/admin/products" element={<AdminProductsPage />} />
                   <Route path="/admin/posts" element={<AdminPostsPage />} />
+                  <Route path="/admin/orders" element={<AdminOrdersPage />} />
                 </Route>
               </Route>
 
@@ -84,11 +92,16 @@ export default function App() {
                   <Route path="/messages/group/:conversationId" element={<MessagesPage />} />
                   <Route path="/messages/:username" element={<MessagesPage />} />
                   <Route path="/archive" element={<ArchivedPostsPage />} />
+                  <Route path="/checkout/:productId" element={<CheckoutPage />} />
+                  <Route path="/orders" element={<OrdersPage />} />
+                  <Route path="/orders/:orderId" element={<OrderDetailPage />} />
+                  <Route path="/orders/:orderId/review" element={<OrderReviewPage />} />
                   <Route path="/collections/:collectionId" element={<CollectionDetailPage />} />
                   <Route path="/profile/edit" element={<EditProfilePage />} />
                   <Route path="/settings" element={<SettingsLayout />}>
                     <Route index element={<SettingsIndexPage />} />
                     <Route path="edit" element={<SettingsEditProfilePage />} />
+                    <Route path="shipping" element={<SettingsShippingPage />} />
                     <Route path="notifications" element={<SettingsNotificationsPage />} />
                     <Route path="privacy" element={<SettingsPrivacyPage />} />
                     <Route path="blocked" element={<SettingsBlockedPage />} />

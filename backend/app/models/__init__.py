@@ -8,10 +8,12 @@ from app.models.hidden_post import HiddenPost
 from app.models.like import Like
 from app.models.login_session import LoginSession
 from app.models.notification import Notification
+from app.models.order import Order, Payment
 from app.models.post import Post
 from app.models.post_media import PostMedia
 from app.models.post_report import PostReport
 from app.models.post_tag import PostTag
+from app.models.product import Product
 from app.models.recent_search import RecentSearch
 from app.models.reel import Reel, ReelLike
 from app.models.reel_comment import ReelComment
@@ -32,6 +34,9 @@ __all__ = [
     "LoginSession",
     "Post",
     "PostMedia",
+    "Product",
+    "Order",
+    "Payment",
     "Comment",
     "CommentLike",
     "Like",

@@ -20,7 +20,7 @@ import {
 
 import toast from 'react-hot-toast';
 
-import type { Post, Reel, Story, SuggestedUser, User } from '@/types';
+import type { FeedTab, Post, Reel, Story, SuggestedUser, User } from '@/types';
 
 import * as postsApi from '@/api/posts';
 
@@ -53,6 +53,10 @@ interface AppContextValue {
   suggestedUsers: SuggestedUser[];
 
   loading: boolean;
+
+  feedTab: FeedTab;
+
+  setFeedTab: (tab: FeedTab) => void;
 
   feedHasMore: boolean;
 
@@ -168,6 +172,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [loading, setLoading] = useState(true);
 
+  const [feedTab, setFeedTab] = useState<FeedTab>('products');
+
   const [feedPage, setFeedPage] = useState(1);
 
   const [feedCursor, setFeedCursor] = useState<string | null>(null);
@@ -195,6 +201,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [profileReels, setProfileReels] = useState<Reel[]>([]);
 
   const viewedReelsRef = useRef(new Set<number>());
+  const feedTabInitializedRef = useRef(false);
 
 
 
@@ -256,7 +263,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     if (!isAuthenticated) {
 
-      const data = await postsApi.getExplore(1, FEED_PAGE_SIZE);
+      const data = await postsApi.getExplore(1, FEED_PAGE_SIZE, feedTab);
 
       setPosts(data.items);
 
@@ -268,7 +275,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     }
 
-    const data = await postsApi.getFeed(1, FEED_PAGE_SIZE);
+    const data = await postsApi.getFeed(1, FEED_PAGE_SIZE, null, feedTab);
 
     setPosts(data.items);
 
@@ -278,7 +285,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     setFeedHasMore(data.next_cursor != null || data.next_page !== null);
 
-  }, [isAuthenticated]);
+  }, [isAuthenticated, feedTab]);
 
 
 
@@ -292,9 +299,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       const data = isAuthenticated
 
-        ? await postsApi.getFeed(feedPage + 1, FEED_PAGE_SIZE, feedCursor)
+        ? await postsApi.getFeed(feedPage + 1, FEED_PAGE_SIZE, feedCursor, feedTab)
 
-        : await postsApi.getExplore(explorePage + 1, EXPLORE_PAGE_SIZE);
+        : await postsApi.getExplore(feedPage + 1, FEED_PAGE_SIZE, feedTab);
 
       setPosts((prev) => [...prev, ...data.items]);
 
@@ -303,8 +310,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setFeedHasMore(data.next_cursor != null || data.next_page !== null);
         setFeedPage((p) => p + 1);
       } else {
-        setExplorePage((p) => p + 1);
-        setExploreHasMore(data.next_page !== null);
+        setFeedPage((p) => p + 1);
+        setFeedHasMore(data.next_page !== null);
       }
 
     } finally {
@@ -313,7 +320,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     }
 
-  }, [isAuthenticated, feedLoadingMore, feedHasMore, feedPage, feedCursor, explorePage]);
+  }, [isAuthenticated, feedLoadingMore, feedHasMore, feedPage, feedCursor, feedTab]);
+
+
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!feedTabInitializedRef.current) {
+      feedTabInitializedRef.current = true;
+      return;
+    }
+    void refreshFeed();
+  }, [feedTab, authLoading, refreshFeed]);
 
 
 
@@ -407,9 +425,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         const feed = isAuthenticated
 
-          ? postsApi.getFeed(1, FEED_PAGE_SIZE)
+          ? postsApi.getFeed(1, FEED_PAGE_SIZE, null, feedTab)
 
-          : postsApi.getExplore(1, FEED_PAGE_SIZE);
+          : postsApi.getExplore(1, FEED_PAGE_SIZE, feedTab);
 
         const storiesData = isAuthenticated ? storiesApi.getStoriesFeed() : Promise.resolve([]);
         const suggestedData = usersApi.getSuggestedUsers(10);
@@ -429,8 +447,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setExplorePage(1);
         setReels(reelsRes.items);
         setPosts(feedRes.items);
-        setFeedHasMore(feedRes.next_page !== null);
+        setFeedHasMore(
+          isAuthenticated
+            ? feedRes.next_cursor != null || feedRes.next_page !== null
+            : feedRes.next_page !== null,
+        );
         setFeedPage(1);
+        if (isAuthenticated) {
+          setFeedCursor(feedRes.next_cursor ?? null);
+        }
         setStories(storiesRes);
         setSuggestedUsers(suggestedRes);
 
@@ -849,6 +874,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       loading,
 
+      feedTab,
+
+      setFeedTab,
+
       feedHasMore,
 
       feedLoadingMore,
@@ -944,6 +973,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       suggestedUsers,
 
       loading,
+
+      feedTab,
 
       feedHasMore,
 

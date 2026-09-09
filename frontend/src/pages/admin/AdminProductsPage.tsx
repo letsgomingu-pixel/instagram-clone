@@ -1,0 +1,312 @@
+import { useCallback, useEffect, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { ImagePlus, X } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { createAdminProduct, getAdminProducts } from '@/api/admin';
+import { Button } from '@/components/common/Button';
+import { MediaImage } from '@/components/common/MediaImage';
+import { Spinner } from '@/components/common/Spinner';
+import { ProductInfo, formatPrice } from '@/components/post/ProductInfo';
+import type { Post, Product } from '@/types';
+
+const STORAGE_OPTIONS: { value: Product['storage_type']; label: string }[] = [
+  { value: 'fresh', label: '신선' },
+  { value: 'frozen', label: '냉동' },
+  { value: 'dried', label: '건조' },
+  { value: 'smoked', label: '훈제' },
+];
+
+const AVAILABILITY_OPTIONS: { value: Product['availability']; label: string }[] = [
+  { value: 'year_round', label: '연중' },
+  { value: 'seasonal', label: '제철' },
+];
+
+export function AdminProductsPage() {
+  const [products, setProducts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 12;
+
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState('');
+  const [unit, setUnit] = useState('1kg');
+  const [storageType, setStorageType] = useState<Product['storage_type']>('fresh');
+  const [availability, setAvailability] = useState<Product['availability']>('year_round');
+  const [seasonStart, setSeasonStart] = useState('');
+  const [seasonEnd, setSeasonEnd] = useState('');
+  const [stock, setStock] = useState('0');
+  const [caption, setCaption] = useState('');
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+
+  const load = () => {
+    setLoading(true);
+    getAdminProducts(page, limit)
+      .then((data) => {
+        setProducts(data.items);
+        setTotal(data.total);
+      })
+      .catch(() => toast.error('상품 목록을 불러오지 못했습니다.'))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    load();
+  }, [page]);
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (!acceptedFiles.length) return;
+    setFiles((prev) => [...prev, ...acceptedFiles].slice(0, 10));
+    setPreviews((prev) => [
+      ...prev,
+      ...acceptedFiles.map((file) => URL.createObjectURL(file)),
+    ].slice(0, 10));
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
+    maxFiles: 10,
+    multiple: true,
+  });
+
+  const resetForm = () => {
+    previews.forEach((url) => URL.revokeObjectURL(url));
+    setName('');
+    setPrice('');
+    setUnit('1kg');
+    setStorageType('fresh');
+    setAvailability('year_round');
+    setSeasonStart('');
+    setSeasonEnd('');
+    setStock('0');
+    setCaption('');
+    setFiles([]);
+    setPreviews([]);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return toast.error('상품명을 입력해주세요.');
+    if (!price.trim() || Number(price) < 0) return toast.error('가격을 입력해주세요.');
+    if (!files.length) return toast.error('상품 사진을 등록해주세요.');
+    if (availability === 'seasonal' && (!seasonStart || !seasonEnd)) {
+      return toast.error('제철 상품은 제철 기간을 입력해주세요.');
+    }
+
+    setSaving(true);
+    try {
+      await createAdminProduct({
+        name: name.trim(),
+        price: Number(price),
+        unit: unit.trim(),
+        storage_type: storageType,
+        availability,
+        stock: Number(stock) || 0,
+        season_start: availability === 'seasonal' ? seasonStart : undefined,
+        season_end: availability === 'seasonal' ? seasonEnd : undefined,
+        caption: caption.trim() || undefined,
+        files,
+      });
+      toast.success('상품이 등록되었습니다.');
+      resetForm();
+      setPage(1);
+      load();
+    } catch {
+      toast.error('상품 등록에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-semibold mb-2">상품 관리</h1>
+        <p className="text-sm text-ig-text-secondary">관리자 계정으로 수산물 상품 게시물을 등록합니다.</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="bg-white border border-ig-border rounded-xl p-6 space-y-5">
+        <h2 className="text-lg font-semibold">새 상품 등록</h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label className="block">
+            <span className="text-sm font-medium">상품명</span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
+              placeholder="예: 광어회"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium">가격 (원)</span>
+            <input
+              type="number"
+              min={0}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
+              placeholder="35000"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium">단위</span>
+            <input
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
+              placeholder="1kg"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium">재고</span>
+            <input
+              type="number"
+              min={0}
+              value={stock}
+              onChange={(e) => setStock(e.target.value)}
+              className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
+            />
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium">보관</span>
+            <select
+              value={storageType}
+              onChange={(e) => setStorageType(e.target.value as Product['storage_type'])}
+              className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
+            >
+              {STORAGE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium">판매 시기</span>
+            <select
+              value={availability}
+              onChange={(e) => setAvailability(e.target.value as Product['availability'])}
+              className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
+            >
+              {AVAILABILITY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {availability === 'seasonal' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-sm font-medium">제철 시작</span>
+              <input
+                type="date"
+                value={seasonStart}
+                onChange={(e) => setSeasonStart(e.target.value)}
+                className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">제철 종료</span>
+              <input
+                type="date"
+                value={seasonEnd}
+                onChange={(e) => setSeasonEnd(e.target.value)}
+                className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
+              />
+            </label>
+          </div>
+        )}
+
+        <label className="block">
+          <span className="text-sm font-medium">설명 (캡션)</span>
+          <textarea
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary min-h-[80px] resize-none"
+            placeholder="상품 설명을 입력하세요"
+          />
+        </label>
+
+        <div>
+          <span className="text-sm font-medium block mb-2">상품 사진</span>
+          <div
+            {...getRootProps()}
+            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer ${
+              isDragActive ? 'border-ig-primary bg-ig-secondary' : 'border-ig-border'
+            }`}
+          >
+            <input {...getInputProps()} />
+            <ImagePlus className="mx-auto mb-2 text-ig-text-secondary" size={28} />
+            <p className="text-sm text-ig-text-secondary">클릭하거나 드래그하여 사진 업로드 (최대 10장)</p>
+          </div>
+          {previews.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {previews.map((url, index) => (
+                <div key={url} className="relative h-20 w-20 rounded-lg overflow-hidden border border-ig-border">
+                  <img src={url} alt="" className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      URL.revokeObjectURL(url);
+                      setPreviews((prev) => prev.filter((_, i) => i !== index));
+                      setFiles((prev) => prev.filter((_, i) => i !== index));
+                    }}
+                    className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <Button type="submit" loading={saving}>상품 등록</Button>
+      </form>
+
+      <div>
+        <h2 className="text-lg font-semibold mb-4">등록된 상품</h2>
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Spinner />
+          </div>
+        ) : products.length === 0 ? (
+          <p className="text-sm text-ig-text-secondary py-8 text-center">등록된 상품이 없습니다.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {products.map((post) => (
+              <article key={post.id} className="bg-white border border-ig-border rounded-xl overflow-hidden">
+                <div className="aspect-square bg-ig-secondary">
+                  <MediaImage src={post.image_url} alt={post.product?.name || '상품'} className="w-full h-full object-cover" />
+                </div>
+                {post.product && <ProductInfo product={post.product} compact />}
+                <div className="px-4 py-3 text-xs text-ig-text-secondary flex justify-between">
+                  <span>#{post.id}</span>
+                  <span>{post.product ? formatPrice(post.product.price) : ''}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between mt-6">
+          <p className="text-xs text-ig-text-secondary">총 {total.toLocaleString()}개</p>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+              이전
+            </Button>
+            <span className="text-xs self-center">{page} / {totalPages}</span>
+            <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+              다음
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+from app.schemas.shipping import ShippingFields
 from app.schemas.user import UserOut
 
 
@@ -11,7 +12,7 @@ class LoginRequest(BaseModel):
     trust_device: bool = False
 
 
-class RegisterRequest(BaseModel):
+class RegisterRequest(ShippingFields):
     email: EmailStr
     username: str = Field(min_length=3, max_length=30)
     full_name: str = Field(min_length=1, max_length=100)
