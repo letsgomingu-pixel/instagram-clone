@@ -16,7 +16,6 @@ class Settings(BaseSettings):
     seed_demo_users: bool = True
 
     base_shipping_fee: int = 4000
-    free_shipping_threshold: int = 50000
 
     portone_store_id: str = ""
     portone_channel_key: str = ""

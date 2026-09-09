@@ -147,6 +147,83 @@ def create_reply_notification(
     )
 
 
+def create_order_status_notification(
+    db: Session,
+    *,
+    recipient_id: int,
+    actor_id: int,
+    order_id: int,
+    ntype: str,
+    message: str,
+) -> None:
+    if not user_allows_notification(db, recipient_id, "notify_orders"):
+        return
+    db.add(
+        Notification(
+            recipient_id=recipient_id,
+            actor_id=actor_id,
+            type=ntype,
+            tab="you",
+            order_id=order_id,
+            comment_preview=message,
+            is_read=False,
+        )
+    )
+
+
+def notify_admins_new_order(db: Session, *, buyer: User, order_id: int, product_name: str) -> None:
+    from app.models import User as UserModel
+
+    admin_ids = db.scalars(
+        select(UserModel.id).where(UserModel.is_admin.is_(True), UserModel.is_active.is_(True))
+    ).all()
+    message = f"{product_name} 주문 #{order_id}이(가) 결제되었습니다."
+    for admin_id in admin_ids:
+        if admin_id == buyer.id:
+            continue
+        create_order_status_notification(
+            db,
+            recipient_id=admin_id,
+            actor_id=buyer.id,
+            order_id=order_id,
+            ntype="order_new",
+            message=message,
+        )
+
+
+def notify_buyer_order_status(
+    db: Session,
+    *,
+    buyer_id: int,
+    actor_id: int,
+    order_id: int,
+    status: str,
+    product_name: str,
+    tracking_number: str | None = None,
+) -> None:
+    messages = {
+        "preparing": f"{product_name} 주문을 준비하고 있습니다.",
+        "shipped": f"{product_name} 상품이 배송 시작되었습니다."
+        + (f" (송장: {tracking_number})" if tracking_number else ""),
+        "delivered": f"{product_name} 배송이 완료되었습니다. 리뷰를 남겨주세요!",
+    }
+    ntypes = {
+        "preparing": "order_preparing",
+        "shipped": "order_shipped",
+        "delivered": "order_delivered",
+    }
+    if status not in messages:
+        return
+    create_order_status_notification(
+        db,
+        recipient_id=buyer_id,
+        actor_id=actor_id,
+        order_id=order_id,
+        ntype=ntypes[status],
+        message=messages[status],
+    )
+
+
 def create_tag_notifications(db: Session, *, actor: User, post: Post, tagged_user_ids: list[int]) -> None:
     for uid in tagged_user_ids:
         if uid == actor.id:

@@ -188,7 +188,17 @@ export interface Conversation {
   has_more_messages?: boolean;
 }
 
-export type NotificationType = 'like' | 'follow' | 'comment' | 'mention' | 'reply' | 'follow_request';
+export type NotificationType =
+  | 'like'
+  | 'follow'
+  | 'comment'
+  | 'mention'
+  | 'reply'
+  | 'follow_request'
+  | 'order_new'
+  | 'order_preparing'
+  | 'order_shipped'
+  | 'order_delivered';
 
 export type NotificationTab = 'you' | 'following';
 
@@ -199,6 +209,7 @@ export interface Notification {
   actor: User;
   target_username?: string;
   post_id?: number;
+  order_id?: number;
   post_image_url?: string;
   comment_preview?: string;
   created_at: string;

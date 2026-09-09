@@ -1023,8 +1023,8 @@ def test_order_quote_and_checkout(auth_headers):
     assert quote.status_code == 200, quote.text
     body = quote.json()
     assert body["subtotal"] == 60000
-    assert body["shipping_fee"] == 0
-    assert body["total_amount"] == 60000
+    assert body["shipping_fee"] == 4000
+    assert body["total_amount"] == 64000
 
     quote2 = client.post(
         "/api/v1/orders/quote",

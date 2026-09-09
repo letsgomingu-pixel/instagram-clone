@@ -10,6 +10,7 @@ class NotificationOut(BaseModel):
     actor: UserOut
     target_username: str | None = None
     post_id: int | None = None
+    order_id: int | None = None
     post_image_url: str | None = None
     comment_preview: str | None = None
     created_at: str

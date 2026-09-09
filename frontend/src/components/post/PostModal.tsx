@@ -17,6 +17,7 @@ import {
 } from '@/components/post/PostActionIcons';
 import { CommentList } from '@/components/comment/CommentList';
 import { CommentInput } from '@/components/comment/CommentInput';
+import { ProductInfo } from '@/components/post/ProductInfo';
 import { formatRelativeTime } from '@/utils/formatDate';
 import { useApp } from '@/contexts/AppContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -126,6 +127,23 @@ export function PostModal({ post, onClose }: PostModalProps) {
               onUnfollow={post.user.is_following ? () => requireAuth(() => toggleFollow(post.user.id)) : undefined}
             />
           </div>
+
+          {post.post_type === 'product' && post.product && (
+            <ProductInfo product={post.product} showBuyButton />
+          )}
+
+          {post.post_type === 'review' && (
+            <div className="px-4 py-2 border-b border-ig-border bg-[#fafafa] space-y-1">
+              {post.rating != null && (
+                <p className="text-[13px] font-semibold text-amber-600">
+                  {'★'.repeat(post.rating)}{'☆'.repeat(5 - post.rating)}
+                </p>
+              )}
+              {post.product && (
+                <p className="text-[12px] text-ig-text-secondary">{post.product.name} 구매 리뷰</p>
+              )}
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto px-4 py-3">
             {post.caption && (

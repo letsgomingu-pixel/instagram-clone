@@ -604,6 +604,7 @@ def build_notification_out(db: Session, notification: Notification, viewer: User
         actor=build_user_out(db, notification.actor, viewer),
         target_username=target_username,
         post_id=notification.post_id,
+        order_id=notification.order_id,
         post_image_url=post_image_url,
         comment_preview=notification.comment_preview,
         created_at=to_iso(notification.created_at),

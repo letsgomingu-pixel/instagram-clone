@@ -20,7 +20,6 @@ class OrderQuoteOut(BaseModel):
     subtotal: int
     shipping_fee: int
     total_amount: int
-    free_shipping_threshold: int
     base_shipping_fee: int
 
 

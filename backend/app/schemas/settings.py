@@ -10,6 +10,7 @@ class UserSettingsOut(BaseModel):
     notify_comments: bool = True
     notify_follows: bool = True
     notify_mentions: bool = True
+    notify_orders: bool = True
     is_private: bool = False
     show_activity_status: bool = True
     allow_story_replies: bool = True
@@ -22,6 +23,7 @@ class UserSettingsUpdate(BaseModel):
     notify_comments: bool | None = None
     notify_follows: bool | None = None
     notify_mentions: bool | None = None
+    notify_orders: bool | None = None
     is_private: bool | None = None
     show_activity_status: bool | None = None
     allow_story_replies: bool | None = None

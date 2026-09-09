@@ -164,13 +164,8 @@ export function CheckoutPage() {
           </div>
           <div className="flex justify-between">
             <span>배송비</span>
-            <span>{quote.shipping_fee === 0 ? '무료' : formatPrice(quote.shipping_fee)}</span>
+            <span>{formatPrice(quote.shipping_fee)}</span>
           </div>
-          {quote.shipping_fee > 0 && (
-            <p className="text-xs text-ig-text-secondary">
-              {formatPrice(quote.free_shipping_threshold)} 이상 구매 시 무료배송
-            </p>
-          )}
           <div className="flex justify-between font-bold text-base pt-2 border-t border-ig-border">
             <span>결제 금액</span>
             <span className="text-ig-primary">{formatPrice(quote.total_amount)}</span>

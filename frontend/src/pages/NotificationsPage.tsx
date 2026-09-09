@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { NotificationItem } from '@/components/notification/NotificationItem';
 import {
   groupNotificationsByPeriod,
@@ -16,6 +16,7 @@ import { cn } from '@/utils/cn';
 
 export function NotificationsPage() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useAuth();
   const { setSelectedPost, followUser, unfollowUser, suggestedUsers } = useApp();
   const [tab, setTab] = useState<NotificationTab>('you');
@@ -96,6 +97,19 @@ export function NotificationsPage() {
         ),
       );
     });
+  };
+
+  const handleOpenOrder = (orderId: number) => {
+    const unreadIds = notifications
+      .filter((n) => n.order_id === orderId && !n.is_read)
+      .map((n) => n.id);
+    unreadIds.forEach((id) => {
+      notificationsApi.markNotificationRead(id).catch(() => undefined);
+    });
+    setNotifications((prev) =>
+      prev.map((n) => (n.order_id === orderId ? { ...n, is_read: true } : n)),
+    );
+    navigate(`/orders/${orderId}`);
   };
 
   const handleMarkRead = (id: number) => {
@@ -188,6 +202,7 @@ export function NotificationsPage() {
                     notification={notification}
                     isFollowing={isFollowing(notification.actor.id)}
                     onOpenPost={handleOpenPost}
+                    onOpenOrder={handleOpenOrder}
                     onFollow={handleFollow}
                     onAcceptFollowRequest={handleAcceptFollowRequest}
                     onRejectFollowRequest={handleRejectFollowRequest}

@@ -3,9 +3,7 @@
 from app.config import settings
 
 
-def calculate_shipping_fee(subtotal: int) -> int:
-    if subtotal >= settings.free_shipping_threshold:
-        return 0
+def calculate_shipping_fee(_subtotal: int) -> int:
     return settings.base_shipping_fee
 
 

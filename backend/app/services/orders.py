@@ -49,7 +49,6 @@ def build_order_quote(db: Session, product_id: int, quantity: int) -> OrderQuote
         subtotal=subtotal,
         shipping_fee=shipping_fee,
         total_amount=total,
-        free_shipping_threshold=settings.free_shipping_threshold,
         base_shipping_fee=settings.base_shipping_fee,
     )
 
@@ -247,8 +246,19 @@ def confirm_order_paid(db: Session, order: Order, *, portone_tx_id: str | None =
             order.payment.portone_tx_id = portone_tx_id
         if raw_webhook:
             order.payment.raw_webhook = raw_webhook
+    product_name = order.product.name if order.product else "상품"
+    buyer_id = order.user_id
     db.commit()
     db.refresh(order)
+
+    from app.models import User as UserModel
+    from app.services.notifications import notify_admins_new_order
+
+    buyer = db.get(UserModel, buyer_id)
+    if buyer:
+        notify_admins_new_order(db, buyer=buyer, order_id=order.id, product_name=product_name)
+        db.commit()
+
     return order
 
 
@@ -359,11 +369,12 @@ def list_admin_orders(
     return list(orders), total
 
 
-def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate) -> Order:
+def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin: User) -> Order:
     order = get_order_for_admin(db, order_id)
     if body.status is None and body.tracking_number is None:
         raise HTTPException(status_code=400, detail="No fields to update")
 
+    status_changed: str | None = None
     if body.status is not None:
         required_from = ADMIN_STATUS_FROM[body.status]
         if order.status != required_from:
@@ -373,6 +384,7 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate) -> Or
             )
         now = datetime.now(timezone.utc)
         order.status = body.status
+        status_changed = body.status
         if body.status == "shipped":
             order.shipped_at = now
         elif body.status == "delivered":
@@ -382,4 +394,21 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate) -> Or
         order.tracking_number = body.tracking_number.strip() or None
 
     db.commit()
-    return get_order_for_admin(db, order_id)
+    order = get_order_for_admin(db, order_id)
+
+    if status_changed:
+        from app.services.notifications import notify_buyer_order_status
+
+        product_name = order.product.name if order.product else "상품"
+        notify_buyer_order_status(
+            db,
+            buyer_id=order.user_id,
+            actor_id=admin.id,
+            order_id=order.id,
+            status=status_changed,
+            product_name=product_name,
+            tracking_number=order.tracking_number,
+        )
+        db.commit()
+
+    return order

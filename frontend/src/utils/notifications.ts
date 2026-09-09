@@ -34,6 +34,19 @@ export function formatNotificationTime(dateString: string): string {
 export function getNotificationMessage(notification: Notification): string {
   const { type, target_username, comment_preview } = notification;
 
+  if (type === 'order_new') {
+    return comment_preview || '새 주문이 접수되었습니다.';
+  }
+  if (type === 'order_preparing') {
+    return comment_preview || '주문 상품을 준비하고 있습니다.';
+  }
+  if (type === 'order_shipped') {
+    return comment_preview || '상품이 배송 시작되었습니다.';
+  }
+  if (type === 'order_delivered') {
+    return comment_preview || '배송이 완료되었습니다.';
+  }
+
   if (type === 'like') {
     return target_username
       ? `${target_username}님의 게시물을 좋아합니다.`
@@ -57,6 +70,10 @@ export function getNotificationMessage(notification: Notification): string {
   return target_username
     ? `${target_username}님의 게시물에 댓글을 남겼습니다.`
     : '회원님의 게시물에 댓글을 남겼습니다.';
+}
+
+export function isOrderNotification(type: Notification['type']): boolean {
+  return type.startsWith('order_');
 }
 
 function getNotificationPeriod(notification: Notification, now: Date): NotificationPeriod {

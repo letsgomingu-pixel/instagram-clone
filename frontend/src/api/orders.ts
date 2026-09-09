@@ -10,7 +10,6 @@ export interface OrderQuote {
   subtotal: number;
   shipping_fee: number;
   total_amount: number;
-  free_shipping_threshold: number;
   base_shipping_fee: number;
 }
 

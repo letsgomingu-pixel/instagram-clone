@@ -5,6 +5,7 @@ export interface UserSettings {
   notify_comments: boolean;
   notify_follows: boolean;
   notify_mentions: boolean;
+  notify_orders: boolean;
   is_private: boolean;
   show_activity_status: boolean;
   allow_story_replies: boolean;

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { OrderTimeline } from '@/components/order/OrderTimeline';
 import { ProductInfo, formatPrice } from '@/components/post/ProductInfo';
+import { Button } from '@/components/common/Button';
 import { Spinner } from '@/components/common/Spinner';
 import * as ordersApi from '@/api/orders';
 
@@ -48,7 +50,12 @@ export function OrdersPage() {
       <div className="feed-card p-6">
         <h1 className="text-xl font-semibold mb-6">내 주문</h1>
         {orders.length === 0 ? (
-          <p className="text-sm text-ig-text-secondary text-center py-12">주문 내역이 없습니다.</p>
+          <div className="text-center py-12">
+            <p className="text-sm text-ig-text-secondary mb-4">주문 내역이 없습니다.</p>
+            <Link to="/" className="text-sm text-ig-primary font-semibold hover:underline">
+              상품 둘러보기
+            </Link>
+          </div>
         ) : (
           <ul className="divide-y divide-ig-border">
             {orders.map((order) => (
@@ -76,22 +83,40 @@ export function OrdersPage() {
 
 export function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
+  const navigate = useNavigate();
   const [order, setOrder] = useState<ordersApi.Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!orderId) return;
+    setLoading(true);
+    setError(false);
     ordersApi
       .getOrder(Number(orderId))
       .then(setOrder)
-      .catch(() => toast.error('주문 정보를 불러오지 못했습니다.'))
+      .catch(() => {
+        setError(true);
+        toast.error('주문 정보를 불러오지 못했습니다.');
+      })
       .finally(() => setLoading(false));
   }, [orderId]);
 
-  if (loading || !order) {
+  if (loading) {
     return (
       <div className="flex justify-center py-20">
         <Spinner />
+      </div>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <div className="max-w-[560px] mx-auto feed-card p-8 text-center space-y-4">
+        <p className="text-sm text-ig-text-secondary">주문을 찾을 수 없습니다.</p>
+        <Button variant="secondary" onClick={() => navigate('/orders')}>
+          주문 목록으로
+        </Button>
       </div>
     );
   }
@@ -113,13 +138,18 @@ export function OrderDetailPage() {
           </div>
           <div className="flex justify-between">
             <span className="text-ig-text-secondary">배송비</span>
-            <span>{order.shipping_fee === 0 ? '무료' : formatPrice(order.shipping_fee)}</span>
+            <span>{formatPrice(order.shipping_fee)}</span>
           </div>
           <div className="flex justify-between font-bold pt-2 border-t border-ig-border">
             <span>결제 금액</span>
             <span className="text-ig-primary">{formatPrice(order.total_amount)}</span>
           </div>
         </div>
+      </div>
+
+      <div className="feed-card p-6">
+        <h2 className="font-semibold mb-4 text-sm">배송 현황</h2>
+        <OrderTimeline order={order} />
       </div>
 
       <div className="feed-card p-6 text-sm space-y-2">
@@ -129,9 +159,6 @@ export function OrderDetailPage() {
         <p>
           [{order.postcode}] {order.address_line1} {order.address_line2}
         </p>
-        {order.tracking_number && (
-          <p className="pt-2 text-ig-text-secondary">송장번호: {order.tracking_number}</p>
-        )}
       </div>
 
       {order.can_review && (

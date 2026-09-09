@@ -14,14 +14,16 @@ export interface MobileChromeConfig {
 
 const SETTINGS_TITLES: Record<string, string> = {
   '/settings/edit': '프로필 편집',
+  '/settings/shipping': '배송지 관리',
   '/settings/notifications': '알림',
   '/settings/privacy': '개인정보 보호',
   '/settings/security': '보안',
   '/settings/account': '계정 정보',
+  '/settings/blocked': '차단한 계정',
 };
 
 export function useMobileChrome(pathname: string): MobileChromeConfig {
-  const { username } = useParams<{ username?: string }>();
+  const { username, orderId } = useParams<{ username?: string; orderId?: string }>();
 
   return useMemo(() => {
     if (pathname.startsWith('/messages/') && pathname.split('/').length > 2) {
@@ -30,6 +32,50 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
         showHeaderNav: false,
         showBottomNav: false,
         headerVariant: 'none',
+      };
+    }
+
+    if (pathname.startsWith('/checkout/')) {
+      return {
+        showHeader: true,
+        showHeaderNav: false,
+        showBottomNav: false,
+        headerVariant: 'back-title',
+        title: '주문하기',
+        backTo: '/',
+      };
+    }
+
+    if (pathname.match(/^\/orders\/\d+\/review$/)) {
+      return {
+        showHeader: true,
+        showHeaderNav: false,
+        showBottomNav: false,
+        headerVariant: 'back-title',
+        title: '리뷰 작성',
+        backTo: orderId ? `/orders/${orderId}` : '/orders',
+      };
+    }
+
+    if (pathname.startsWith('/orders/') && orderId) {
+      return {
+        showHeader: true,
+        showHeaderNav: false,
+        showBottomNav: true,
+        headerVariant: 'back-title',
+        title: '주문 상세',
+        backTo: '/orders',
+      };
+    }
+
+    if (pathname === '/orders') {
+      return {
+        showHeader: true,
+        showHeaderNav: false,
+        showBottomNav: true,
+        headerVariant: 'back-title',
+        title: '내 주문',
+        backTo: '/settings',
       };
     }
 
@@ -135,5 +181,5 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
       title: '',
       backTo: '/',
     };
-  }, [pathname, username]);
+  }, [pathname, username, orderId]);
 }

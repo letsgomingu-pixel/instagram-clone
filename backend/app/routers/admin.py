@@ -196,5 +196,5 @@ def admin_update_order(
     admin: AdminUser,
     db: DbSession,
 ):
-    order = update_admin_order(db, order_id, body)
+    order = update_admin_order(db, order_id, body, admin)
     return build_admin_order_out(db, order)

@@ -1,4 +1,5 @@
 import { NavLink, Link } from 'react-router-dom';
+import { Package } from 'lucide-react';
 import { Avatar } from '@/components/common/Avatar';
 import { ReelsIcon } from '@/components/common/ReelsIcon';
 import {
@@ -34,14 +35,26 @@ export function BottomNav() {
         {({ isActive }) => <NavSearchIcon active={isActive} />}
       </NavLink>
 
-      <button
-        type="button"
-        onClick={handleCreate}
-        className={`flex flex-1 items-center justify-center min-h-[49px] ${showCreate ? '' : 'hidden'}`}
-        aria-label="만들기"
-      >
-        <NavCreateIcon />
-      </button>
+      {showCreate ? (
+        <button
+          type="button"
+          onClick={handleCreate}
+          className="flex flex-1 items-center justify-center min-h-[49px]"
+          aria-label="만들기"
+        >
+          <NavCreateIcon />
+        </button>
+      ) : isAuthenticated ? (
+        <NavLink
+          to="/orders"
+          className="flex flex-1 items-center justify-center min-h-[49px]"
+          aria-label="내 주문"
+        >
+          {({ isActive }) => (
+            <Package size={24} strokeWidth={isActive ? 2.5 : 1.75} className={isActive ? 'text-ig-text' : 'text-ig-text-secondary'} />
+          )}
+        </NavLink>
+      ) : null}
 
       <NavLink
         to="/reels"

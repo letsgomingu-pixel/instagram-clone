@@ -23,6 +23,7 @@ import {
 } from '@/components/post/PostActionIcons';
 
 import { ReelsIcon } from '@/components/common/ReelsIcon';
+import { Package } from 'lucide-react';
 
 import { useAuth } from '@/hooks/useAuth';
 
@@ -165,6 +166,21 @@ export function Sidebar() {
         )}
 
 
+
+        {isAuthenticated && (
+          <NavLink
+            to="/orders"
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-4 px-3 py-3 rounded-lg hover:bg-ig-secondary transition-colors',
+                isActive && 'font-bold',
+              )
+            }
+          >
+            <Package size={24} />
+            <span className="text-base hidden lg:inline">내 주문</span>
+          </NavLink>
+        )}
 
         {isAuthenticated ? (
 

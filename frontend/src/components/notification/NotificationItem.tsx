@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
-import { formatNotificationTime, getNotificationMessage } from '@/utils/notifications';
+import { formatNotificationTime, getNotificationMessage, isOrderNotification } from '@/utils/notifications';
 import type { Notification } from '@/types';
 import { cn } from '@/utils/cn';
 
@@ -9,6 +9,7 @@ interface NotificationItemProps {
   notification: Notification;
   isFollowing: boolean;
   onOpenPost?: (postId: number) => void;
+  onOpenOrder?: (orderId: number) => void;
   onFollow?: (userId: number) => void;
   onAcceptFollowRequest?: (userId: number) => void;
   onRejectFollowRequest?: (userId: number) => void;
@@ -19,6 +20,7 @@ export function NotificationItem({
   notification,
   isFollowing,
   onOpenPost,
+  onOpenOrder,
   onFollow,
   onAcceptFollowRequest,
   onRejectFollowRequest,
@@ -96,6 +98,17 @@ export function NotificationItem({
             )}
           >
             {isFollowing ? '팔로잉' : '팔로우'}
+          </button>
+        ) : isOrderNotification(type) && notification.order_id ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenOrder?.(notification.order_id!);
+            }}
+            className="h-8 px-3 text-[12px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] shrink-0"
+          >
+            주문 보기
           </button>
         ) : post_image_url && post_id ? (
           <button

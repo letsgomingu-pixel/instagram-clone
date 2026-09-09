@@ -198,10 +198,10 @@ def run_consumer_qa(client: httpx.Client, report: QAReport, seller_ctx: dict | N
 
     # Quote — free shipping
     q2 = client.post(f"{BASE}/orders/quote", headers=consumer_h, json={"product_id": product_id, "quantity": 2})
-    if q2.status_code == 200 and q2.json()["shipping_fee"] == 0:
-        report.ok("order quote free shipping (subtotal >= 50000)")
+    if q2.status_code == 200 and q2.json()["shipping_fee"] == 4000:
+        report.ok("order quote always charges shipping fee")
     else:
-        report.fail("order quote free shipping", q2.text)
+        report.fail("order quote shipping fee", q2.text)
 
     # Create order + mock pay
     order_res = client.post(
