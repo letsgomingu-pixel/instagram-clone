@@ -9,6 +9,9 @@
 | `server_host` | EC2 공인 IP 또는 호스트명 |
 | `server_user` | SSH 사용자 (예: `ec2-user`) |
 | `server_ssh_key` | SSH 개인키 전체 |
+| `smtp_user` | Gmail 주소 (예: `letsgomingu@gmail.com`) |
+| `smtp_password` | Gmail **앱 비밀번호** 16자 (일반 비밀번호 불가) |
+| `email_from` | (선택) 발신 주소 — 비우면 `smtp_user` 사용 |
 
 ## 서버 요구 사항
 

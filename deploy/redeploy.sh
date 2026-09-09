@@ -23,6 +23,11 @@ chown -R "$DEPLOY_USER":"$DEPLOY_USER" "$DEPLOY_PATH"
 sudo -u "$DEPLOY_USER" git -C "$DEPLOY_PATH" fetch origin main
 sudo -u "$DEPLOY_USER" git -C "$DEPLOY_PATH" reset --hard origin/main
 
+if [[ -x "$DEPLOY_PATH/deploy/ensure-email-env.sh" ]]; then
+  echo "==> Backend: ensure email settings in .env..."
+  DEPLOY_PATH="$DEPLOY_PATH" bash "$DEPLOY_PATH/deploy/ensure-email-env.sh"
+fi
+
 echo "==> Backend: dependencies + Alembic migrations..."
 cd "$DEPLOY_PATH/backend"
 sudo -u "$DEPLOY_USER" venv/bin/pip install -q -r requirements.txt

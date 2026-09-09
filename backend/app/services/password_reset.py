@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models import User
 from app.models.password_reset_token import PasswordResetToken
-from app.services.email import send_email
+from app.services.email import EmailDeliveryError, send_auth_email
 from app.utils.security import hash_password
 
 
@@ -30,17 +30,29 @@ def request_password_reset(db: Session, email: str) -> None:
     db.commit()
 
     reset_url = f"{settings.frontend_url.rstrip('/')}/reset-password?token={token}"
-    send_email(
-        to=user.email,
-        subject="비밀번호 재설정 — i am not a fishmonger",
-        body=(
-            f"안녕하세요 {user.username}님,\n\n"
-            f"비밀번호 재설정을 요청하셨습니다. 아래 링크를 클릭해 새 비밀번호를 설정하세요.\n\n"
-            f"{reset_url}\n\n"
-            f"링크는 1시간 동안 유효합니다.\n"
-            f"요청하지 않으셨다면 이 메일을 무시하세요."
-        ),
-    )
+    try:
+        send_auth_email(
+            to=user.email,
+            subject="비밀번호 재설정 — i am not a fishmonger",
+            body=(
+                f"안녕하세요 {user.username}님,\n\n"
+                f"비밀번호 재설정을 요청하셨습니다. 아래 링크를 클릭해 새 비밀번호를 설정하세요.\n\n"
+                f"{reset_url}\n\n"
+                f"링크는 1시간 동안 유효합니다.\n"
+                f"요청하지 않으셨다면 이 메일을 무시하세요."
+            ),
+        )
+    except EmailDeliveryError as exc:
+        row = db.scalar(
+            select(PasswordResetToken).where(PasswordResetToken.token_hash == token_hash)
+        )
+        if row:
+            db.delete(row)
+            db.commit()
+        raise HTTPException(
+            status_code=503,
+            detail="이메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.",
+        ) from exc
 
 
 def reset_password(db: Session, token: str, new_password: str) -> None:

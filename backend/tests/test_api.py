@@ -1307,11 +1307,28 @@ def test_cancel_pending_order(auth_headers):
     assert cancel.json()["status"] == "cancelled"
 
 
-def test_forgot_password_always_succeeds():
+def test_forgot_password_always_succeeds(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.password_reset.send_auth_email",
+        lambda **kwargs: None,
+    )
+
     r = client.post("/api/v1/auth/forgot-password", json={"email": "unknown@example.com"})
     assert r.status_code == 204
     r2 = client.post("/api/v1/auth/forgot-password", json={"email": SEED_EMAIL})
     assert r2.status_code == 204
+
+
+def test_forgot_password_requires_email_delivery(monkeypatch):
+    from app.services.email import EmailDeliveryError
+
+    def _fail(**kwargs):
+        raise EmailDeliveryError("not configured")
+
+    monkeypatch.setattr("app.services.password_reset.send_auth_email", _fail)
+
+    r = client.post("/api/v1/auth/forgot-password", json={"email": SEED_EMAIL})
+    assert r.status_code == 503
 
 
 def test_reset_password_invalid_token():

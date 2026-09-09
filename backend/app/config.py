@@ -20,11 +20,24 @@ class Settings(BaseSettings):
 
     email_enabled: bool = False
     email_from: str = "noreply@iamnotafishmonger.com"
+    resend_api_key: str = ""
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
     smtp_use_tls: bool = True
+
+    @property
+    def smtp_configured(self) -> bool:
+        return bool(self.smtp_host and self.smtp_user and self.smtp_password)
+
+    @property
+    def email_delivery_ready(self) -> bool:
+        return bool(self.resend_api_key or self.smtp_configured)
+
+    @property
+    def should_send_email(self) -> bool:
+        return self.email_enabled or self.email_delivery_ready
 
     portone_store_id: str = ""
     portone_channel_key: str = ""

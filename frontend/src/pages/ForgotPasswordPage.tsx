@@ -21,8 +21,14 @@ export function ForgotPasswordPage() {
       await authApi.forgotPassword(email.trim());
       setSent(true);
       toast.success('재설정 안내를 발송했습니다. (등록된 이메일인 경우)');
-    } catch {
-      toast.error('요청에 실패했습니다.');
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number; data?: { detail?: string } } })?.response?.status;
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      if (status === 503) {
+        toast.error(typeof detail === 'string' ? detail : '이메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+      } else {
+        toast.error('요청에 실패했습니다.');
+      }
     } finally {
       setLoading(false);
     }
@@ -41,7 +47,7 @@ export function ForgotPasswordPage() {
 
         {sent ? (
           <p className="text-sm text-center text-ig-text-secondary mb-4">
-            이메일을 확인해 주세요. SMTP가 설정되지 않은 개발 환경에서는 서버 로그에 링크가 출력됩니다.
+            등록된 이메일이라면 재설정 링크를 보냈습니다. 받은편지함과 스팸함을 확인해 주세요.
           </p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3">
