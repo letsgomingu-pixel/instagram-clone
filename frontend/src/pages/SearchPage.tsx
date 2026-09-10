@@ -20,7 +20,6 @@ const STORAGE_FILTERS: { value: Product['storage_type'] | ''; label: string }[] 
   { value: 'fresh', label: '신선' },
   { value: 'frozen', label: '냉동' },
   { value: 'dried', label: '건조' },
-  { value: 'smoked', label: '훈제' },
 ];
 
 const AVAILABILITY_FILTERS: { value: Product['availability'] | ''; label: string }[] = [
@@ -29,11 +28,34 @@ const AVAILABILITY_FILTERS: { value: Product['availability'] | ''; label: string
   { value: 'seasonal', label: '제철' },
 ];
 
+function FilterChip({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${
+        active
+          ? 'bg-ig-primary text-white border-ig-primary'
+          : 'border-ig-border text-ig-text-secondary'
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
 export function SearchPage() {
   const [query, setQuery] = useState('');
   const [storageFilter, setStorageFilter] = useState<Product['storage_type'] | ''>('');
   const [availabilityFilter, setAvailabilityFilter] = useState<Product['availability'] | ''>('');
-  const [inSeasonOnly, setInSeasonOnly] = useState(false);
   const [results, setResults] = useState<User[]>([]);
   const [productResults, setProductResults] = useState<ProductSearchOut[]>([]);
   const [hashtagResults, setHashtagResults] = useState<HashtagSearchOut[]>([]);
@@ -44,7 +66,7 @@ export function SearchPage() {
   const { followUser, unfollowUser } = useApp();
 
   const hasSearchInput =
-    debouncedQuery.length >= 1 || storageFilter || availabilityFilter || inSeasonOnly;
+    debouncedQuery.length >= 1 || storageFilter || availabilityFilter;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -83,11 +105,10 @@ export function SearchPage() {
         q: debouncedQuery.length >= 1 ? debouncedQuery : undefined,
         storage_type: storageFilter || undefined,
         availability: availabilityFilter || undefined,
-        in_season: inSeasonOnly || undefined,
       })
       .then(setProductResults)
       .catch(() => setProductResults([]));
-  }, [debouncedQuery, storageFilter, availabilityFilter, inSeasonOnly, hasSearchInput, isAuthenticated]);
+  }, [debouncedQuery, storageFilter, availabilityFilter, hasSearchInput, isAuthenticated]);
 
   return (
     <div className="md:pt-0">
@@ -99,7 +120,7 @@ export function SearchPage() {
           />
           <input
             type="text"
-            placeholder="상품, 계정, 해시태그 검색"
+            placeholder="상품 검색"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full pl-10 pr-10 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-[16px] placeholder:text-ig-text-secondary"
@@ -116,46 +137,37 @@ export function SearchPage() {
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {STORAGE_FILTERS.map((opt) => (
-            <button
-              key={opt.value || 'all-storage'}
-              type="button"
-              onClick={() => setStorageFilter(opt.value)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${
-                storageFilter === opt.value
-                  ? 'bg-ig-primary text-white border-ig-primary'
-                  : 'border-ig-border text-ig-text-secondary'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-          {AVAILABILITY_FILTERS.map((opt) => (
-            <button
-              key={opt.value || 'all-availability'}
-              type="button"
-              onClick={() => setAvailabilityFilter(opt.value)}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${
-                availabilityFilter === opt.value
-                  ? 'bg-ig-primary text-white border-ig-primary'
-                  : 'border-ig-border text-ig-text-secondary'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => setInSeasonOnly((v) => !v)}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${
-              inSeasonOnly
-                ? 'bg-ig-primary text-white border-ig-primary'
-                : 'border-ig-border text-ig-text-secondary'
-            }`}
-          >
-            제철만
-          </button>
+        <div className="feed-card overflow-hidden">
+          <div className="flex border-b border-ig-border bg-ig-secondary/40">
+            <div className="flex-1 py-2.5 text-center text-sm font-semibold text-ig-text">
+              보관
+            </div>
+            <div className="flex-1 py-2.5 text-center text-sm font-semibold text-ig-text border-l border-ig-border">
+              제철
+            </div>
+          </div>
+          <div className="grid grid-cols-2 divide-x divide-ig-border">
+            <div className="flex flex-wrap gap-2 p-3">
+              {STORAGE_FILTERS.map((opt) => (
+                <FilterChip
+                  key={opt.value || 'all-storage'}
+                  label={opt.label}
+                  active={storageFilter === opt.value}
+                  onClick={() => setStorageFilter(opt.value)}
+                />
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2 p-3">
+              {AVAILABILITY_FILTERS.map((opt) => (
+                <FilterChip
+                  key={opt.value || 'all-availability'}
+                  label={opt.label}
+                  active={availabilityFilter === opt.value}
+                  onClick={() => setAvailabilityFilter(opt.value)}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

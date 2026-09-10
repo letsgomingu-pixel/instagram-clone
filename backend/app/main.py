@@ -8,14 +8,14 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.db_init import init_db
 from app.routers import admin, auth, calls, cart, collections, hashtags, health, orders, payments, posts, reels, search, social, stories, users
-from app.services.admin_bootstrap import ensure_admin_user, ensure_seed_test_user
+from app.services.admin_bootstrap import ensure_admin_user, remove_legacy_seed_test_user
 from app.utils.media import ensure_media_dirs
 
 init_db()
 ensure_media_dirs()
 ensure_admin_user()
-if settings.seed_demo_users:
-    ensure_seed_test_user()
+if not settings.seed_demo_users:
+    remove_legacy_seed_test_user()
 
 _logger = logging.getLogger(__name__)
 if not settings.email_delivery_ready:

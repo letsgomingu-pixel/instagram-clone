@@ -12,8 +12,8 @@ from PIL import Image
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8000/api/v1"
 
-ADMIN = {"username": "admin", "password": "pass123"}
-CONSUMER = {"username": "letsgomingu@gmail.com", "password": "12345"}
+ADMIN = {"username": "fishmonger", "password": "pass123"}
+CONSUMER = {"username": "letsgomingu", "password": "12345"}
 
 SHIPPING = {
     "phone": "010-9876-5432",

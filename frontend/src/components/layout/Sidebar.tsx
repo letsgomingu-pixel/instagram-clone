@@ -6,8 +6,6 @@ import {
 
   NavCreateIcon,
 
-  NavExploreIcon,
-
   NavHomeIcon,
 
   NavLoginIcon,
@@ -42,8 +40,6 @@ const navItems = [
   { to: '/', label: '홈', renderIcon: (active: boolean) => <NavHomeIcon active={active} /> },
 
   { to: '/search', label: '검색', renderIcon: (active: boolean) => <NavSearchIcon active={active} /> },
-
-  { to: '/explore', label: '탐색', renderIcon: (active: boolean) => <NavExploreIcon active={active} /> },
 
   { to: '/reels', label: '릴스', isReels: true },
 

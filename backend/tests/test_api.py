@@ -11,7 +11,7 @@ from app.main import app
 
 client = TestClient(app)
 
-SEED_EMAIL = "letsgomingu@gmail.com"
+SEED_EMAIL = "letsgomingu.test@example.com"
 SEED_PASSWORD = "12345"
 
 SHIPPING_PAYLOAD = {
@@ -938,7 +938,7 @@ def test_unauthorized_feed():
 
 
 def _admin_login() -> dict:
-    r = client.post("/api/v1/auth/login", json={"username": "admin", "password": "pass123"})
+    r = client.post("/api/v1/auth/login", json={"username": "fishmonger", "password": "pass123"})
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["user"]["is_admin"] is True

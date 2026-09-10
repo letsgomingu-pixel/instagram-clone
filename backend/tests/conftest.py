@@ -15,7 +15,8 @@ if TEST_DB.exists():
     TEST_DB.unlink()
 
 os.environ["DATABASE_URL"] = f"sqlite:///{TEST_DB.as_posix()}"
-os.environ.setdefault("SEED_DEMO_USERS", "true")
+# Keep legacy letsgomingu fixture from scripts/seed.py (skip startup purge).
+os.environ["SEED_DEMO_USERS"] = "true"
 
 from scripts.seed import seed
 

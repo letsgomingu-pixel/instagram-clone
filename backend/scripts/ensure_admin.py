@@ -8,4 +8,4 @@ from app.services.admin_bootstrap import ensure_admin_user
 
 if __name__ == "__main__":
     ensure_admin_user()
-    print("[OK] admin user ready: admin / pass123")
+    print("[OK] admin user ready: fishmonger / pass123")

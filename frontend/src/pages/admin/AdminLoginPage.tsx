@@ -9,7 +9,7 @@ export function AdminLoginPage() {
   const { login, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState('fishmonger');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -75,7 +75,7 @@ export function AdminLoginPage() {
         </form>
 
         <p className="text-xs text-ig-text-secondary mt-4 text-center">
-          테스트: admin / pass123
+          테스트: fishmonger / pass123
         </p>
         <Link to="/" className="block text-center text-xs text-ig-primary mt-3 hover:underline">
           메인 사이트로 돌아가기

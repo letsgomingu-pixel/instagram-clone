@@ -44,7 +44,7 @@ export function SuggestedUsersList({ compact = false, refreshLimit = 10 }: Sugge
   if (suggestedUsers.length === 0) {
     return (
       <p className="text-sm text-ig-text-secondary py-2">
-        지금은 추천할 계정이 없습니다. 탐색 탭에서 새로운 계정을 찾아보세요.
+        지금은 추천할 계정이 없습니다. 검색에서 새로운 계정을 찾아보세요.
       </p>
     );
   }

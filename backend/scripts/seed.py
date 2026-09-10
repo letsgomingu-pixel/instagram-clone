@@ -63,7 +63,7 @@ def conversation_pair(user_a: int, user_b: int) -> tuple[int, int]:
 USERS = [
     {
         "username": "letsgomingu",
-        "email": "letsgomingu@gmail.com",
+        "email": "letsgomingu.test@example.com",
         "password": "12345",
         "full_name": "민구",
         "bio": "📸 사진과 여행을 사랑합니다\n✈️ 서울, 대한민국",

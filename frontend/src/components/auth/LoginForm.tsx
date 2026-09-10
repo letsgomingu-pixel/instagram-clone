@@ -137,11 +137,6 @@ export function LoginForm() {
         </Link>
       </div>
 
-      {import.meta.env.DEV && (
-        <p className="text-center text-xs text-ig-text-secondary mt-4">
-          [개발] 테스트 계정: letsgomingu@gmail.com / 12345
-        </p>
-      )}
     </div>
   );
 }
