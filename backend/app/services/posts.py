@@ -194,6 +194,8 @@ def build_post_out(db: Session, post: Post, viewer: User | None, *, comments_map
 def _tab_post_type(tab: str) -> str:
     if tab == "reviews":
         return "review"
+    if tab == "daily":
+        return "standard"
     return "product"
 
 

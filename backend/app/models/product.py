@@ -8,7 +8,7 @@ from app.database import Base
 STORAGE_TYPES = ("fresh", "frozen", "dried", "smoked")
 AVAILABILITY_TYPES = ("year_round", "seasonal")
 POST_TYPES = ("standard", "product", "review")
-FEED_TABS = ("products", "reviews")
+FEED_TABS = ("products", "reviews", "daily")
 
 
 class Product(Base):

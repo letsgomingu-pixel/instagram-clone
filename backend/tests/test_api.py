@@ -1028,6 +1028,26 @@ def test_feed_reviews_tab_excludes_products(auth_headers):
     assert all(p["id"] != created["id"] for p in reviews.json()["items"])
 
 
+def test_feed_daily_tab(auth_headers):
+    admin_headers = _admin_login()
+    product = _create_admin_product(admin_headers, name="전복", price=25000)
+    daily = client.post(
+        "/api/v1/posts",
+        headers=admin_headers,
+        files={"image": ("daily.jpg", _make_image_bytes(), "image/jpeg")},
+        data={"caption": "오늘의 진열"},
+    )
+    assert daily.status_code == 201, daily.text
+    daily_id = daily.json()["id"]
+    assert daily.json()["post_type"] == "standard"
+
+    feed = client.get("/api/v1/posts/feed", params={"tab": "daily"}, headers=auth_headers)
+    assert feed.status_code == 200
+    ids = [p["id"] for p in feed.json()["items"]]
+    assert daily_id in ids
+    assert product["id"] not in ids
+
+
 def test_explore_products_tab():
     admin_headers = _admin_login()
     created = _create_admin_product(admin_headers, name="새우", price=18000)

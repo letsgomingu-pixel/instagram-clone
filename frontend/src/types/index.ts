@@ -43,7 +43,7 @@ export interface Product {
   is_available: boolean;
 }
 
-export type FeedTab = 'products' | 'reviews';
+export type FeedTab = 'products' | 'reviews' | 'daily';
 
 export interface Post {
   id: number;

@@ -8,9 +8,38 @@ import { PostCard } from '@/components/post/PostCard';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import type { FeedTab } from '@/types';
+
+const emptyMessages: Record<
+  FeedTab,
+  { title: string; getDesc: (opts: { isAdmin: boolean; isAuthenticated: boolean }) => string }
+> = {
+  products: {
+    title: '등록된 상품이 없습니다',
+    getDesc: ({ isAdmin }) =>
+      isAdmin
+        ? '관리자 계정으로 수산물 상품을 등록하면 홈 피드에 표시됩니다.'
+        : '판매자가 올린 수산물 상품이 여기에 표시됩니다.',
+  },
+  daily: {
+    title: '소식이 없습니다',
+    getDesc: ({ isAdmin }) =>
+      isAdmin
+        ? '포장 과정, 가게 모습, 진열 사진 등 가게 소식을 공유해 보세요.'
+        : '판매자의 소식이 여기에 표시됩니다.',
+  },
+  reviews: {
+    title: '리뷰가 없습니다',
+    getDesc: ({ isAuthenticated }) =>
+      isAuthenticated
+        ? '배송 완료된 주문에서 사진 리뷰를 작성할 수 있습니다.'
+        : '로그인 후 구매·배송 완료 시 리뷰를 작성할 수 있습니다.',
+  },
+};
 
 export function HomePage() {
-  const { posts, loading, feedTab, setFeedTab, feedHasMore, feedLoadingMore, loadMoreFeed } = useApp();
+  const { posts, loading, feedTab, setFeedTab, feedHasMore, feedLoadingMore, loadMoreFeed, setCreatePostOpen } =
+    useApp();
   const { user, isAuthenticated } = useAuth();
 
   const sentinelRef = useInfiniteScroll(() => {
@@ -37,20 +66,11 @@ export function HomePage() {
     );
   }
 
-  const emptyMessage =
-    feedTab === 'products'
-      ? {
-          title: '등록된 상품이 없습니다',
-          desc: user?.is_admin
-            ? '관리자 계정으로 수산물 상품을 등록하면 홈 피드에 표시됩니다.'
-            : '판매자가 올린 수산물 상품이 여기에 표시됩니다.',
-        }
-      : {
-          title: '리뷰가 없습니다',
-          desc: isAuthenticated
-            ? '배송 완료된 주문에서 사진 리뷰를 작성할 수 있습니다.'
-            : '로그인 후 구매·배송 완료 시 리뷰를 작성할 수 있습니다.',
-        };
+  const emptyMessage = emptyMessages[feedTab];
+  const emptyDesc = emptyMessage.getDesc({
+    isAdmin: Boolean(user?.is_admin),
+    isAuthenticated,
+  });
 
   return (
     <div>
@@ -75,12 +95,14 @@ export function HomePage() {
             </svg>
           </div>
           <p className="text-[22px] font-light mb-2 font-brand">{emptyMessage.title}</p>
-          <p className="text-sm text-ig-text-secondary leading-[18px]">{emptyMessage.desc}</p>
+          <p className="text-sm text-ig-text-secondary leading-[18px]">{emptyDesc}</p>
           <div className="mt-6 flex justify-center">
             {feedTab === 'products' && user?.is_admin ? (
               <Link to="/admin/products">
                 <Button>상품 등록하기</Button>
               </Link>
+            ) : feedTab === 'daily' && user?.is_admin ? (
+              <Button onClick={() => setCreatePostOpen(true)}>소식 올리기</Button>
             ) : feedTab === 'reviews' ? (
               isAuthenticated ? (
                 <Link to="/orders">

@@ -66,7 +66,7 @@ def feed(
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=30),
     cursor: str | None = Query(None),
-    tab: str = Query("products", pattern="^(products|reviews)$"),
+    tab: str = Query("products", pattern="^(products|reviews|daily)$"),
 ):
     page, limit, _ = pagination_params(page, limit)
     posts, total, next_cursor = get_home_feed_posts(
@@ -87,7 +87,7 @@ def explore(
     viewer: OptionalUser = None,
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=30),
-    tab: str = Query("products", pattern="^(products|reviews)$"),
+    tab: str = Query("products", pattern="^(products|reviews|daily)$"),
 ):
     page, limit, offset = pagination_params(page, limit)
     posts, total = get_explore_posts(db, viewer, offset, limit, tab=tab)
@@ -205,7 +205,7 @@ async def create_post(
     tagged_usernames: str | None = Form(None),
 ):
     if not current_user.is_admin:
-        raise HTTPException(status_code=403, detail="Only sellers can create posts")
+        raise HTTPException(status_code=403, detail="Only sellers can create news posts")
 
     uploads: list[UploadFile] = []
     if image:

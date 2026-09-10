@@ -3,6 +3,7 @@ import { cn } from '@/utils/cn';
 
 const tabs: { id: FeedTab; label: string }[] = [
   { id: 'products', label: '상품' },
+  { id: 'daily', label: '소식' },
   { id: 'reviews', label: '리뷰' },
 ];
 
