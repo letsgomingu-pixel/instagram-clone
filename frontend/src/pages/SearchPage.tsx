@@ -5,6 +5,7 @@ import { Avatar } from '@/components/common/Avatar';
 import { Button } from '@/components/common/Button';
 import { MediaImage } from '@/components/common/MediaImage';
 import { ExploreGrid } from '@/components/explore/ExploreGrid';
+import { TabBar } from '@/components/post/FeedTabs';
 import { formatPrice } from '@/components/post/ProductInfo';
 import { useApp } from '@/contexts/AppContext';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -28,32 +29,11 @@ const AVAILABILITY_FILTERS: { value: Product['availability'] | ''; label: string
   { value: 'seasonal', label: '제철' },
 ];
 
-function FilterChip({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${
-        active
-          ? 'bg-ig-primary text-white border-ig-primary'
-          : 'border-ig-border text-ig-text-secondary'
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
+type FilterGroup = 'storage' | 'availability';
 
 export function SearchPage() {
   const [query, setQuery] = useState('');
+  const [filterGroup, setFilterGroup] = useState<FilterGroup>('storage');
   const [storageFilter, setStorageFilter] = useState<Product['storage_type'] | ''>('');
   const [availabilityFilter, setAvailabilityFilter] = useState<Product['availability'] | ''>('');
   const [results, setResults] = useState<User[]>([]);
@@ -137,37 +117,38 @@ export function SearchPage() {
           )}
         </div>
 
-        <div className="feed-card overflow-hidden">
-          <div className="flex border-b border-ig-border bg-ig-secondary/40">
-            <div className="flex-1 py-2.5 text-center text-sm font-semibold text-ig-text">
-              보관
-            </div>
-            <div className="flex-1 py-2.5 text-center text-sm font-semibold text-ig-text border-l border-ig-border">
-              제철
-            </div>
-          </div>
-          <div className="grid grid-cols-2 divide-x divide-ig-border">
-            <div className="flex flex-wrap gap-2 p-3">
-              {STORAGE_FILTERS.map((opt) => (
-                <FilterChip
-                  key={opt.value || 'all-storage'}
-                  label={opt.label}
-                  active={storageFilter === opt.value}
-                  onClick={() => setStorageFilter(opt.value)}
-                />
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-2 p-3">
-              {AVAILABILITY_FILTERS.map((opt) => (
-                <FilterChip
-                  key={opt.value || 'all-availability'}
-                  label={opt.label}
-                  active={availabilityFilter === opt.value}
-                  onClick={() => setAvailabilityFilter(opt.value)}
-                />
-              ))}
-            </div>
-          </div>
+        <div className="feed-card mb-3">
+          <TabBar
+            tabs={[
+              { id: 'storage', label: '보관' },
+              { id: 'availability', label: '제철' },
+            ]}
+            activeTab={filterGroup}
+            onChange={setFilterGroup}
+          />
+          {filterGroup === 'storage' ? (
+            <TabBar
+              tabs={STORAGE_FILTERS.map((opt) => ({
+                id: opt.value || 'all',
+                label: opt.label,
+              }))}
+              activeTab={storageFilter || 'all'}
+              onChange={(id) => setStorageFilter(id === 'all' ? '' : (id as Product['storage_type']))}
+              bordered={false}
+            />
+          ) : (
+            <TabBar
+              tabs={AVAILABILITY_FILTERS.map((opt) => ({
+                id: opt.value || 'all',
+                label: opt.label,
+              }))}
+              activeTab={availabilityFilter || 'all'}
+              onChange={(id) =>
+                setAvailabilityFilter(id === 'all' ? '' : (id as Product['availability']))
+              }
+              bordered={false}
+            />
+          )}
         </div>
       </div>
 
