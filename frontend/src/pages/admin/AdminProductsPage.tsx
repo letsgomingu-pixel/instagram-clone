@@ -8,6 +8,7 @@ import { MediaImage } from '@/components/common/MediaImage';
 import { Spinner } from '@/components/common/Spinner';
 import { ProductInfo, formatPrice } from '@/components/post/ProductInfo';
 import type { Post, Product } from '@/types';
+import { formatNumberInput, formatNumberValue, parseNumberInput } from '@/utils/formatNumber';
 
 const STORAGE_OPTIONS: { value: Product['storage_type']; label: string }[] = [
   { value: 'fresh', label: '신선' },
@@ -98,7 +99,7 @@ export function AdminProductsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return toast.error('상품명을 입력해주세요.');
-    if (!price.trim() || Number(price) < 0) return toast.error('가격을 입력해주세요.');
+    if (!price.trim() || parseNumberInput(price) < 0) return toast.error('가격을 입력해주세요.');
     if (!files.length) return toast.error('상품 사진을 등록해주세요.');
     if (availability === 'seasonal' && (!seasonStart || !seasonEnd)) {
       return toast.error('제철 상품은 제철 기간을 입력해주세요.');
@@ -108,11 +109,11 @@ export function AdminProductsPage() {
     try {
       await createAdminProduct({
         name: name.trim(),
-        price: Number(price),
+        price: parseNumberInput(price),
         unit: unit.trim(),
         storage_type: storageType,
         availability,
-        stock: Number(stock) || 0,
+        stock: parseNumberInput(stock),
         season_start: availability === 'seasonal' ? seasonStart : undefined,
         season_end: availability === 'seasonal' ? seasonEnd : undefined,
         caption: caption.trim() || undefined,
@@ -132,8 +133,8 @@ export function AdminProductsPage() {
   const startEdit = (post: Post) => {
     if (!post.product) return;
     setEditingId(post.product.id);
-    setEditPrice(String(post.product.price));
-    setEditStock(String(post.product.stock));
+    setEditPrice(formatNumberValue(post.product.price));
+    setEditStock(formatNumberValue(post.product.stock));
     setEditStorageType(post.product.storage_type);
     setEditAvailability(post.product.availability);
     setEditSeasonStart(post.product.season_start?.slice(0, 10) ?? '');
@@ -146,15 +147,15 @@ export function AdminProductsPage() {
   };
 
   const handleUpdate = async (productId: number) => {
-    if (!editPrice.trim() || Number(editPrice) < 0) return toast.error('가격을 입력해주세요.');
+    if (!editPrice.trim() || parseNumberInput(editPrice) < 0) return toast.error('가격을 입력해주세요.');
     if (editAvailability === 'seasonal' && (!editSeasonStart || !editSeasonEnd)) {
       return toast.error('제철 상품은 제철 기간을 입력해주세요.');
     }
     setUpdatingId(productId);
     try {
       await updateAdminProduct(productId, {
-        price: Number(editPrice),
-        stock: Number(editStock) || 0,
+        price: parseNumberInput(editPrice),
+        stock: parseNumberInput(editStock),
         is_active: editActive,
         storage_type: editStorageType,
         availability: editAvailability,
@@ -196,12 +197,12 @@ export function AdminProductsPage() {
           <label className="block">
             <span className="text-sm font-medium">가격 (원)</span>
             <input
-              type="number"
-              min={0}
+              type="text"
+              inputMode="numeric"
               value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="input-no-spinner mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
-              placeholder="35000"
+              onChange={(e) => setPrice(formatNumberInput(e.target.value))}
+              className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
+              placeholder="35,000"
             />
           </label>
           <label className="block">
@@ -216,10 +217,10 @@ export function AdminProductsPage() {
           <label className="block">
             <span className="text-sm font-medium">재고</span>
             <input
-              type="number"
-              min={0}
+              type="text"
+              inputMode="numeric"
               value={stock}
-              onChange={(e) => setStock(e.target.value)}
+              onChange={(e) => setStock(formatNumberInput(e.target.value))}
               className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
             />
           </label>
@@ -345,20 +346,20 @@ export function AdminProductsPage() {
                       <label className="block text-xs">
                         <span className="font-medium">가격 (원)</span>
                         <input
-                          type="number"
-                          min={0}
+                          type="text"
+                          inputMode="numeric"
                           value={editPrice}
-                          onChange={(e) => setEditPrice(e.target.value)}
-                          className="input-no-spinner mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
+                          onChange={(e) => setEditPrice(formatNumberInput(e.target.value))}
+                          className="mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
                         />
                       </label>
                       <label className="block text-xs">
                         <span className="font-medium">재고</span>
                         <input
-                          type="number"
-                          min={0}
+                          type="text"
+                          inputMode="numeric"
                           value={editStock}
-                          onChange={(e) => setEditStock(e.target.value)}
+                          onChange={(e) => setEditStock(formatNumberInput(e.target.value))}
                           className="mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
                         />
                       </label>
