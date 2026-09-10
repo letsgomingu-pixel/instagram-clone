@@ -63,10 +63,16 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
+            export FRONTEND_URL="https://iamnotafishmonger.com"
+            export RESEND_API_KEY="${{ secrets.resend_api_key }}"
             export SMTP_USER="${{ secrets.smtp_user }}"
             export SMTP_PASSWORD="${{ secrets.smtp_password }}"
             export EMAIL_FROM="${{ secrets.email_from }}"
-            export FRONTEND_URL="https://iamnotafishmonger.com"
+            export PORTONE_STORE_ID="${{ secrets.portone_store_id }}"
+            export PORTONE_CHANNEL_KEY="${{ secrets.portone_channel_key }}"
+            export PORTONE_API_SECRET="${{ secrets.portone_api_secret }}"
+            export PORTONE_WEBHOOK_SECRET="${{ secrets.portone_webhook_secret }}"
+            export PORTONE_MOCK="${{ secrets.portone_mock }}"
 
             if [[ -f deploy/redeploy.sh ]]; then
               log "Running deploy/redeploy.sh (systemd + frontend build)..."

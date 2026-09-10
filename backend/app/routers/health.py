@@ -12,4 +12,6 @@ def health_check():
         "message": "Instagram clone API is running",
         "email_delivery_ready": settings.email_delivery_ready,
         "payments_mock": settings.use_mock_payments,
+        "portone_enabled": settings.portone_enabled,
+        "seed_demo_users": settings.seed_demo_users,
     }

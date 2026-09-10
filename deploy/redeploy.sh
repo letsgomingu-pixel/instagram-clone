@@ -23,7 +23,10 @@ chown -R "$DEPLOY_USER":"$DEPLOY_USER" "$DEPLOY_PATH"
 sudo -u "$DEPLOY_USER" git -C "$DEPLOY_PATH" fetch origin main
 sudo -u "$DEPLOY_USER" git -C "$DEPLOY_PATH" reset --hard origin/main
 
-if [[ -x "$DEPLOY_PATH/deploy/ensure-email-env.sh" ]]; then
+if [[ -x "$DEPLOY_PATH/deploy/ensure-production-env.sh" ]]; then
+  echo "==> Backend: ensure production .env (email, payments, security)..."
+  DEPLOY_PATH="$DEPLOY_PATH" bash "$DEPLOY_PATH/deploy/ensure-production-env.sh"
+elif [[ -x "$DEPLOY_PATH/deploy/ensure-email-env.sh" ]]; then
   echo "==> Backend: ensure email settings in .env..."
   DEPLOY_PATH="$DEPLOY_PATH" bash "$DEPLOY_PATH/deploy/ensure-email-env.sh"
 fi

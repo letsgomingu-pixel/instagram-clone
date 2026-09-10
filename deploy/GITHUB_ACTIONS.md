@@ -9,9 +9,15 @@
 | `server_host` | EC2 공인 IP 또는 호스트명 |
 | `server_user` | SSH 사용자 (예: `ec2-user`) |
 | `server_ssh_key` | SSH 개인키 전체 |
+| `resend_api_key` | (선택) Resend API 키 — SMTP 대신 사용 가능 |
 | `smtp_user` | Gmail 주소 (예: `letsgomingu@gmail.com`) |
 | `smtp_password` | Gmail **앱 비밀번호** 16자 (일반 비밀번호 불가) |
 | `email_from` | (선택) 발신 주소 — 비우면 `smtp_user` 사용 |
+| `portone_store_id` | PortOne Store ID (실결제) |
+| `portone_channel_key` | PortOne Channel Key |
+| `portone_api_secret` | PortOne API Secret |
+| `portone_webhook_secret` | PortOne Webhook Secret |
+| `portone_mock` | (선택) `false` — 4개 PortOne 키가 모두 있으면 자동 false |
 
 ## 서버 요구 사항
 

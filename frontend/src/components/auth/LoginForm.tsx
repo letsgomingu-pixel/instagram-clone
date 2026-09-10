@@ -122,9 +122,12 @@ export function LoginForm() {
           </Button>
         </form>
 
-        <Link to="/forgot-password" className="block text-xs text-ig-link text-center mt-4 hover:underline">
-          비밀번호를 잊으셨나요?
+        <Link to="/find-account" className="block text-xs text-ig-link text-center mt-4 hover:underline">
+          아이디/비밀번호 찾기
         </Link>
+        <p className="text-center text-[11px] text-ig-text-secondary mt-2 leading-relaxed">
+          가입 이메일 주소로도 로그인할 수 있습니다.
+        </p>
       </div>
 
       <div className="bg-ig-surface border border-ig-border rounded-xl py-5 text-center text-sm shadow-sm">
@@ -134,9 +137,11 @@ export function LoginForm() {
         </Link>
       </div>
 
-      <p className="text-center text-xs text-ig-text-secondary mt-4">
-        테스트 계정: letsgomingu@gmail.com / 12345
-      </p>
+      {import.meta.env.DEV && (
+        <p className="text-center text-xs text-ig-text-secondary mt-4">
+          [개발] 테스트 계정: letsgomingu@gmail.com / 12345
+        </p>
+      )}
     </div>
   );
 }

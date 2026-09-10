@@ -3,7 +3,15 @@ from sqlalchemy import func, or_, select
 
 from app.dependencies import CurrentUser, DbSession
 from app.models import User
-from app.schemas.auth import ForgotPasswordRequest, LoginRequest, RegisterRequest, ResetPasswordRequest, TokenResponse
+from app.schemas.auth import (
+    ForgotPasswordRequest,
+    ForgotUsernameRequest,
+    LoginRequest,
+    RegisterRequest,
+    ResetPasswordRequest,
+    TokenResponse,
+)
+from app.services.account_recovery import request_username_reminder
 from app.services.email import send_login_alert_email
 from app.services.password_reset import request_password_reset, reset_password
 from app.schemas.user import UserOut
@@ -89,6 +97,11 @@ def me(current_user: CurrentUser, db: DbSession):
 @router.post("/forgot-password", status_code=204)
 def forgot_password(body: ForgotPasswordRequest, db: DbSession):
     request_password_reset(db, body.email)
+
+
+@router.post("/forgot-username", status_code=204)
+def forgot_username(body: ForgotUsernameRequest, db: DbSession):
+    request_username_reminder(db, body.email)
 
 
 @router.post("/reset-password", status_code=204)

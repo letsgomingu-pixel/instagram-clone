@@ -1347,6 +1347,17 @@ def test_forgot_password_always_succeeds(monkeypatch):
     assert r2.status_code == 204
 
 
+def test_forgot_username_succeeds_with_mock_email(monkeypatch):
+    monkeypatch.setattr(
+        "app.services.account_recovery.send_auth_email",
+        lambda **kwargs: None,
+    )
+    r = client.post("/api/v1/auth/forgot-username", json={"email": "unknown@example.com"})
+    assert r.status_code == 204
+    r2 = client.post("/api/v1/auth/forgot-username", json={"email": SEED_EMAIL})
+    assert r2.status_code == 204
+
+
 def test_forgot_password_requires_email_delivery(monkeypatch):
     from app.services.email import EmailDeliveryError
 

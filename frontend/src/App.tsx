@@ -46,7 +46,7 @@ import { OrderReviewPage } from '@/pages/OrderReviewPage';
 import { ArchivedPostsPage } from '@/pages/ArchivedPostsPage';
 import { SuggestedUsersPage } from '@/pages/SuggestedUsersPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
-import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
+import { FindAccountPage } from '@/pages/FindAccountPage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { InfoPage } from '@/pages/InfoPage';
 import { AdminReportsPage } from '@/pages/admin/AdminReportsPage';
@@ -69,7 +69,8 @@ export default function App() {
               <Route element={<GuestRoute />}>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/find-account" element={<FindAccountPage />} />
+                <Route path="/forgot-password" element={<FindAccountPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
               </Route>
 
