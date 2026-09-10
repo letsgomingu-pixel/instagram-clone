@@ -187,7 +187,7 @@ def admin_update_product(
     _admin: AdminUser,
     db: DbSession,
 ):
-    if body.price is None and body.stock is None and body.is_active is None:
+    if not body.model_dump(exclude_unset=True):
         raise HTTPException(status_code=400, detail="No fields to update")
     product = update_product(db, product_id, body)
     return build_product_out(product)

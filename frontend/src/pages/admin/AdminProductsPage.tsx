@@ -13,7 +13,6 @@ const STORAGE_OPTIONS: { value: Product['storage_type']; label: string }[] = [
   { value: 'fresh', label: '신선' },
   { value: 'frozen', label: '냉동' },
   { value: 'dried', label: '건조' },
-  { value: 'smoked', label: '훈제' },
 ];
 
 const AVAILABILITY_OPTIONS: { value: Product['availability']; label: string }[] = [
@@ -43,6 +42,10 @@ export function AdminProductsPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editPrice, setEditPrice] = useState('');
   const [editStock, setEditStock] = useState('');
+  const [editStorageType, setEditStorageType] = useState<Product['storage_type']>('fresh');
+  const [editAvailability, setEditAvailability] = useState<Product['availability']>('year_round');
+  const [editSeasonStart, setEditSeasonStart] = useState('');
+  const [editSeasonEnd, setEditSeasonEnd] = useState('');
   const [editActive, setEditActive] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
 
@@ -131,6 +134,10 @@ export function AdminProductsPage() {
     setEditingId(post.product.id);
     setEditPrice(String(post.product.price));
     setEditStock(String(post.product.stock));
+    setEditStorageType(post.product.storage_type);
+    setEditAvailability(post.product.availability);
+    setEditSeasonStart(post.product.season_start?.slice(0, 10) ?? '');
+    setEditSeasonEnd(post.product.season_end?.slice(0, 10) ?? '');
     setEditActive(post.product.is_active);
   };
 
@@ -140,12 +147,19 @@ export function AdminProductsPage() {
 
   const handleUpdate = async (productId: number) => {
     if (!editPrice.trim() || Number(editPrice) < 0) return toast.error('가격을 입력해주세요.');
+    if (editAvailability === 'seasonal' && (!editSeasonStart || !editSeasonEnd)) {
+      return toast.error('제철 상품은 제철 기간을 입력해주세요.');
+    }
     setUpdatingId(productId);
     try {
       await updateAdminProduct(productId, {
         price: Number(editPrice),
         stock: Number(editStock) || 0,
         is_active: editActive,
+        storage_type: editStorageType,
+        availability: editAvailability,
+        season_start: editAvailability === 'seasonal' ? editSeasonStart : undefined,
+        season_end: editAvailability === 'seasonal' ? editSeasonEnd : undefined,
       });
       toast.success('상품이 수정되었습니다.');
       setEditingId(null);
@@ -186,7 +200,7 @@ export function AdminProductsPage() {
               min={0}
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
+              className="input-no-spinner mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
               placeholder="35000"
             />
           </label>
@@ -335,7 +349,7 @@ export function AdminProductsPage() {
                           min={0}
                           value={editPrice}
                           onChange={(e) => setEditPrice(e.target.value)}
-                          className="mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
+                          className="input-no-spinner mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
                         />
                       </label>
                       <label className="block text-xs">
@@ -348,6 +362,60 @@ export function AdminProductsPage() {
                           className="mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
                         />
                       </label>
+                      <label className="block text-xs">
+                        <span className="font-medium">보관</span>
+                        <select
+                          value={editStorageType}
+                          onChange={(e) =>
+                            setEditStorageType(e.target.value as Product['storage_type'])
+                          }
+                          className="mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
+                        >
+                          {STORAGE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="block text-xs">
+                        <span className="font-medium">판매 시기</span>
+                        <select
+                          value={editAvailability}
+                          onChange={(e) =>
+                            setEditAvailability(e.target.value as Product['availability'])
+                          }
+                          className="mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
+                        >
+                          {AVAILABILITY_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {editAvailability === 'seasonal' && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="block text-xs">
+                            <span className="font-medium">제철 시작</span>
+                            <input
+                              type="date"
+                              value={editSeasonStart}
+                              onChange={(e) => setEditSeasonStart(e.target.value)}
+                              className="mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
+                            />
+                          </label>
+                          <label className="block text-xs">
+                            <span className="font-medium">제철 종료</span>
+                            <input
+                              type="date"
+                              value={editSeasonEnd}
+                              onChange={(e) => setEditSeasonEnd(e.target.value)}
+                              className="mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
+                            />
+                          </label>
+                        </div>
+                      )}
                       <label className="flex items-center gap-2 text-xs">
                         <input
                           type="checkbox"

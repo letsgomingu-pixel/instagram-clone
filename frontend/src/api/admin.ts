@@ -93,6 +93,10 @@ export interface UpdateProductPayload {
   price?: number;
   stock?: number;
   is_active?: boolean;
+  storage_type?: Product['storage_type'];
+  availability?: Product['availability'];
+  season_start?: string;
+  season_end?: string;
 }
 
 export async function updateAdminProduct(productId: number, payload: UpdateProductPayload): Promise<Product> {

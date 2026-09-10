@@ -109,6 +109,23 @@ def update_product(db: Session, product_id: int, data: ProductUpdate) -> Product
         product.stock = data.stock
     if data.is_active is not None:
         product.is_active = data.is_active
+    if data.storage_type is not None:
+        product.storage_type = data.storage_type
+    if data.availability is not None:
+        product.availability = data.availability
+    if data.season_start is not None:
+        product.season_start = data.season_start
+    if data.season_end is not None:
+        product.season_end = data.season_end
+
+    if product.availability == "year_round":
+        product.season_start = None
+        product.season_end = None
+    elif product.availability == "seasonal" and (not product.season_start or not product.season_end):
+        raise HTTPException(
+            status_code=400,
+            detail="season_start and season_end are required for seasonal products",
+        )
 
     db.commit()
     db.refresh(product)

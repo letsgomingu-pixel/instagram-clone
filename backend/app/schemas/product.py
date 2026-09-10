@@ -61,3 +61,21 @@ class ProductUpdate(BaseModel):
     price: int | None = Field(default=None, ge=0)
     stock: int | None = Field(default=None, ge=0)
     is_active: bool | None = None
+    storage_type: str | None = None
+    availability: str | None = None
+    season_start: date | None = None
+    season_end: date | None = None
+
+    @field_validator("storage_type")
+    @classmethod
+    def validate_storage_type(cls, v: str | None) -> str | None:
+        if v is not None and v not in STORAGE_TYPES:
+            raise ValueError(f"storage_type must be one of: {', '.join(STORAGE_TYPES)}")
+        return v
+
+    @field_validator("availability")
+    @classmethod
+    def validate_availability(cls, v: str | None) -> str | None:
+        if v is not None and v not in AVAILABILITY_TYPES:
+            raise ValueError(f"availability must be one of: {', '.join(AVAILABILITY_TYPES)}")
+        return v
