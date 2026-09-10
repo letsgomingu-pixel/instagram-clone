@@ -102,6 +102,7 @@ export interface StoryItem {
   media_type: 'image' | 'video';
   overlays?: StoryOverlay[];
   created_at: string;
+  is_liked?: boolean;
 }
 
 export interface StoryViewerEntry {

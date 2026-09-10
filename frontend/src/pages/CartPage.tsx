@@ -61,6 +61,7 @@ export function CartPage() {
   const [paying, setPaying] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [paymentsMock, setPaymentsMock] = useState(false);
 
   const [shippingName, setShippingName] = useState('');
   const [phone, setPhone] = useState('');
@@ -83,6 +84,7 @@ export function CartPage() {
       return;
     }
     load();
+    ordersApi.getPaymentConfig().then((c) => setPaymentsMock(c.mock)).catch(() => undefined);
   }, [isAuthenticated, navigate]);
 
   useEffect(() => {
@@ -114,6 +116,16 @@ export function CartPage() {
       toast.success('장바구니에서 삭제했습니다.');
     } catch {
       toast.error('삭제에 실패했습니다.');
+    }
+  };
+
+  const handleClearCart = async () => {
+    try {
+      const updated = await cartApi.clearCart();
+      setCart(updated);
+      toast.success('장바구니를 비웠습니다.');
+    } catch {
+      toast.error('장바구니 비우기에 실패했습니다.');
     }
   };
 
@@ -197,7 +209,24 @@ export function CartPage() {
       )}
 
       <div className="feed-card p-6 space-y-6">
-        <h1 className="text-xl font-semibold">장바구니</h1>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-xl font-semibold">장바구니</h1>
+          {cart.items.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void handleClearCart()}
+              className="text-xs text-ig-text-secondary hover:text-ig-red font-semibold"
+            >
+              전체 비우기
+            </button>
+          )}
+        </div>
+
+        {paymentsMock && cart.items.length > 0 && (
+          <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            테스트 결제 모드입니다. 실제 카드 결제 없이 주문이 완료됩니다.
+          </p>
+        )}
 
         {cart.items.length === 0 ? (
           <div className="text-center py-12">

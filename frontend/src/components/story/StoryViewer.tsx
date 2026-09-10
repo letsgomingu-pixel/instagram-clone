@@ -58,11 +58,13 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
   const [storyLiked, setStoryLiked] = useState(false);
   const paused = showViewers;
 
-
-
   const story = stories[storyIndex];
 
   const item = story?.items[itemIndex];
+
+  useEffect(() => {
+    setStoryLiked(item?.is_liked ?? false);
+  }, [item?.id, item?.is_liked]);
 
   const isVideo = item?.media_type === 'video';
 

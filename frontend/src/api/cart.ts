@@ -46,6 +46,11 @@ export async function removeCartItem(itemId: number): Promise<Cart> {
   return data;
 }
 
+export async function clearCart(): Promise<Cart> {
+  const { data } = await api.delete<Cart>('/cart');
+  return data;
+}
+
 export async function checkoutCart(payload: CartCheckoutPayload): Promise<{ order: Order; payment: PaymentPrepare }> {
   const { data } = await api.post<{ order: Order; payment: PaymentPrepare }>('/cart/checkout', payload);
   return data;

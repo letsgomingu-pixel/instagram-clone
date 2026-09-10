@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -15,6 +16,15 @@ ensure_media_dirs()
 ensure_admin_user()
 if settings.seed_demo_users:
     ensure_seed_test_user()
+
+_logger = logging.getLogger(__name__)
+if not settings.email_delivery_ready:
+    _logger.warning(
+        "Email delivery is not configured (RESEND_API_KEY or SMTP_*). "
+        "Password reset and auth emails will fail until configured."
+    )
+if settings.use_mock_payments:
+    _logger.warning("Mock payments enabled — set PortOne keys and PORTONE_MOCK=false for live checkout.")
 
 app = FastAPI(
     title="Instagram Clone API",

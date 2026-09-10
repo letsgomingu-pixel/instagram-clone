@@ -23,6 +23,7 @@ class StoryItemOut(BaseModel):
     media_type: Literal["image", "video"] = "image"
     overlays: list[StoryOverlayOut] = []
     created_at: str
+    is_liked: bool = False
 
 
 class StoryOut(BaseModel):

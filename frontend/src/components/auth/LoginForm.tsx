@@ -79,7 +79,7 @@ export function LoginForm() {
         <form onSubmit={handleSubmit} className="space-y-2">
           <input
             type="text"
-            placeholder="전화번호, 사용자 이름 또는 이메일"
+            placeholder="사용자 이름 또는 이메일"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs placeholder:text-ig-text-secondary"

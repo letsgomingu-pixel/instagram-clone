@@ -872,6 +872,34 @@ def test_private_follow_request_flow():
     )
 
 
+def test_private_account_hides_follow_lists_from_non_followers():
+    private_headers = _login("alice_kim", "12345")
+    stranger_headers = _login()
+
+    client.put(
+        "/api/v1/users/me/settings",
+        headers=private_headers,
+        json={"is_private": True},
+    )
+
+    me = client.get("/api/v1/auth/me", headers=private_headers).json()
+    stranger = client.get("/api/v1/auth/me", headers=stranger_headers).json()
+    client.delete(f"/api/v1/users/{me['id']}/follow", headers=stranger_headers)
+
+    blocked = client.get(f"/api/v1/users/{me['username']}/followers", headers=stranger_headers)
+    assert blocked.status_code == 403
+
+    allowed = client.get(f"/api/v1/users/{me['username']}/followers", headers=private_headers)
+    assert allowed.status_code == 200
+
+    client.put(
+        "/api/v1/users/me/settings",
+        headers=private_headers,
+        json={"is_private": False},
+    )
+    client.delete(f"/api/v1/users/{me['id']}/follow", headers=stranger_headers)
+
+
 def test_username_change(auth_headers):
     me = client.get("/api/v1/auth/me", headers=auth_headers).json()
     original = me["username"]

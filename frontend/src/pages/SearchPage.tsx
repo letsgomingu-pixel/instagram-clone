@@ -261,21 +261,35 @@ export function SearchPage() {
             </button>
           </div>
           {recentSearches.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setQuery(item.query)}
-              className="flex items-center gap-3 w-full px-4 py-3 hover:bg-ig-secondary text-left"
-            >
-              {item.search_type === 'hashtag' ? (
-                <Hash size={16} />
-              ) : item.search_type === 'product' ? (
-                <Package size={16} />
-              ) : (
-                <SearchIcon size={16} />
-              )}
-              <span className="text-sm">{item.query}</span>
-            </button>
+            <div key={item.id} className="flex items-center gap-2 px-4 py-3 hover:bg-ig-secondary">
+              <button
+                type="button"
+                onClick={() => setQuery(item.query)}
+                className="flex items-center gap-3 flex-1 min-w-0 text-left"
+              >
+                {item.search_type === 'hashtag' ? (
+                  <Hash size={16} />
+                ) : item.search_type === 'product' ? (
+                  <Package size={16} />
+                ) : (
+                  <SearchIcon size={16} />
+                )}
+                <span className="text-sm truncate">{item.query}</span>
+              </button>
+              <button
+                type="button"
+                aria-label="검색 기록 삭제"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  searchApi.deleteRecentSearch(item.id).then(() => {
+                    setRecentSearches((prev) => prev.filter((r) => r.id !== item.id));
+                  });
+                }}
+                className="p-1 text-ig-text-secondary hover:text-ig-text shrink-0"
+              >
+                <X size={16} />
+              </button>
+            </div>
           ))}
         </div>
       ) : null}

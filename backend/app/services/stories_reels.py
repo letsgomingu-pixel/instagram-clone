@@ -4,7 +4,7 @@ import json
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Follow, Reel, ReelLike, Story, StoryItem, StoryView, User
+from app.models import Follow, Reel, ReelLike, Story, StoryItem, StoryLike, StoryView, User
 from app.schemas.reel import ReelOut
 from app.schemas.story import StoryItemOut, StoryOut, StoryOverlayOut, StoryViewerOut
 from app.services.users import build_user_out, get_following_ids
@@ -32,7 +32,19 @@ def _serialize_overlays(overlays: list[dict] | None) -> str | None:
     return json.dumps(validated)
 
 
-def _story_item_out(item: StoryItem) -> StoryItemOut:
+def _liked_story_item_ids(db: Session, user_id: int, item_ids: list[int]) -> set[int]:
+    if not item_ids:
+        return set()
+    rows = db.scalars(
+        select(StoryLike.story_item_id).where(
+            StoryLike.user_id == user_id,
+            StoryLike.story_item_id.in_(item_ids),
+        )
+    ).all()
+    return set(rows)
+
+
+def _story_item_out(item: StoryItem, *, is_liked: bool = False) -> StoryItemOut:
     media_type = item.media_type if item.media_type in ("image", "video") else "image"
     return StoryItemOut(
         id=item.id,
@@ -40,6 +52,7 @@ def _story_item_out(item: StoryItem) -> StoryItemOut:
         media_type=media_type,  # type: ignore[arg-type]
         overlays=_parse_overlays(item.overlays),
         created_at=to_iso(item.created_at),
+        is_liked=is_liked,
     )
 
 
@@ -138,10 +151,11 @@ def build_story_out(db: Session, story: Story, viewer: User, viewed_ids: set[int
 
     live_items = [i for i in story.items if _item_age(i) < cutoff]
     items = sorted(live_items, key=lambda i: i.created_at)
+    liked_ids = _liked_story_item_ids(db, viewer.id, [i.id for i in items])
     return StoryOut(
         id=story.id,
         user=build_user_out(db, user, viewer),
-        items=[_story_item_out(i) for i in items],
+        items=[_story_item_out(i, is_liked=i.id in liked_ids) for i in items],
         viewed=story.id in viewed_ids,
     )
 

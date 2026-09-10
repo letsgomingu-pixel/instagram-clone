@@ -54,8 +54,9 @@ export function NotificationsPage() {
     [notifications],
   );
 
-  const isFollowing = (userId: number) => {
+  const isFollowing = (userId: number, actor?: Notification['actor']) => {
     if (userId in followOverrides) return followOverrides[userId];
+    if (actor?.is_following) return true;
     const suggested = suggestedUsers.find((u) => u.id === userId);
     if (suggested) return !!suggested.is_following;
     return false;
@@ -200,7 +201,7 @@ export function NotificationsPage() {
                   <NotificationItem
                     key={notification.id}
                     notification={notification}
-                    isFollowing={isFollowing(notification.actor.id)}
+                    isFollowing={isFollowing(notification.actor.id, notification.actor)}
                     onOpenPost={handleOpenPost}
                     onOpenOrder={handleOpenOrder}
                     onFollow={handleFollow}

@@ -461,6 +461,8 @@ def followers_list(
     user = get_user_by_username(db, username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if not can_view_user_content(db, user, viewer):
+        raise HTTPException(status_code=403, detail="This account is private")
     page, limit, _ = pagination_params(page, limit)
     items, total = get_followers(db, user, viewer, page, limit)
     return paginate(items, total, page, limit)
@@ -477,6 +479,8 @@ def following_list(
     user = get_user_by_username(db, username)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    if not can_view_user_content(db, user, viewer):
+        raise HTTPException(status_code=403, detail="This account is private")
     page, limit, _ = pagination_params(page, limit)
     items, total = get_following(db, user, viewer, page, limit)
     return paginate(items, total, page, limit)

@@ -269,7 +269,7 @@ export function ProfileHeader({
                       <Link
                         to="/suggested"
                         className="h-8 w-8 flex items-center justify-center rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors"
-                        aria-label="비슷한 계정"
+                        aria-label="추천 계정"
                       >
                         <UserPlus size={16} />
                       </Link>

@@ -15,7 +15,7 @@ const BOOLEAN_OPTIONS = [
 
   { key: 'show_activity_status' as const, label: '활동 상태', desc: '팔로우하는 사람에게 활동 상태를 표시합니다.' },
 
-  { key: 'allow_story_replies' as const, label: '스토리 공유', desc: '다른 사람이 회원님의 스토리에 답장할 수 있습니다.' },
+  { key: 'allow_story_replies' as const, label: '스토리 답장', desc: '다른 사람이 회원님의 스토리에 답장할 수 있습니다.' },
 
 ];
 

@@ -8,6 +8,7 @@ const settingsNavItems = [
   { to: '/orders', label: '내 주문' },
   { to: '/settings/notifications', label: '알림' },
   { to: '/settings/privacy', label: '개인정보 보호' },
+  { to: '/settings/follow-requests', label: '팔로우 요청' },
   { to: '/settings/blocked', label: '차단한 계정' },
   { to: '/settings/security', label: '보안' },
   { to: '/settings/account', label: '계정 정보' },

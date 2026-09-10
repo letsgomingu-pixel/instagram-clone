@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Modal } from '@/components/common/Modal';
@@ -41,8 +42,14 @@ export function FollowListModal({ isOpen, onClose, username, mode }: FollowListM
         setPage(1);
         setHasMore(data.next_page !== null);
       })
-      .catch(() => {
-        if (!cancelled) setItems([]);
+      .catch((err) => {
+        if (!cancelled) {
+          if (isAxiosError(err) && err.response?.status === 403) {
+            toast.error('비공개 계정입니다.');
+            onClose();
+          }
+          setItems([]);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

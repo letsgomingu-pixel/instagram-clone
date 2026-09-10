@@ -32,6 +32,7 @@ import { SettingsEditProfilePage } from '@/pages/settings/SettingsEditProfilePag
 import { SettingsShippingPage } from '@/pages/settings/SettingsShippingPage';
 import { SettingsNotificationsPage } from '@/pages/settings/SettingsNotificationsPage';
 import { SettingsPrivacyPage } from '@/pages/settings/SettingsPrivacyPage';
+import { SettingsFollowRequestsPage } from '@/pages/settings/SettingsFollowRequestsPage';
 import { SettingsSecurityPage } from '@/pages/settings/SettingsSecurityPage';
 import { SettingsAccountPage } from '@/pages/settings/SettingsAccountPage';
 import { SettingsIndexPage } from '@/pages/settings/SettingsIndexPage';
@@ -119,6 +120,7 @@ export default function App() {
                     <Route path="shipping" element={<SettingsShippingPage />} />
                     <Route path="notifications" element={<SettingsNotificationsPage />} />
                     <Route path="privacy" element={<SettingsPrivacyPage />} />
+                    <Route path="follow-requests" element={<SettingsFollowRequestsPage />} />
                     <Route path="blocked" element={<SettingsBlockedPage />} />
                     <Route path="security" element={<SettingsSecurityPage />} />
                     <Route path="account" element={<SettingsAccountPage />} />

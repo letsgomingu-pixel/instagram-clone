@@ -262,8 +262,20 @@ export function ProfilePage() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onFollow={handleFollow}
-        onShowFollowers={() => setFollowListMode('followers')}
-        onShowFollowing={() => setFollowListMode('following')}
+        onShowFollowers={() => {
+          if (isPrivateLocked) {
+            toast.error('비공개 계정입니다.');
+            return;
+          }
+          setFollowListMode('followers');
+        }}
+        onShowFollowing={() => {
+          if (isPrivateLocked) {
+            toast.error('비공개 계정입니다.');
+            return;
+          }
+          setFollowListMode('following');
+        }}
         onBlock={
           !isOwn && !blockedByMe
             ? () =>
