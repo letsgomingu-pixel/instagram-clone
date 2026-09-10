@@ -170,13 +170,15 @@ textarea:focus {
   box-shadow: 0 0 0 2px rgba(10, 126, 164, 0.25);
 }
 
-.input-no-spinner {
+/* Hide increment/decrement arrows on number inputs (price, stock, etc.) */
+input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
 
-.input-no-spinner::-webkit-outer-spin-button,
-.input-no-spinner::-webkit-inner-spin-button {
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
