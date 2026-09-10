@@ -84,7 +84,7 @@ export function HomePage() {
             ) : feedTab === 'reviews' ? (
               isAuthenticated ? (
                 <Link to="/orders">
-                  <Button>내 주문에서 리뷰 작성</Button>
+                  <Button>리뷰 작성하기</Button>
                 </Link>
               ) : (
                 <Link to="/login" state={{ from: '/' }}>
