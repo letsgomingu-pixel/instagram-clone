@@ -2,10 +2,9 @@ import { Link } from 'react-router-dom';
 import { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Avatar } from '@/components/common/Avatar';
-import { FeedCommentInput } from '@/components/post/FeedCommentInput';
+import { PostCommentsModal } from '@/components/comment/PostCommentsModal';
 import { LikeListModal } from '@/components/post/LikeListModal';
 import { PostCaption } from '@/components/post/PostCaption';
-import { CommentItem } from '@/components/comment/CommentItem';
 import { PostMediaCarousel } from '@/components/post/PostMediaCarousel';
 import { ProductInfo } from '@/components/post/ProductInfo';
 import { PostOptionsMenu } from '@/components/post/PostOptionsMenu';
@@ -25,19 +24,14 @@ import type { Post } from '@/types';
 
 interface PostCardProps {
   post: Post;
-  onOpenModal?: () => void;
 }
 
-export function PostCard({ post, onOpenModal }: PostCardProps) {
+export function PostCard({ post }: PostCardProps) {
   const { user } = useAuth();
   const {
     toggleLike,
     toggleSave,
     setPostSaved,
-    setSelectedPost,
-    addComment,
-    editComment,
-    removeComment,
     toggleFollow,
     deletePost,
     updatePost,
@@ -49,10 +43,11 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
   const [showHeart, setShowHeart] = useState(false);
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [likesOpen, setLikesOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
   const [savePickerOpen, setSavePickerOpen] = useState(false);
   const isOwnPost = user?.id === post.user.id;
 
-  const previewComments = (post.comments || []).slice(-2);
+  const openComments = () => setCommentsOpen(true);
 
   const handleDoubleTapLike = useCallback(() => {
     requireAuth(() => {
@@ -84,11 +79,6 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
     } catch {
       // User cancelled share or clipboard failed silently
     }
-  };
-
-  const openModal = () => {
-    setSelectedPost(post);
-    onOpenModal?.();
   };
 
   const handleUnfollow = () => {
@@ -180,7 +170,7 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
               <PostLikeIcon liked={post.is_liked} className={likeAnimating ? 'animate-like-bounce' : ''} />
             </button>
             <button
-              onClick={openModal}
+              onClick={openComments}
               aria-label="댓글"
               className="hover:opacity-50 transition-opacity active:scale-95"
             >
@@ -215,35 +205,19 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
 
         {post.caption && <PostCaption username={post.user.username} caption={post.caption} />}
 
-        {post.comment_count > 2 && (
-          <button
-            onClick={openModal}
-            className="text-[14px] text-ig-text-secondary mb-1 hover:underline block"
-          >
-            댓글 {post.comment_count.toLocaleString()}개 모두 보기
-          </button>
-        )}
-
-        {previewComments.map((comment) => (
-          <CommentItem
-            key={comment.id}
-            comment={comment}
-            postOwnerId={post.user.id}
-            compact
-            onEdit={(commentId, content) => editComment(post.id, commentId, content)}
-            onDelete={(commentId) => removeComment(post.id, commentId)}
-          />
-        ))}
-
         <time
           dateTime={post.created_at}
-          className="text-[10px] text-ig-text-secondary block mt-1 mb-1"
+          className="text-[10px] text-ig-text-secondary block mt-1 uppercase"
         >
           {formatRelativeTime(post.created_at)}
         </time>
-
-        <FeedCommentInput onSubmit={(content) => addComment(post.id, content)} />
       </div>
+
+      <PostCommentsModal
+        post={post}
+        isOpen={commentsOpen}
+        onClose={() => setCommentsOpen(false)}
+      />
 
       <LikeListModal
         postId={post.id}

@@ -36,7 +36,6 @@ export function PostModal({ post, onClose }: PostModalProps) {
     setPostSaved,
     addComment,
     setPostComments,
-    setSelectedPost,
     deletePost,
     updatePost,
     archivePost,
