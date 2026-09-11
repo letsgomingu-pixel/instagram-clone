@@ -9,6 +9,8 @@ interface ModalProps {
   children: ReactNode;
   className?: string;
   showClose?: boolean;
+  /** Renders a white X on the dark backdrop (Instagram post modal style). */
+  overlayClose?: boolean;
   size?: 'sm' | 'md' | 'lg' | 'full';
 }
 
@@ -19,7 +21,15 @@ const sizeMap = {
   full: 'max-w-full h-full',
 };
 
-export function Modal({ isOpen, onClose, children, className, showClose = true, size = 'md' }: ModalProps) {
+export function Modal({
+  isOpen,
+  onClose,
+  children,
+  className,
+  showClose = true,
+  overlayClose = false,
+  size = 'md',
+}: ModalProps) {
   useEffect(() => {
     if (!isOpen) return;
     const handleKey = (e: KeyboardEvent) => {
@@ -38,6 +48,16 @@ export function Modal({ isOpen, onClose, children, className, showClose = true, 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in">
       <div className="absolute inset-0 bg-black/65" onClick={onClose} aria-hidden="true" />
+      {overlayClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 z-30 p-1.5 text-white hover:opacity-70"
+          aria-label="닫기"
+        >
+          <NavIcon icon={X} />
+        </button>
+      )}
       <div
         role="dialog"
         aria-modal="true"

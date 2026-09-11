@@ -138,7 +138,7 @@ export function PostModal({ post, onClose, focusComments = false }: PostModalPro
   };
 
   return (
-    <Modal isOpen onClose={onClose} size="lg" showClose={false} className="w-full max-w-[900px]">
+    <Modal isOpen onClose={onClose} size="lg" showClose={false} overlayClose className="w-full max-w-[900px]">
       <div className="flex flex-col md:flex-row md:h-[600px] max-h-[90vh] min-h-0">
         <div className="md:w-[60%] bg-black flex items-center justify-center min-h-[280px] md:min-h-0 shrink-0 md:shrink">
           <PostMediaCarousel
@@ -314,15 +314,6 @@ export function PostModal({ post, onClose, focusComments = false }: PostModalPro
           </div>
         </div>
       </div>
-
-      <button
-        type="button"
-        onClick={onClose}
-        className="absolute top-3 right-3 z-20 text-white md:text-ig-text p-1 hover:opacity-70"
-        aria-label="닫기"
-      >
-        ✕
-      </button>
 
       <SaveCollectionModal
         postId={post.id}
