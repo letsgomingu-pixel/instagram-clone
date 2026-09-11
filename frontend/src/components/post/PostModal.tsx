@@ -35,6 +35,7 @@ export function PostModal({ post, onClose }: PostModalProps) {
     toggleSave,
     setPostSaved,
     addComment,
+    setPostComments,
     setSelectedPost,
     deletePost,
     updatePost,
@@ -166,8 +167,8 @@ export function PostModal({ post, onClose }: PostModalProps) {
               comments={post.comments || []}
               postId={post.id}
               postOwnerId={post.user.id}
-              onCommentsChange={(comments) =>
-                setSelectedPost({ ...post, comments, comment_count: comments.length })
+              onCommentsChange={(comments, total) =>
+                setPostComments(post.id, comments, total ?? post.comment_count)
               }
             />
           </div>
@@ -195,7 +196,14 @@ export function PostModal({ post, onClose }: PostModalProps) {
                 <PostBookmarkIcon saved={post.is_saved} />
               </button>
             </div>
-            <p className="text-sm font-semibold mb-1">좋아요 {post.like_count.toLocaleString()}개</p>
+            {(post.like_count > 0 || post.is_liked) && (
+              <p className="text-sm font-semibold mb-1">좋아요 {post.like_count.toLocaleString()}개</p>
+            )}
+            {post.comment_count > 0 && (
+              <p className="text-sm text-ig-text-secondary mb-1">
+                댓글 {post.comment_count.toLocaleString()}개
+              </p>
+            )}
             <time className="text-[10px] text-ig-text-secondary uppercase block mb-3">
               {formatRelativeTime(post.created_at)}
             </time>

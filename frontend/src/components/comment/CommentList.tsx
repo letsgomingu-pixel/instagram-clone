@@ -14,7 +14,7 @@ interface CommentListProps {
   comments: Comment[];
   postId?: number;
   postOwnerId?: number;
-  onCommentsChange?: (comments: Comment[]) => void;
+  onCommentsChange?: (comments: Comment[], total?: number) => void;
 }
 
 function CommentRow({
@@ -66,7 +66,7 @@ function CommentRow({
     requireAuth(async () => {
       try {
         await postsApi.deleteComment(postId, comment.id);
-        onDelete(comment.id);
+        await onRefresh();
       } catch {
         toast.error('댓글 삭제에 실패했습니다.');
       }
@@ -162,7 +162,7 @@ export function CommentList({ comments, postId, postOwnerId, onCommentsChange }:
   const refreshComments = async () => {
     if (!postId || !onCommentsChange) return;
     const res = await postsApi.getPostComments(postId);
-    onCommentsChange(res.items);
+    onCommentsChange(res.items, res.total);
   };
 
   const handleLikeToggle = (commentId: number, isLiked: boolean, likeCount: number) => {
@@ -176,13 +176,8 @@ export function CommentList({ comments, postId, postOwnerId, onCommentsChange }:
     onCommentsChange(update(comments));
   };
 
-  const handleDelete = (commentId: number) => {
-    if (!onCommentsChange) return;
-    const remove = (list: Comment[]): Comment[] =>
-      list
-        .filter((c) => c.id !== commentId)
-        .map((c) => (c.replies?.length ? { ...c, replies: remove(c.replies) } : c));
-    onCommentsChange(remove(comments));
+  const handleDelete = () => {
+    void refreshComments();
   };
 
   if (comments.length === 0) {

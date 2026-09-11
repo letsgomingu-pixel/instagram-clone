@@ -20,7 +20,7 @@ import {
 
 import toast from 'react-hot-toast';
 
-import type { FeedTab, Post, Reel, Story, SuggestedUser, User } from '@/types';
+import type { Comment, FeedTab, Post, Reel, Story, SuggestedUser, User } from '@/types';
 
 import * as postsApi from '@/api/posts';
 
@@ -105,6 +105,8 @@ interface AppContextValue {
   unfollowUser: (userId: number) => Promise<{ is_following: boolean; is_requested: boolean }>;
 
   addComment: (postId: number, content: string, parentId?: number | null) => void;
+
+  setPostComments: (postId: number, comments: Comment[], commentCount: number) => void;
 
   deletePost: (postId: number) => Promise<void>;
 
@@ -757,32 +759,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 
 
+  const setPostComments = useCallback(
+    (postId: number, comments: Comment[], commentCount: number) => {
+      updatePostInState(postId, (p) => ({
+        ...p,
+        comments,
+        comment_count: commentCount,
+      }));
+    },
+    [updatePostInState],
+  );
+
   const addComment = useCallback(
-
     (postId: number, content: string, parentId?: number | null) => {
-
       if (!isAuthenticated || !user) return;
 
-      postsApi.addComment(postId, content, parentId).then(() => {
-
-        postsApi.getPostComments(postId).then((res) => {
-
+      postsApi
+        .addComment(postId, content, parentId)
+        .then((newComment) => {
           updatePostInState(postId, (p) => ({
-
             ...p,
-
-            comments: res.items,
-
+            comment_count: p.comment_count + 1,
+            comments: parentId ? p.comments : [...(p.comments || []), newComment],
           }));
-
+        })
+        .catch(() => {
+          toast.error('댓글 등록에 실패했습니다.');
         });
-
-      });
-
     },
-
     [isAuthenticated, user, updatePostInState],
-
   );
 
 
@@ -943,6 +948,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       addComment,
 
+      setPostComments,
+
       deletePost,
 
       updatePost,
@@ -1042,6 +1049,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       unfollowUser,
 
       addComment,
+
+      setPostComments,
 
       deletePost,
 

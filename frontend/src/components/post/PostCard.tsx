@@ -201,7 +201,7 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
           </button>
         </div>
 
-        {post.like_count > 0 && (
+        {(post.like_count > 0 || post.is_liked) && (
           <button
             type="button"
             onClick={() => setLikesOpen(true)}
