@@ -16,6 +16,7 @@ import {
   PostShareIcon,
 } from '@/components/post/PostActionIcons';
 import { formatRelativeTime } from '@/utils/formatDate';
+import { formatCompactCount } from '@/utils/formatNumber';
 import { useApp } from '@/contexts/AppContext';
 import { SaveCollectionModal } from '@/components/post/SaveCollectionModal';
 import { useAuth } from '@/hooks/useAuth';
@@ -162,20 +163,44 @@ export function PostCard({ post }: PostCardProps) {
       <div className="px-4 pb-4">
         <div className="flex items-center justify-between py-1">
           <div className="flex items-center gap-4">
-            <button
-              onClick={handleLike}
-              aria-label={post.is_liked ? '좋아요 취소' : '좋아요'}
-              className="hover:opacity-50 transition-opacity active:scale-95"
-            >
-              <PostLikeIcon liked={post.is_liked} className={likeAnimating ? 'animate-like-bounce' : ''} />
-            </button>
-            <button
-              onClick={openComments}
-              aria-label="댓글"
-              className="hover:opacity-50 transition-opacity active:scale-95"
-            >
-              <PostCommentIcon />
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={handleLike}
+                aria-label={post.is_liked ? '좋아요 취소' : '좋아요'}
+                className="hover:opacity-50 transition-opacity active:scale-95"
+              >
+                <PostLikeIcon liked={post.is_liked} className={likeAnimating ? 'animate-like-bounce' : ''} />
+              </button>
+              {(post.like_count > 0 || post.is_liked) && (
+                <button
+                  type="button"
+                  onClick={() => setLikesOpen(true)}
+                  className="text-[14px] font-semibold leading-none hover:opacity-60"
+                  aria-label={`좋아요 ${post.like_count}개`}
+                >
+                  {formatCompactCount(post.like_count)}
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={openComments}
+                aria-label="댓글"
+                className="hover:opacity-50 transition-opacity active:scale-95"
+              >
+                <PostCommentIcon />
+              </button>
+              {post.comment_count > 0 && (
+                <button
+                  type="button"
+                  onClick={openComments}
+                  className="text-[14px] font-semibold leading-none hover:opacity-60"
+                  aria-label={`댓글 ${post.comment_count}개`}
+                >
+                  {formatCompactCount(post.comment_count)}
+                </button>
+              )}
+            </div>
             <button
               onClick={() => requireAuth(handleShare)}
               aria-label="공유"
@@ -192,16 +217,6 @@ export function PostCard({ post }: PostCardProps) {
             <PostBookmarkIcon saved={post.is_saved} />
           </button>
         </div>
-
-        {(post.like_count > 0 || post.is_liked) && (
-          <button
-            type="button"
-            onClick={() => setLikesOpen(true)}
-            className="text-[14px] font-semibold mb-1 hover:underline text-left"
-          >
-            좋아요 {post.like_count.toLocaleString()}개
-          </button>
-        )}
 
         {post.caption && <PostCaption username={post.user.username} caption={post.caption} />}
 
