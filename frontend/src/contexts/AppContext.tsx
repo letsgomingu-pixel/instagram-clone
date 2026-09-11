@@ -34,7 +34,13 @@ import { useAuth } from '@/hooks/useAuth';
 
 
 
-const FEED_PAGE_SIZE = 4;
+const FEED_PAGE_SIZE = 12;
+
+function feedTabForPost(post: Post): FeedTab {
+  if (post.post_type === 'product') return 'products';
+  if (post.post_type === 'review') return 'reviews';
+  return 'daily';
+}
 
 const EXPLORE_PAGE_SIZE = 18;
 
@@ -67,6 +73,8 @@ interface AppContextValue {
   exploreLoadingMore: boolean;
 
   refreshFeed: () => Promise<void>;
+
+  publishFeedPost: (post: Post) => void;
 
   loadMoreFeed: () => Promise<void>;
 
@@ -287,7 +295,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   }, [isAuthenticated, feedTab]);
 
-
+  const publishFeedPost = useCallback(
+    (post: Post) => {
+      const tab = feedTabForPost(post);
+      if (feedTab !== tab) {
+        setFeedTab(tab);
+        return;
+      }
+      setPosts((prev) => [post, ...prev.filter((p) => p.id !== post.id)]);
+      void refreshFeed();
+    },
+    [feedTab, refreshFeed, setFeedTab],
+  );
 
   const loadMoreFeed = useCallback(async () => {
 
@@ -303,7 +322,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         : await postsApi.getExplore(feedPage + 1, FEED_PAGE_SIZE, feedTab);
 
-      setPosts((prev) => [...prev, ...data.items]);
+      setPosts((prev) => {
+        const seen = new Set(prev.map((p) => p.id));
+        const next = data.items.filter((p) => !seen.has(p.id));
+        return next.length ? [...prev, ...next] : prev;
+      });
 
       if (isAuthenticated) {
         setFeedCursor(data.next_cursor ?? null);
@@ -888,6 +911,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       refreshFeed,
 
+      publishFeedPost,
+
       loadMoreFeed,
 
       refreshExplore,
@@ -985,6 +1010,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       exploreLoadingMore,
 
       refreshFeed,
+
+      publishFeedPost,
 
       loadMoreFeed,
 

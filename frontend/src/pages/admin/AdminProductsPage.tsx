@@ -8,6 +8,7 @@ import { MediaImage } from '@/components/common/MediaImage';
 import { Spinner } from '@/components/common/Spinner';
 import { ProductInfo, formatPrice } from '@/components/post/ProductInfo';
 import type { Post, Product } from '@/types';
+import { useApp } from '@/contexts/AppContext';
 import { formatNumberInput, formatNumberValue, parseNumberInput } from '@/utils/formatNumber';
 
 const STORAGE_OPTIONS: { value: Product['storage_type']; label: string }[] = [
@@ -22,6 +23,7 @@ const AVAILABILITY_OPTIONS: { value: Product['availability']; label: string }[] 
 ];
 
 export function AdminProductsPage() {
+  const { publishFeedPost } = useApp();
   const [products, setProducts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -107,7 +109,7 @@ export function AdminProductsPage() {
 
     setSaving(true);
     try {
-      await createAdminProduct({
+      const created = await createAdminProduct({
         name: name.trim(),
         price: parseNumberInput(price),
         unit: unit.trim(),
@@ -119,6 +121,7 @@ export function AdminProductsPage() {
         caption: caption.trim() || undefined,
         files,
       });
+      publishFeedPost(created);
       toast.success('상품이 등록되었습니다.');
       resetForm();
       setPage(1);

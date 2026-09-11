@@ -538,7 +538,10 @@ def create_review_post(
         select(Post.id).where(Post.post_type == "review", Post.order_id == order_id)
     )
     if existing:
-        raise HTTPException(status_code=409, detail="Review already exists for this order")
+        raise HTTPException(
+            status_code=409,
+            detail="This order already has a review. Each order allows one review.",
+        )
 
     cover_url = saved_media[0][0]
     post = Post(

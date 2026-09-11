@@ -6,10 +6,12 @@ import { createReview } from '@/api/posts';
 import { ProductInfo } from '@/components/post/ProductInfo';
 import { Button } from '@/components/common/Button';
 import { Spinner } from '@/components/common/Spinner';
+import { useApp } from '@/contexts/AppContext';
 
 export function OrderReviewPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
+  const { publishFeedPost } = useApp();
   const [order, setOrder] = useState<ordersApi.Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -50,8 +52,9 @@ export function OrderReviewPage() {
         caption: caption.trim() || undefined,
         files,
       });
+      publishFeedPost(post);
       toast.success('리뷰가 등록되었습니다.');
-      navigate(`/p/${post.id}`, { replace: true });
+      navigate('/', { replace: true });
     } catch {
       toast.error('리뷰 등록에 실패했습니다.');
     } finally {

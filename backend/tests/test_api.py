@@ -1019,6 +1019,24 @@ def test_feed_products_tab(auth_headers):
     assert product_post["product"]["name"] == "대방어"
 
 
+def test_feed_products_tab_allows_multiple_posts(auth_headers):
+    admin_headers = _admin_login()
+    first = _create_admin_product(admin_headers, name="멀티상품A", price=11000)
+    second = _create_admin_product(admin_headers, name="멀티상품B", price=22000)
+
+    feed = client.get(
+        "/api/v1/posts/feed",
+        params={"tab": "products", "limit": 30},
+        headers=auth_headers,
+    )
+    assert feed.status_code == 200
+    body = feed.json()
+    ids = {p["id"] for p in body["items"]}
+    assert first["id"] in ids
+    assert second["id"] in ids
+    assert body["total"] >= 2
+
+
 def test_feed_reviews_tab_excludes_products(auth_headers):
     admin_headers = _admin_login()
     created = _create_admin_product(admin_headers, name="오징어", price=12000)

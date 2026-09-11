@@ -17,7 +17,7 @@ interface CreatePostModalProps {
 }
 
 export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
-  const { feedTab, setFeedTab, refreshFeed, refreshExplore } = useApp();
+  const { publishFeedPost, refreshExplore } = useApp();
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -71,12 +71,8 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
       if (taggedUsers.length) {
         form.append('tagged_usernames', JSON.stringify(taggedUsers.map((u) => u.username)));
       }
-      await postsApi.createPost(form);
-      if (feedTab !== 'daily') {
-        setFeedTab('daily');
-      } else {
-        await refreshFeed();
-      }
+      const post = await postsApi.createPost(form);
+      publishFeedPost(post);
       await refreshExplore();
       toast.success('소식이 공유되었습니다!');
       handleClose();
