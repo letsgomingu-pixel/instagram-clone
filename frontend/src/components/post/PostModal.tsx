@@ -18,7 +18,6 @@ import {
 } from '@/components/post/PostActionIcons';
 import { CommentList } from '@/components/comment/CommentList';
 import { CommentInput } from '@/components/comment/CommentInput';
-import { ProductInfo } from '@/components/post/ProductInfo';
 import { formatRelativeTime } from '@/utils/formatDate';
 import { formatCompactCount } from '@/utils/formatNumber';
 import * as postsApi from '@/api/posts';
@@ -219,12 +218,6 @@ export function PostModal({ post, onClose, focusComments = false }: PostModalPro
                     {formatRelativeTime(post.created_at)}
                   </time>
                 </div>
-              </div>
-            )}
-
-            {post.post_type === 'product' && post.product && (
-              <div className="mb-4">
-                <ProductInfo product={post.product} showBuyButton showCartButton />
               </div>
             )}
 
