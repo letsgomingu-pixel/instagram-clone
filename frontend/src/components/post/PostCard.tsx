@@ -5,7 +5,7 @@ import { Avatar } from '@/components/common/Avatar';
 import { FeedCommentInput } from '@/components/post/FeedCommentInput';
 import { LikeListModal } from '@/components/post/LikeListModal';
 import { PostCaption } from '@/components/post/PostCaption';
-import { MultilineText } from '@/components/common/MultilineText';
+import { CommentItem } from '@/components/comment/CommentItem';
 import { PostMediaCarousel } from '@/components/post/PostMediaCarousel';
 import { ProductInfo } from '@/components/post/ProductInfo';
 import { PostOptionsMenu } from '@/components/post/PostOptionsMenu';
@@ -36,6 +36,8 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
     setPostSaved,
     setSelectedPost,
     addComment,
+    editComment,
+    removeComment,
     toggleFollow,
     deletePost,
     updatePost,
@@ -223,15 +225,14 @@ export function PostCard({ post, onOpenModal }: PostCardProps) {
         )}
 
         {previewComments.map((comment) => (
-          <div key={comment.id} className="text-[14px] mb-1 leading-[18px]">
-            <Link
-              to={`/profile/${comment.user.username}`}
-              className="font-semibold mr-1 hover:underline"
-            >
-              {comment.user.username}
-            </Link>
-            <MultilineText as="span">{comment.content}</MultilineText>
-          </div>
+          <CommentItem
+            key={comment.id}
+            comment={comment}
+            postOwnerId={post.user.id}
+            compact
+            onEdit={(commentId, content) => editComment(post.id, commentId, content)}
+            onDelete={(commentId) => removeComment(post.id, commentId)}
+          />
         ))}
 
         <time

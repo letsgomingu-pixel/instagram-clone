@@ -20,6 +20,10 @@ class CommentCreate(BaseModel):
     parent_id: int | None = None
 
 
+class CommentUpdate(BaseModel):
+    content: str = Field(min_length=1, max_length=2200)
+
+
 class CommentLikeResponse(BaseModel):
     is_liked: bool
     like_count: int

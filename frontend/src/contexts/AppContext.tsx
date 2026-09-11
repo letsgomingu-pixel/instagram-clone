@@ -21,6 +21,7 @@ import {
 import toast from 'react-hot-toast';
 
 import type { Comment, FeedTab, Post, Reel, Story, SuggestedUser, User } from '@/types';
+import { updateCommentInTree } from '@/utils/comments';
 
 import * as postsApi from '@/api/posts';
 
@@ -107,6 +108,10 @@ interface AppContextValue {
   addComment: (postId: number, content: string, parentId?: number | null) => void;
 
   setPostComments: (postId: number, comments: Comment[], commentCount: number) => void;
+
+  editComment: (postId: number, commentId: number, content: string) => Promise<void>;
+
+  removeComment: (postId: number, commentId: number) => Promise<void>;
 
   deletePost: (postId: number) => Promise<void>;
 
@@ -790,6 +795,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [isAuthenticated, user, updatePostInState],
   );
 
+  const editComment = useCallback(
+    async (postId: number, commentId: number, content: string) => {
+      if (!isAuthenticated) return;
+      const updated = await postsApi.updateComment(postId, commentId, content);
+      updatePostInState(postId, (p) => ({
+        ...p,
+        comments: updateCommentInTree(p.comments || [], commentId, {
+          content: updated.content,
+        }),
+      }));
+    },
+    [isAuthenticated, updatePostInState],
+  );
+
+  const removeComment = useCallback(
+    async (postId: number, commentId: number) => {
+      if (!isAuthenticated) return;
+      await postsApi.deleteComment(postId, commentId);
+      const res = await postsApi.getPostComments(postId, 1, 50);
+      updatePostInState(postId, (p) => ({
+        ...p,
+        comments: res.items,
+        comment_count: res.total,
+      }));
+    },
+    [isAuthenticated, updatePostInState],
+  );
+
 
 
   const deletePost = useCallback(
@@ -950,6 +983,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setPostComments,
 
+      editComment,
+
+      removeComment,
+
       deletePost,
 
       updatePost,
@@ -1051,6 +1088,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addComment,
 
       setPostComments,
+
+      editComment,
+
+      removeComment,
 
       deletePost,
 

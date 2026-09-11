@@ -399,6 +399,25 @@ def test_post_comments_list(auth_headers):
     assert r.json()["total"] >= 1
 
 
+def test_update_comment(auth_headers):
+    post_id = _create_test_post()["id"]
+    created = client.post(
+        f"/api/v1/posts/{post_id}/comments",
+        headers=auth_headers,
+        json={"content": "원본 댓글"},
+    )
+    assert created.status_code == 201
+    comment_id = created.json()["id"]
+
+    updated = client.patch(
+        f"/api/v1/posts/{post_id}/comments/{comment_id}",
+        headers=auth_headers,
+        json={"content": "수정된 댓글"},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["content"] == "수정된 댓글"
+
+
 def test_delete_comment(auth_headers):
     post_id = _create_test_post()["id"]
 

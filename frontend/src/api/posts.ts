@@ -127,6 +127,15 @@ export async function getArchivedPosts(page = 1): Promise<PaginatedResponse<Post
   return data;
 }
 
+export async function updateComment(
+  postId: number,
+  commentId: number,
+  content: string,
+): Promise<Comment> {
+  const { data } = await api.patch<Comment>(`/posts/${postId}/comments/${commentId}`, { content });
+  return data;
+}
+
 export async function deleteComment(postId: number, commentId: number): Promise<void> {
   await api.delete(`/posts/${postId}/comments/${commentId}`);
 }

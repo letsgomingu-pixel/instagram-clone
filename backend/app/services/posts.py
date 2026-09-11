@@ -431,6 +431,29 @@ def delete_post_by_owner(db: Session, post_id: int, user: User) -> None:
     db.commit()
 
 
+def build_single_comment_out(db: Session, comment: Comment, viewer: User | None) -> CommentOut:
+    liked = _liked_comment_ids(db, viewer.id if viewer else None, [comment.id])
+    return _comment_to_out(db, comment, viewer, liked_comments=liked)
+
+
+def update_post_comment(db: Session, post_id: int, comment_id: int, user: User, content: str) -> Comment:
+    from fastapi import HTTPException
+
+    comment = db.scalar(
+        select(Comment)
+        .where(Comment.id == comment_id, Comment.post_id == post_id)
+        .options(joinedload(Comment.user))
+    )
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    if comment.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not allowed to edit this comment")
+    comment.content = content.strip()
+    db.commit()
+    db.refresh(comment)
+    return comment
+
+
 def delete_post_comment(db: Session, post_id: int, comment_id: int, user: User) -> None:
     from fastapi import HTTPException
 

@@ -9,6 +9,7 @@ from app.dependencies import CurrentUser, DbSession, OptionalUser
 from app.models import Comment, Like, Post, PostMedia, PostTag, SavedPost, User
 from app.schemas.post import (
     CommentCreate,
+    CommentUpdate,
     CommentLikeResponse,
     CommentOut,
     LikeToggleResponse,
@@ -23,6 +24,8 @@ from app.services.posts import (
     build_posts_out,
     create_review_post,
     delete_post_comment,
+    build_single_comment_out,
+    update_post_comment,
     delete_post_by_owner,
     get_explore_posts,
     get_home_feed_posts,
@@ -355,6 +358,18 @@ def get_post_comments(
     page, limit, _ = pagination_params(page, limit)
     items, total = list_post_comments(db, post_id, viewer, page, limit)
     return paginate(items, total, page, limit)
+
+
+@router.patch("/{post_id}/comments/{comment_id}", response_model=CommentOut)
+def edit_comment(
+    post_id: int,
+    comment_id: int,
+    body: CommentUpdate,
+    current_user: CurrentUser,
+    db: DbSession,
+):
+    comment = update_post_comment(db, post_id, comment_id, current_user, body.content)
+    return build_single_comment_out(db, comment, current_user)
 
 
 @router.delete("/{post_id}/comments/{comment_id}", status_code=204)
