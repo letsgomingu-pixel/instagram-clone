@@ -46,6 +46,7 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
 
   const {
     selectedPost,
+    postModalFocusComments,
     setSelectedPost,
     isCreatePostOpen,
     setCreatePostOpen,
@@ -99,7 +100,13 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
 
       {chrome.showBottomNav && <BottomNav />}
 
-      {selectedPost && <PostModal post={selectedPost} onClose={() => setSelectedPost(null)} />}
+      {selectedPost && (
+        <PostModal
+          post={selectedPost}
+          focusComments={postModalFocusComments}
+          onClose={() => setSelectedPost(null)}
+        />
+      )}
       <CreatePostModal isOpen={isCreatePostOpen} onClose={() => setCreatePostOpen(false)} />
       <CreateStoryModal isOpen={isCreateStoryOpen} onClose={() => setCreateStoryOpen(false)} />
       {activeStoryIndex !== null && (

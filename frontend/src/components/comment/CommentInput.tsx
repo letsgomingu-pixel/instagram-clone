@@ -7,9 +7,10 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 interface CommentInputProps {
   onSubmit: (content: string) => void;
   inputRef?: RefObject<HTMLInputElement | null>;
+  showTopBorder?: boolean;
 }
 
-export function CommentInput({ onSubmit, inputRef }: CommentInputProps) {
+export function CommentInput({ onSubmit, inputRef, showTopBorder = true }: CommentInputProps) {
   const [content, setContent] = useState('');
   const [emojiOpen, setEmojiOpen] = useState(false);
   const { requireAuth, isAuthenticated } = useRequireAuth();
@@ -32,7 +33,10 @@ export function CommentInput({ onSubmit, inputRef }: CommentInputProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-2 border-t border-ig-border pt-3">
+    <form
+      onSubmit={handleSubmit}
+      className={`flex items-center gap-2 pt-3 ${showTopBorder ? 'border-t border-ig-border' : ''}`}
+    >
       <div className="relative">
         <button
           type="button"

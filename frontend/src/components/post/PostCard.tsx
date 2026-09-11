@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { Avatar } from '@/components/common/Avatar';
-import { PostCommentsModal } from '@/components/comment/PostCommentsModal';
 import { LikeListModal } from '@/components/post/LikeListModal';
 import { PostCaption } from '@/components/post/PostCaption';
 import { PostMediaCarousel } from '@/components/post/PostMediaCarousel';
@@ -33,6 +32,7 @@ export function PostCard({ post }: PostCardProps) {
     toggleLike,
     toggleSave,
     setPostSaved,
+    setSelectedPost,
     toggleFollow,
     deletePost,
     updatePost,
@@ -44,11 +44,10 @@ export function PostCard({ post }: PostCardProps) {
   const [showHeart, setShowHeart] = useState(false);
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [likesOpen, setLikesOpen] = useState(false);
-  const [commentsOpen, setCommentsOpen] = useState(false);
   const [savePickerOpen, setSavePickerOpen] = useState(false);
   const isOwnPost = user?.id === post.user.id;
 
-  const openComments = () => setCommentsOpen(true);
+  const openComments = () => setSelectedPost(post, true);
 
   const handleDoubleTapLike = useCallback(() => {
     requireAuth(() => {
@@ -227,12 +226,6 @@ export function PostCard({ post }: PostCardProps) {
           {formatRelativeTime(post.created_at)}
         </time>
       </div>
-
-      <PostCommentsModal
-        post={post}
-        isOpen={commentsOpen}
-        onClose={() => setCommentsOpen(false)}
-      />
 
       <LikeListModal
         postId={post.id}

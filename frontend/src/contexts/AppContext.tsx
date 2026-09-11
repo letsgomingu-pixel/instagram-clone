@@ -131,7 +131,9 @@ interface AppContextValue {
 
   selectedPost: Post | null;
 
-  setSelectedPost: (post: Post | null) => void;
+  postModalFocusComments: boolean;
+
+  setSelectedPost: (post: Post | null | ((prev: Post | null) => Post | null), focusComments?: boolean) => void;
 
   isCreatePostOpen: boolean;
 
@@ -203,7 +205,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [exploreLoadingMore, setExploreLoadingMore] = useState(false);
 
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [selectedPost, setSelectedPostState] = useState<Post | null>(null);
+  const [postModalFocusComments, setPostModalFocusComments] = useState(false);
+
+  const setSelectedPost = useCallback(
+    (post: Post | null | ((prev: Post | null) => Post | null), focusComments?: boolean) => {
+      if (typeof post === 'function') {
+        setSelectedPostState(post);
+        return;
+      }
+      setSelectedPostState(post);
+      setPostModalFocusComments(post ? Boolean(focusComments) : false);
+    },
+    [],
+  );
 
   const [isCreatePostOpen, setCreatePostOpen] = useState(false);
 
@@ -1005,6 +1020,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       selectedPost,
 
+      postModalFocusComments,
+
       setSelectedPost,
 
       isCreatePostOpen,
@@ -1110,6 +1127,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       markReelViewed,
 
       selectedPost,
+
+      postModalFocusComments,
 
       isCreatePostOpen,
 

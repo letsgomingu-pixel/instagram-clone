@@ -1,11 +1,12 @@
 import { SaveCollectionModal } from '@/components/post/SaveCollectionModal';
 import { useAuth } from '@/hooks/useAuth';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { Modal } from '@/components/common/Modal';
 import { Avatar } from '@/components/common/Avatar';
 import { MultilineText } from '@/components/common/MultilineText';
+import { Spinner } from '@/components/common/Spinner';
 import { PostMediaCarousel } from '@/components/post/PostMediaCarousel';
 import { PostOptionsMenu } from '@/components/post/PostOptionsMenu';
 import { TaggedUsers } from '@/components/post/TaggedUsers';
@@ -19,16 +20,21 @@ import { CommentList } from '@/components/comment/CommentList';
 import { CommentInput } from '@/components/comment/CommentInput';
 import { ProductInfo } from '@/components/post/ProductInfo';
 import { formatRelativeTime } from '@/utils/formatDate';
+import { formatCompactCount } from '@/utils/formatNumber';
+import * as postsApi from '@/api/posts';
 import { useApp } from '@/contexts/AppContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import type { Post } from '@/types';
 
+const COMMENT_PAGE_SIZE = 50;
+
 interface PostModalProps {
   post: Post;
   onClose: () => void;
+  focusComments?: boolean;
 }
 
-export function PostModal({ post, onClose }: PostModalProps) {
+export function PostModal({ post, onClose, focusComments = false }: PostModalProps) {
   const { user } = useAuth();
   const {
     toggleLike,
@@ -46,7 +52,50 @@ export function PostModal({ post, onClose }: PostModalProps) {
   const { requireAuth } = useRequireAuth();
   const commentInputRef = useRef<HTMLInputElement>(null);
   const [savePickerOpen, setSavePickerOpen] = useState(false);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextPage, setNextPage] = useState<number | null>(null);
   const isOwnPost = user?.id === post.user.id;
+
+  useEffect(() => {
+    setCommentsLoading(true);
+    postsApi
+      .getPostComments(post.id, 1, COMMENT_PAGE_SIZE)
+      .then((res) => {
+        setPostComments(post.id, res.items, res.total);
+        setNextPage(res.next_page);
+      })
+      .catch(() => toast.error('댓글을 불러오지 못했습니다.'))
+      .finally(() => setCommentsLoading(false));
+  }, [post.id, setPostComments]);
+
+  useEffect(() => {
+    if (!focusComments) return;
+    const timer = window.setTimeout(() => commentInputRef.current?.focus(), 200);
+    return () => window.clearTimeout(timer);
+  }, [focusComments]);
+
+  const loadMoreComments = useCallback(async () => {
+    if (!nextPage || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const res = await postsApi.getPostComments(post.id, nextPage, COMMENT_PAGE_SIZE);
+      const merged = [...(post.comments || []), ...res.items];
+      setPostComments(post.id, merged, res.total);
+      setNextPage(res.next_page);
+    } catch {
+      toast.error('댓글을 더 불러오지 못했습니다.');
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, nextPage, post.comments, post.id, setPostComments]);
+
+  const handleCommentsScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 120) {
+      void loadMoreComments();
+    }
+  };
 
   const focusCommentInput = () => {
     requireAuth(() => commentInputRef.current?.focus());
@@ -91,8 +140,8 @@ export function PostModal({ post, onClose }: PostModalProps) {
 
   return (
     <Modal isOpen onClose={onClose} size="lg" showClose={false} className="w-full max-w-[900px]">
-      <div className="flex flex-col md:flex-row max-h-[90vh] md:max-h-[600px]">
-        <div className="md:w-[60%] bg-black flex items-center justify-center min-h-[300px] md:min-h-0">
+      <div className="flex flex-col md:flex-row md:h-[600px] max-h-[90vh] min-h-0">
+        <div className="md:w-[60%] bg-black flex items-center justify-center min-h-[280px] md:min-h-0 shrink-0 md:shrink">
           <PostMediaCarousel
             media={
               post.media?.length
@@ -104,19 +153,38 @@ export function PostModal({ post, onClose }: PostModalProps) {
           />
         </div>
 
-        <div className="md:w-[40%] flex flex-col border-l border-ig-border">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-ig-border">
-            <Link to={`/profile/${post.user.username}`} className="flex items-center gap-3 min-w-0">
-              <Avatar src={post.user.avatar_url} alt={post.user.username} size="sm" />
-              <div className="min-w-0">
-                <span className="text-sm font-semibold hover:underline">{post.user.username}</span>
+        <div className="md:w-[40%] flex flex-col min-h-0 min-w-0 border-t md:border-t-0 md:border-l border-ig-border bg-white">
+          <div className="shrink-0 flex items-center justify-between px-4 h-[60px] border-b border-ig-border">
+            <div className="flex items-center gap-3 min-w-0">
+              <Link to={`/profile/${post.user.username}`}>
+                <Avatar src={post.user.avatar_url} alt={post.user.username} size="sm" />
+              </Link>
+              <div className="min-w-0 flex items-center flex-wrap gap-x-1">
+                <Link
+                  to={`/profile/${post.user.username}`}
+                  className="text-[14px] font-semibold hover:underline truncate"
+                >
+                  {post.user.username}
+                </Link>
+                {!isOwnPost && !post.user.is_following && (
+                  <>
+                    <span className="text-ig-text-secondary">·</span>
+                    <button
+                      type="button"
+                      onClick={() => requireAuth(() => toggleFollow(post.user.id))}
+                      className="text-[14px] font-semibold text-ig-primary hover:text-ig-primary-hover"
+                    >
+                      팔로우
+                    </button>
+                  </>
+                )}
                 {post.tagged_users && post.tagged_users.length > 0 && (
-                  <p className="text-[12px] truncate">
+                  <p className="w-full text-[12px] truncate">
                     <TaggedUsers users={post.tagged_users} className="text-ig-text-secondary" />
                   </p>
                 )}
               </div>
-            </Link>
+            </div>
             <PostOptionsMenu
               post={post}
               onDelete={isOwnPost ? handleDelete : undefined}
@@ -128,90 +196,134 @@ export function PostModal({ post, onClose }: PostModalProps) {
             />
           </div>
 
-          {post.post_type === 'product' && post.product && (
-            <ProductInfo product={post.product} showBuyButton showCartButton />
-          )}
-
-          {post.post_type === 'review' && (
-            <div className="px-4 py-2 border-b border-ig-border bg-[#fafafa] space-y-1">
-              {post.rating != null && (
-                <p className="text-[13px] font-semibold text-amber-600">
-                  {'★'.repeat(post.rating)}{'☆'.repeat(5 - post.rating)}
-                </p>
-              )}
-              {post.product && (
-                <p className="text-[12px] text-ig-text-secondary">{post.product.name} 구매 리뷰</p>
-              )}
-            </div>
-          )}
-
-          <div className="flex-1 overflow-y-auto px-4 py-3">
+          <div
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-4"
+            onScroll={handleCommentsScroll}
+          >
             {post.caption && (
               <div className="flex gap-3 mb-4">
-                <Avatar src={post.user.avatar_url} alt={post.user.username} size="sm" />
-                <div>
-                  <p className="text-sm">
-                    <Link to={`/profile/${post.user.username}`} className="font-semibold mr-1 hover:underline">
+                <Link to={`/profile/${post.user.username}`}>
+                  <Avatar src={post.user.avatar_url} alt={post.user.username} size="sm" />
+                </Link>
+                <div className="min-w-0">
+                  <p className="text-[14px] leading-[18px]">
+                    <Link
+                      to={`/profile/${post.user.username}`}
+                      className="font-semibold mr-1 hover:underline"
+                    >
                       {post.user.username}
                     </Link>
                     <MultilineText as="span">{post.caption}</MultilineText>
                   </p>
-                  <time className="text-[10px] text-ig-text-secondary uppercase">
+                  <time className="text-[12px] text-ig-text-secondary mt-1 block">
                     {formatRelativeTime(post.created_at)}
                   </time>
                 </div>
               </div>
             )}
-            <CommentList
-              comments={post.comments || []}
-              postId={post.id}
-              postOwnerId={post.user.id}
-              onCommentsChange={(comments, total) =>
-                setPostComments(post.id, comments, total ?? post.comment_count)
-              }
-            />
+
+            {post.post_type === 'product' && post.product && (
+              <div className="mb-4">
+                <ProductInfo product={post.product} showBuyButton showCartButton />
+              </div>
+            )}
+
+            {post.post_type === 'review' && (
+              <div className="mb-4 px-1 py-2 border border-ig-border rounded-lg bg-[#fafafa] space-y-1">
+                {post.rating != null && (
+                  <p className="text-[13px] font-semibold text-amber-600">
+                    {'★'.repeat(post.rating)}{'☆'.repeat(5 - post.rating)}
+                  </p>
+                )}
+                {post.product && (
+                  <p className="text-[12px] text-ig-text-secondary">{post.product.name} 구매 리뷰</p>
+                )}
+              </div>
+            )}
+
+            {commentsLoading ? (
+              <div className="flex justify-center py-8">
+                <Spinner />
+              </div>
+            ) : (
+              <>
+                <CommentList
+                  comments={post.comments || []}
+                  postId={post.id}
+                  postOwnerId={post.user.id}
+                  onCommentsChange={(comments, total) =>
+                    setPostComments(post.id, comments, total ?? post.comment_count)
+                  }
+                />
+                {loadingMore && (
+                  <div className="flex justify-center py-4">
+                    <Spinner />
+                  </div>
+                )}
+              </>
+            )}
           </div>
 
-          <div className="border-t border-ig-border px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-4">
+          <div className="shrink-0 border-t border-ig-border">
+            <div className="px-4 pt-2 pb-1">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => requireAuth(() => toggleLike(post.id))}
+                    aria-label="좋아요"
+                    className="hover:opacity-50 transition-opacity"
+                  >
+                    <PostLikeIcon liked={post.is_liked} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={focusCommentInput}
+                    aria-label="댓글"
+                    className="hover:opacity-50 transition-opacity"
+                  >
+                    <PostCommentIcon />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => requireAuth(handleShare)}
+                    aria-label="공유"
+                    className="hover:opacity-50 transition-opacity"
+                  >
+                    <PostShareIcon />
+                  </button>
+                </div>
                 <button
-                  onClick={() => requireAuth(() => toggleLike(post.id))}
-                  aria-label="좋아요"
+                  type="button"
+                  onClick={handleSave}
+                  aria-label="저장"
+                  className="hover:opacity-50 transition-opacity"
                 >
-                  <PostLikeIcon liked={post.is_liked} />
-                </button>
-                <button onClick={focusCommentInput} aria-label="댓글">
-                  <PostCommentIcon />
-                </button>
-                <button onClick={() => requireAuth(handleShare)} aria-label="공유">
-                  <PostShareIcon />
+                  <PostBookmarkIcon saved={post.is_saved} />
                 </button>
               </div>
-              <button
-                onClick={handleSave}
-                aria-label="저장"
-              >
-                <PostBookmarkIcon saved={post.is_saved} />
-              </button>
+              {(post.like_count > 0 || post.is_liked) && (
+                <p className="text-[14px] font-semibold mb-1">
+                  좋아요 {formatCompactCount(post.like_count)}개
+                </p>
+              )}
+              <time className="text-[10px] text-ig-text-secondary uppercase block mb-2">
+                {formatRelativeTime(post.created_at)}
+              </time>
             </div>
-            {(post.like_count > 0 || post.is_liked) && (
-              <p className="text-sm font-semibold mb-1">좋아요 {post.like_count.toLocaleString()}개</p>
-            )}
-            {post.comment_count > 0 && (
-              <p className="text-sm text-ig-text-secondary mb-1">
-                댓글 {post.comment_count.toLocaleString()}개
-              </p>
-            )}
-            <time className="text-[10px] text-ig-text-secondary uppercase block mb-3">
-              {formatRelativeTime(post.created_at)}
-            </time>
-            <CommentInput inputRef={commentInputRef} onSubmit={(content) => addComment(post.id, content)} />
+            <div className="px-4 pb-3 border-t border-ig-border">
+              <CommentInput
+                inputRef={commentInputRef}
+                showTopBorder={false}
+                onSubmit={(content) => addComment(post.id, content)}
+              />
+            </div>
           </div>
         </div>
       </div>
 
       <button
+        type="button"
         onClick={onClose}
         className="absolute top-3 right-3 z-20 text-white md:text-ig-text p-1 hover:opacity-70"
         aria-label="닫기"
