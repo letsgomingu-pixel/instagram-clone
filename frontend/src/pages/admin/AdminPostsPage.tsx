@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { deleteAdminPost, getAdminPosts } from '@/api/admin';
-import { MediaImage } from '@/components/common/MediaImage';
+import { PostCoverMedia } from '@/components/post/PostCoverMedia';
 import { Button } from '@/components/common/Button';
 import { Spinner } from '@/components/common/Spinner';
 import type { Post } from '@/types';
@@ -59,10 +59,11 @@ export function AdminPostsPage() {
                 className="bg-white border border-ig-border rounded-xl overflow-hidden"
               >
                 <div className="aspect-square bg-ig-secondary">
-                  <MediaImage
-                    src={post.image_url}
+                  <PostCoverMedia
+                    imageUrl={post.image_url}
+                    media={post.media}
                     alt={post.caption || `게시물 ${post.id}`}
-                    className="w-full h-full object-cover"
+                    autoPlayVideo
                   />
                 </div>
                 <div className="p-4 space-y-2">

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Hash, Package, Search as SearchIcon, X } from 'lucide-react';
 import { Avatar } from '@/components/common/Avatar';
 import { Button } from '@/components/common/Button';
-import { MediaImage } from '@/components/common/MediaImage';
+import { PostCoverMedia } from '@/components/post/PostCoverMedia';
 import { ExploreGrid } from '@/components/explore/ExploreGrid';
 import { TabBar } from '@/components/post/FeedTabs';
 import { formatPrice } from '@/components/post/ProductInfo';
@@ -174,7 +174,7 @@ export function SearchPage() {
                 >
                   <div className="w-11 h-11 rounded-lg overflow-hidden bg-ig-secondary shrink-0">
                     {product.image_url ? (
-                      <MediaImage src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                      <PostCoverMedia imageUrl={product.image_url} alt={product.name} />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Package size={18} className="text-ig-text-secondary" />

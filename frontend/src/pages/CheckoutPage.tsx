@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { AddressFields } from '@/components/address/AddressFields';
 import { Button } from '@/components/common/Button';
-import { MediaImage } from '@/components/common/MediaImage';
+import { PostCoverMedia } from '@/components/post/PostCoverMedia';
 import { Spinner } from '@/components/common/Spinner';
 import { formatPrice } from '@/components/post/ProductInfo';
 import * as ordersApi from '@/api/orders';
@@ -222,7 +222,7 @@ export function CheckoutPage() {
         <div className="flex gap-4">
           {quote.image_url && (
             <div className="w-20 h-20 rounded-lg overflow-hidden bg-ig-secondary shrink-0">
-              <MediaImage src={quote.image_url} alt={quote.product_name} className="w-full h-full object-cover" />
+              <PostCoverMedia imageUrl={quote.image_url} alt={quote.product_name} />
             </div>
           )}
           <div>

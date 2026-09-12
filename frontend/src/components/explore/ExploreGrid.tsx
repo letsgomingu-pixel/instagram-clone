@@ -1,4 +1,4 @@
-import { MediaImage } from '@/components/common/MediaImage';
+import { PostCoverMedia } from '@/components/post/PostCoverMedia';
 import { GridCommentIcon, GridLikeIcon } from '@/components/post/PostActionIcons';
 import { useApp } from '@/contexts/AppContext';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
@@ -40,11 +40,10 @@ export function ExploreGrid() {
                 isLarge ? 'col-span-2 row-span-2 aspect-square' : 'aspect-square'
               }`}
             >
-              <MediaImage
-                src={post.image_url}
+              <PostCoverMedia
+                imageUrl={post.image_url}
+                media={post.media}
                 alt={post.caption || '탐색 게시물'}
-                className="w-full h-full object-cover"
-                loading="lazy"
               />
               <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity flex items-center justify-center gap-6 text-white font-semibold">
                 <span className="flex items-center gap-2">

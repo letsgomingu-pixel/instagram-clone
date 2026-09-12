@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Avatar } from '@/components/common/Avatar';
-import { MediaImage } from '@/components/common/MediaImage';
+import { PostCoverMedia } from '@/components/post/PostCoverMedia';
 import { formatNotificationTime, getNotificationMessage, isOrderNotification } from '@/utils/notifications';
 import type { Notification } from '@/types';
 import { cn } from '@/utils/cn';
@@ -119,7 +119,7 @@ export function NotificationItem({
             }}
             className="w-11 h-11 shrink-0 overflow-hidden hover:opacity-90"
           >
-            <MediaImage src={post_image_url} alt="" className="w-full h-full object-cover" />
+            <PostCoverMedia imageUrl={post_image_url} alt="" />
           </button>
         ) : null}
       </div>

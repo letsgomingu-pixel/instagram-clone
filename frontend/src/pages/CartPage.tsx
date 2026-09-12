@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { AddressFields } from '@/components/address/AddressFields';
 import { Button } from '@/components/common/Button';
-import { MediaImage } from '@/components/common/MediaImage';
+import { PostCoverMedia } from '@/components/post/PostCoverMedia';
 import { Spinner } from '@/components/common/Spinner';
 import { formatPrice } from '@/components/post/ProductInfo';
 import * as cartApi from '@/api/cart';
@@ -242,7 +242,7 @@ export function CartPage() {
                 <li key={item.id} className="py-4 flex gap-3">
                   <div className="w-16 h-16 rounded-lg overflow-hidden bg-ig-secondary shrink-0">
                     {item.image_url ? (
-                      <MediaImage src={item.image_url} alt={item.product.name} className="w-full h-full object-cover" />
+                      <PostCoverMedia imageUrl={item.image_url} alt={item.product.name} />
                     ) : null}
                   </div>
                   <div className="flex-1 min-w-0">

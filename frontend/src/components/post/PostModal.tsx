@@ -20,6 +20,7 @@ import { CommentList } from '@/components/comment/CommentList';
 import { CommentInput } from '@/components/comment/CommentInput';
 import { formatRelativeTime } from '@/utils/formatDate';
 import { formatCompactCount } from '@/utils/formatNumber';
+import { isVideoMediaUrl } from '@/utils/media';
 import { postShareUrl, shareUrl } from '@/utils/share';
 import * as postsApi from '@/api/posts';
 import { useApp } from '@/contexts/AppContext';
@@ -136,7 +137,14 @@ export function PostModal({ post, onClose, focusComments = false }: PostModalPro
             media={
               post.media?.length
                 ? post.media
-                : [{ id: 0, media_url: post.image_url, media_type: 'image', position: 0 }]
+                : [
+                    {
+                      id: 0,
+                      media_url: post.image_url,
+                      media_type: isVideoMediaUrl(post.image_url) ? 'video' : 'image',
+                      position: 0,
+                    },
+                  ]
             }
             alt={post.caption || '게시물'}
             onDoubleTap={() => requireAuth(() => toggleLike(post.id))}

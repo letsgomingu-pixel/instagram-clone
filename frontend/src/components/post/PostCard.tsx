@@ -15,6 +15,7 @@ import {
   PostShareIcon,
 } from '@/components/post/PostActionIcons';
 import { formatRelativeTime } from '@/utils/formatDate';
+import { isVideoMediaUrl } from '@/utils/media';
 import { formatCompactCount } from '@/utils/formatNumber';
 import { postShareUrl, shareUrl } from '@/utils/share';
 import { useApp } from '@/contexts/AppContext';
@@ -123,7 +124,14 @@ export function PostCard({ post }: PostCardProps) {
         media={
           post.media?.length
             ? post.media
-            : [{ id: 0, media_url: post.image_url, media_type: 'image', position: 0 }]
+            : [
+                {
+                  id: 0,
+                  media_url: post.image_url,
+                  media_type: isVideoMediaUrl(post.image_url) ? 'video' : 'image',
+                  position: 0,
+                },
+              ]
         }
         alt={post.caption || `${post.user.username}의 게시물`}
         onDoubleTap={handleDoubleTapLike}

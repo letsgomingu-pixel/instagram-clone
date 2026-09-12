@@ -4,7 +4,7 @@ import { ImagePlus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createAdminProduct, getAdminProducts, updateAdminProduct } from '@/api/admin';
 import { Button } from '@/components/common/Button';
-import { MediaImage } from '@/components/common/MediaImage';
+import { PostCoverMedia } from '@/components/post/PostCoverMedia';
 import { Spinner } from '@/components/common/Spinner';
 import { ProductInfo, formatPrice } from '@/components/post/ProductInfo';
 import type { Post, Product } from '@/types';
@@ -375,7 +375,12 @@ export function AdminProductsPage() {
             {products.map((post) => (
               <article key={post.id} className="bg-white border border-ig-border rounded-xl overflow-hidden">
                 <div className="aspect-square bg-ig-secondary">
-                  <MediaImage src={post.image_url} alt={post.product?.name || '상품'} className="w-full h-full object-cover" />
+                  <PostCoverMedia
+                    imageUrl={post.image_url}
+                    media={post.media}
+                    alt={post.product?.name || '상품'}
+                    autoPlayVideo
+                  />
                 </div>
                 {post.product && <ProductInfo product={post.product} compact />}
                 <div className="px-4 py-3 space-y-3">

@@ -16,6 +16,13 @@ function getApiOrigin(): string {
   return new URL(apiBase, window.location.origin).origin;
 }
 
+const VIDEO_EXT = /\.(mp4|webm|mov|m4v)(\?|$)/i;
+
+export function isVideoMediaUrl(url?: string | null): boolean {
+  if (!url) return false;
+  return VIDEO_EXT.test(url);
+}
+
 /** Turn API media paths (`/media/...`) into absolute URLs for the Vite dev server. */
 export function resolveMediaUrl(url?: string | null): string {
   if (!url) return '';

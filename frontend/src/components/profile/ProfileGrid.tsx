@@ -1,4 +1,4 @@
-import { MediaImage } from '@/components/common/MediaImage';
+import { PostCoverMedia } from '@/components/post/PostCoverMedia';
 import { GridCommentIcon, GridLikeIcon } from '@/components/post/PostActionIcons';
 import { useApp } from '@/contexts/AppContext';
 import type { Post } from '@/types';
@@ -71,11 +71,10 @@ export function ProfileGrid({ posts, savedOnly = false, isOwn = true, isPrivate 
           className="relative aspect-square group overflow-hidden bg-ig-secondary"
           aria-label={`${post.user.username}의 게시물`}
         >
-          <MediaImage
-            src={post.image_url}
+          <PostCoverMedia
+            imageUrl={post.image_url}
+            media={post.media}
             alt={post.caption || '게시물'}
-            className="w-full h-full object-cover"
-            loading="lazy"
           />
           <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-6 text-white font-semibold text-[16px]">
             <span className="flex items-center gap-2">
