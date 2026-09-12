@@ -79,7 +79,12 @@ export function AdminProductsPage() {
   const hasFiles = files.length > 0;
   const { getRootProps, getInputProps, open, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
+      'video/mp4': ['.mp4', '.m4v'],
+      'video/webm': ['.webm'],
+      'video/quicktime': ['.mov'],
+    },
     multiple: true,
     noClick: hasFiles,
     noKeyboard: hasFiles,
@@ -104,7 +109,7 @@ export function AdminProductsPage() {
     e.preventDefault();
     if (!name.trim()) return toast.error('상품명을 입력해주세요.');
     if (!price.trim() || parseNumberInput(price) < 0) return toast.error('가격을 입력해주세요.');
-    if (!files.length) return toast.error('상품 사진을 등록해주세요.');
+    if (!files.length) return toast.error('상품 사진 또는 동영상을 등록해주세요.');
     if (availability === 'seasonal' && (!seasonStart || !seasonEnd)) {
       return toast.error('제철 상품은 제철 기간을 입력해주세요.');
     }
@@ -290,10 +295,10 @@ export function AdminProductsPage() {
 
         <div>
           <div className="flex items-center justify-between gap-3 mb-2">
-            <span className="text-sm font-medium">상품 사진</span>
+            <span className="text-sm font-medium">상품 사진·동영상</span>
             {hasFiles && (
               <Button type="button" size="sm" variant="secondary" onClick={() => open()}>
-                + 사진 추가
+                + 미디어 추가
               </Button>
             )}
           </div>
@@ -306,7 +311,8 @@ export function AdminProductsPage() {
             >
               <input {...getInputProps()} />
               <ImagePlus className="mx-auto mb-2 text-ig-text-secondary" size={28} />
-              <p className="text-sm text-ig-text-secondary">클릭하거나 드래그하여 사진 업로드</p>
+              <p className="text-sm text-ig-text-secondary">클릭하거나 드래그하여 사진·동영상 업로드</p>
+              <p className="text-xs text-ig-text-secondary mt-1">JPG, PNG, MP4, MOV, WebM</p>
             </div>
           ) : (
             <>
@@ -314,7 +320,11 @@ export function AdminProductsPage() {
               <div className="flex flex-wrap gap-2">
                 {previews.map((url, index) => (
                   <div key={url} className="relative h-20 w-20 rounded-lg overflow-hidden border border-ig-border">
-                    <img src={url} alt="" className="h-full w-full object-cover" />
+                    {files[index]?.type.startsWith('video/') ? (
+                      <video src={url} className="h-full w-full object-cover" muted playsInline />
+                    ) : (
+                      <img src={url} alt="" className="h-full w-full object-cover" />
+                    )}
                     <button
                       type="button"
                       onClick={() => {
@@ -323,7 +333,7 @@ export function AdminProductsPage() {
                         setFiles((prev) => prev.filter((_, i) => i !== index));
                       }}
                       className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5"
-                      aria-label="사진 삭제"
+                      aria-label="미디어 삭제"
                     >
                       <X size={12} />
                     </button>
@@ -333,10 +343,10 @@ export function AdminProductsPage() {
                   type="button"
                   onClick={() => open()}
                   className="h-20 min-w-[5rem] px-2 rounded-lg border-2 border-dashed border-ig-border flex flex-col items-center justify-center gap-1 hover:border-ig-primary hover:bg-ig-secondary"
-                  aria-label="사진 추가"
+                  aria-label="미디어 추가"
                 >
                   <ImagePlus size={22} className="text-ig-text-secondary" />
-                  <span className="text-xs text-ig-text-secondary">사진 추가</span>
+                  <span className="text-xs text-ig-text-secondary">미디어 추가</span>
                 </button>
               </div>
               <p className="text-xs text-ig-text-secondary mt-2">{files.length}개 파일 선택됨</p>

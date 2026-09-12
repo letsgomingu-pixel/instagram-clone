@@ -1037,6 +1037,27 @@ def test_admin_create_product():
     assert body["product"]["unit"] == "1kg"
 
 
+def test_admin_create_product_with_video():
+    headers = _admin_login()
+    r = client.post(
+        "/api/v1/admin/products",
+        headers=headers,
+        data={
+            "name": "영상상품",
+            "price": "28000",
+            "unit": "1마리",
+            "storage_type": "fresh",
+            "availability": "year_round",
+            "stock": "3",
+        },
+        files={"files": ("clip.mp4", _make_video_bytes(), "video/mp4")},
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert len(body["media"]) == 1
+    assert body["media"][0]["media_type"] == "video"
+
+
 def test_admin_create_product_multiple_files():
     headers = _admin_login()
     r = client.post(
