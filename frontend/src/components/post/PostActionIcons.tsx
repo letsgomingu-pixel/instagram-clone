@@ -1,5 +1,4 @@
 import {
-  Home,
   LogIn,
   Menu,
   MoreHorizontal,
@@ -10,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { ExploreIcon } from '@/components/common/ExploreIcon';
+import { HomeIcon } from '@/components/common/HomeIcon';
 import {
   BookmarkOutlineIcon,
   BookmarkSolidIcon,
@@ -112,9 +112,12 @@ export function NavIcon({ icon: Icon, active = false, filledWhenActive = false, 
   return <Icon size={ACTION_ICON_SIZE} fill={fill} stroke={stroke} className={className} />;
 }
 
-export const NavHomeIcon = (props: Omit<NavIconProps, 'icon' | 'filledWhenActive'>) => (
-  <NavIcon icon={Home} filledWhenActive {...props} />
-);
+export function NavHomeIcon({
+  active = false,
+  className,
+}: Omit<NavIconProps, 'icon' | 'filledWhenActive'>) {
+  return <HomeIcon size={ACTION_ICON_SIZE} filled={active} className={className} />;
+}
 
 export const NavSearchIcon = (props: Omit<NavIconProps, 'icon'>) => (
   <NavIcon icon={Search} {...props} />
