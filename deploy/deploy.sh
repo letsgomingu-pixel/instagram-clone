@@ -230,6 +230,9 @@ else
   mkdir -p /etc/nginx/conf.d
   overwrite_nginx_conf "/etc/nginx/conf.d/${DOMAIN}.conf"
 fi
+if [[ -f "$DEPLOY_PATH/deploy/patch-nginx-upload-limits.sh" ]]; then
+  DEPLOY_PATH="$DEPLOY_PATH" bash "$DEPLOY_PATH/deploy/patch-nginx-upload-limits.sh"
+fi
 nginx -t
 systemctl enable nginx
 systemctl restart nginx

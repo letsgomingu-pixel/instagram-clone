@@ -57,9 +57,9 @@ for i in $(seq 1 30); do
   fi
   sleep 2
 done
-if [[ -x "$DEPLOY_PATH/deploy/patch-nginx-upload-limits.sh" ]]; then
+if [[ -f "$DEPLOY_PATH/deploy/patch-nginx-upload-limits.sh" ]]; then
   echo "==> nginx: patch upload limits (200M, certbot-safe)..."
-  bash "$DEPLOY_PATH/deploy/patch-nginx-upload-limits.sh"
+  DEPLOY_PATH="$DEPLOY_PATH" bash "$DEPLOY_PATH/deploy/patch-nginx-upload-limits.sh"
 fi
 
 nginx -t
