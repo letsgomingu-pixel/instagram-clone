@@ -35,7 +35,6 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
   const { refreshReels } = useApp();
   const [preview, setPreview] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [videoAspect, setVideoAspect] = useState<number | null>(null);
   const [caption, setCaption] = useState('');
   const [audioName, setAudioName] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -44,7 +43,6 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
     if (preview) URL.revokeObjectURL(preview);
     setPreview(null);
     setVideoFile(null);
-    setVideoAspect(null);
     setCaption('');
     setAudioName('');
   };
@@ -63,7 +61,6 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
     }
     const normalized = normalizeVideoFile(file);
     setVideoFile(normalized);
-    setVideoAspect(null);
     setPreview(URL.createObjectURL(normalized));
   }, []);
 
@@ -97,13 +94,6 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
       toast.error(formatApiError(err, '릴스 업로드에 실패했습니다.'));
     } finally {
       setUploading(false);
-    }
-  };
-
-  const handleVideoMetadata = (event: React.SyntheticEvent<HTMLVideoElement>) => {
-    const { videoWidth, videoHeight } = event.currentTarget;
-    if (videoWidth > 0 && videoHeight > 0) {
-      setVideoAspect(videoWidth / videoHeight);
     }
   };
 
@@ -147,20 +137,13 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
           </div>
         ) : (
           <div>
-            <div
-              className="mx-auto w-full bg-black flex items-center justify-center overflow-hidden"
-              style={{
-                aspectRatio: videoAspect ?? 9 / 16,
-                maxHeight: 'min(70vh, 640px)',
-              }}
-            >
+            <div className="relative w-full h-[min(70vh,calc(min(400px,95vw)*16/9))] bg-black overflow-hidden">
               <video
                 src={preview}
-                className="w-full h-full object-contain"
+                className="absolute inset-0 h-full w-full object-cover object-center"
                 muted
                 playsInline
                 controls
-                onLoadedMetadata={handleVideoMetadata}
               />
             </div>
             <div className="p-3 border-t border-ig-border space-y-3">

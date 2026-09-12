@@ -95,20 +95,24 @@ export function StoryEditor({
       </div>
 
       <div
-        className="relative aspect-[9/16] max-h-[60vh] bg-black overflow-hidden"
+        className="relative w-full h-[min(60vh,calc(min(400px,95vw)*16/9))] bg-black overflow-hidden"
         onClick={() => setSelectedId(null)}
       >
         {mediaType === 'video' ? (
           <video
             src={mediaUrl}
-            className="w-full h-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover object-center"
             muted
             playsInline
             autoPlay
             loop
           />
         ) : (
-          <img src={mediaUrl} alt="스토리 미리보기" className="w-full h-full object-cover" />
+          <img
+            src={mediaUrl}
+            alt="스토리 미리보기"
+            className="absolute inset-0 h-full w-full object-cover object-center"
+          />
         )}
 
         <StoryOverlayLayer
