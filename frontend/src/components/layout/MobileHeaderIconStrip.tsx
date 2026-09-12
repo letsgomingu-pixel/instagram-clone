@@ -36,7 +36,7 @@ function HeaderIconLink({ to, label, active, badge, requiresAuth, children }: Ic
 
   const className = cn(
     'relative flex h-10 min-w-[40px] shrink-0 items-center justify-center rounded-full transition-opacity',
-    active ? 'text-ig-text' : 'text-ig-text-secondary hover:text-ig-text',
+    active ? 'text-ig-primary' : 'text-ig-text-secondary hover:text-ig-text',
   );
 
   if (requiresAuth) {
@@ -73,7 +73,7 @@ export function MobileHeaderIconStrip() {
   return (
     <nav
       aria-label="주요 메뉴"
-      className="flex items-center justify-around border-t border-ig-border px-1 h-[48px] w-full"
+      className="flex items-center justify-around border-t border-ig-border/80 px-1 h-[48px] w-full bg-ig-bg/30"
     >
       <HeaderIconLink to="/" label="홈" active={isActivePath(pathname, '/')} requiresAuth={false}>
         <NavHomeIcon active={isActivePath(pathname, '/')} />

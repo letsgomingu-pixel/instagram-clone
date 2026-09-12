@@ -128,7 +128,7 @@ export function FollowListModal({ isOpen, onClose, username, mode }: FollowListM
                       className={cn(
                         'h-8 px-4 text-[13px] font-semibold rounded-lg transition-colors shrink-0',
                         item.is_following
-                          ? 'bg-ig-secondary text-ig-text hover:bg-[#dbdbdb]'
+                          ? 'bg-ig-secondary text-ig-text hover:bg-ig-hover'
                           : 'bg-ig-primary text-white hover:bg-ig-primary-hover',
                       )}
                     >

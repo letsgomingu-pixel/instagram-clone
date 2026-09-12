@@ -143,7 +143,7 @@ export function PostModal({ post, onClose, focusComments = false }: PostModalPro
           />
         </div>
 
-        <div className="md:w-[40%] flex flex-col min-h-0 min-w-0 border-t md:border-t-0 md:border-l border-ig-border bg-white">
+        <div className="md:w-[40%] flex flex-col min-h-0 min-w-0 border-t md:border-t-0 md:border-l border-ig-border bg-ig-surface">
           <div className="shrink-0 flex items-center justify-between px-4 h-[60px] border-b border-ig-border">
             <div className="flex items-center gap-3 min-w-0">
               <Link to={`/profile/${post.user.username}`}>
@@ -213,7 +213,7 @@ export function PostModal({ post, onClose, focusComments = false }: PostModalPro
             )}
 
             {post.post_type === 'review' && (
-              <div className="mb-4 px-1 py-2 border border-ig-border rounded-lg bg-[#fafafa] space-y-1">
+              <div className="mb-4 px-1 py-2 border border-ig-border rounded-lg bg-ig-muted space-y-1">
                 {post.rating != null && (
                   <p className="text-[13px] font-semibold text-amber-600">
                     {'★'.repeat(post.rating)}{'☆'.repeat(5 - post.rating)}

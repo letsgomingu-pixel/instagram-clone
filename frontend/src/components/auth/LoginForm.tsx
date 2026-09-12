@@ -68,7 +68,7 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-[350px]">
-      <div className="bg-ig-surface border border-ig-border rounded-xl px-10 py-10 mb-3 shadow-sm">
+      <div className="bg-ig-surface border border-ig-border/80 rounded-2xl px-10 py-10 mb-3 shadow-[0_8px_32px_rgba(41,171,226,0.1)]">
         <div className="flex justify-center mb-6">
           <InstagramLogo className="text-[22px] leading-tight text-center" />
         </div>
@@ -82,7 +82,7 @@ export function LoginForm() {
             placeholder="사용자 이름 또는 이메일"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs placeholder:text-ig-text-secondary"
+            className="w-full px-3 py-2.5 bg-ig-muted border border-ig-border/80 rounded-xl text-xs placeholder:text-ig-text-secondary"
             aria-label="사용자명 또는 이메일"
             disabled={requires2fa}
           />
@@ -91,7 +91,7 @@ export function LoginForm() {
             placeholder="비밀번호"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs placeholder:text-ig-text-secondary"
+            className="w-full px-3 py-2.5 bg-ig-muted border border-ig-border/80 rounded-xl text-xs placeholder:text-ig-text-secondary"
             aria-label="비밀번호"
             disabled={requires2fa}
           />
@@ -104,7 +104,7 @@ export function LoginForm() {
                 placeholder="6자리 인증 코드"
                 value={totpCode}
                 onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
-                className="w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs placeholder:text-ig-text-secondary"
+                className="w-full px-3 py-2.5 bg-ig-muted border border-ig-border/80 rounded-xl text-xs placeholder:text-ig-text-secondary"
                 aria-label="2단계 인증 코드"
               />
               <label className="flex items-center gap-2 text-xs text-ig-text-secondary px-1">
@@ -130,7 +130,7 @@ export function LoginForm() {
         </p>
       </div>
 
-      <div className="bg-ig-surface border border-ig-border rounded-xl py-5 text-center text-sm shadow-sm">
+      <div className="bg-ig-surface border border-ig-border/80 rounded-2xl py-5 text-center text-sm shadow-[0_4px_16px_rgba(41,171,226,0.06)]">
         계정이 없으신가요?{' '}
         <Link to="/signup" className="text-ig-primary font-semibold hover:underline">
           가입하기

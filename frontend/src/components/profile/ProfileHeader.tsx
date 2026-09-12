@@ -96,7 +96,7 @@ export function ProfileHeader({
 
   return (
 
-    <div className="bg-white border border-ig-border md:rounded-lg mb-4 overflow-hidden">
+    <div className="bg-ig-surface border border-ig-border/80 md:rounded-2xl mb-4 overflow-hidden shadow-[0_4px_20px_rgba(41,171,226,0.06)]">
 
       <div className="px-4 md:px-8 py-6 md:py-10">
 
@@ -176,7 +176,7 @@ export function ProfileHeader({
 
                       to="/settings/edit"
 
-                      className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors inline-flex items-center"
+                      className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-ig-hover transition-colors inline-flex items-center"
 
                     >
 
@@ -186,7 +186,7 @@ export function ProfileHeader({
 
                     <Link
                       to="/archive"
-                      className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors inline-flex items-center"
+                      className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-ig-hover transition-colors inline-flex items-center"
                     >
                       보관함
                     </Link>
@@ -195,7 +195,7 @@ export function ProfileHeader({
 
                       to="/settings"
 
-                      className="h-8 w-8 flex items-center justify-center rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors"
+                      className="h-8 w-8 flex items-center justify-center rounded-lg bg-ig-secondary hover:bg-ig-hover transition-colors"
 
                       aria-label="설정"
 
@@ -230,7 +230,7 @@ export function ProfileHeader({
                       className={cn(
                         'h-8 px-4 text-[14px] font-semibold rounded-lg transition-colors inline-flex items-center gap-1',
                         user.is_following || user.is_requested
-                          ? 'bg-ig-secondary hover:bg-[#dbdbdb]'
+                          ? 'bg-ig-secondary hover:bg-ig-hover'
                           : 'bg-ig-primary text-white hover:bg-ig-primary-hover',
                       )}
                     >
@@ -241,7 +241,7 @@ export function ProfileHeader({
 
                       to={`/messages/${user.username}`}
 
-                      className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors inline-flex items-center"
+                      className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-ig-hover transition-colors inline-flex items-center"
 
                     >
 
@@ -253,7 +253,7 @@ export function ProfileHeader({
                       <button
                         type="button"
                         onClick={onUnblock}
-                        className="h-8 px-3 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors"
+                        className="h-8 px-3 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-ig-hover transition-colors"
                       >
                         차단 해제
                       </button>
@@ -261,14 +261,14 @@ export function ProfileHeader({
                       <button
                         type="button"
                         onClick={onBlock}
-                        className="h-8 px-3 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors"
+                        className="h-8 px-3 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-ig-hover transition-colors"
                       >
                         차단
                       </button>
                     ) : (
                       <Link
                         to="/suggested"
-                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors"
+                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-ig-secondary hover:bg-ig-hover transition-colors"
                         aria-label="추천 계정"
                       >
                         <UserPlus size={16} />
@@ -279,7 +279,7 @@ export function ProfileHeader({
                       <button
                         type="button"
                         onClick={() => setDesktopMenuOpen((v) => !v)}
-                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] transition-colors"
+                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-ig-secondary hover:bg-ig-hover transition-colors"
                         aria-label="옵션"
                       >
                         <MoreHorizontal size={16} />

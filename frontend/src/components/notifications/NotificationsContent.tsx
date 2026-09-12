@@ -157,8 +157,8 @@ export function NotificationsContent({ variant = 'page', onClose }: Notification
       <div
         className={
           variant === 'page'
-            ? 'bg-white border-0 md:border border-ig-border md:rounded-lg overflow-hidden'
-            : 'bg-white'
+            ? 'bg-ig-surface border-0 md:border border-ig-border/80 md:rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(41,171,226,0.06)]'
+            : 'bg-ig-surface'
         }
       >
         {variant === 'page' && (
@@ -176,7 +176,7 @@ export function NotificationsContent({ variant = 'page', onClose }: Notification
               className={cn(
                 'flex-1 py-3 text-[14px] font-semibold border-b-2 transition-colors',
                 tab === id
-                  ? 'border-ig-text text-ig-text'
+                  ? 'border-ig-primary text-ig-primary'
                   : 'border-transparent text-ig-text-secondary hover:text-ig-text',
               )}
             >

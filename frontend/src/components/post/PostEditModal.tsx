@@ -58,7 +58,7 @@ export function PostEditModal({ post, isOpen, onClose, onSave }: PostEditModalPr
           <button
             type="button"
             onClick={onClose}
-            className="h-9 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb]"
+            className="h-9 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-ig-hover"
           >
             취소
           </button>

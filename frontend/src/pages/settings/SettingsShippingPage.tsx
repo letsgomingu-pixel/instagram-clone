@@ -70,7 +70,7 @@ export function SettingsShippingPage() {
   const settingsInputClass =
     'w-full px-2 py-1.5 border border-ig-border rounded-[3px] text-[16px] bg-ig-secondary focus:border-ig-text-secondary';
   const settingsButtonClass =
-    'shrink-0 px-3 py-1.5 text-[14px] font-semibold border border-ig-border rounded-[3px] bg-ig-surface hover:bg-[#fafafa]';
+    'shrink-0 px-3 py-1.5 text-[14px] font-semibold border border-ig-border rounded-[3px] bg-ig-surface hover:bg-ig-hover';
 
   return (
     <form onSubmit={handleSubmit}>

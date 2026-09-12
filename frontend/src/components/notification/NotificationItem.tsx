@@ -32,8 +32,8 @@ export function NotificationItem({
   return (
     <div
       className={cn(
-        'flex items-center gap-3 px-4 py-2 min-h-[60px] hover:bg-[#fafafa] transition-colors cursor-pointer',
-        !is_read && 'bg-[#fafafa]',
+        'flex items-center gap-3 px-4 py-2 min-h-[60px] hover:bg-ig-hover transition-colors cursor-pointer',
+        !is_read && 'bg-ig-hover',
       )}
       onClick={() => onMarkRead?.(notification.id)}
     >
@@ -78,7 +78,7 @@ export function NotificationItem({
                 e.stopPropagation();
                 onRejectFollowRequest?.(actor.id);
               }}
-              className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb]"
+              className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-ig-border/50"
             >
               거절
             </button>
@@ -93,7 +93,7 @@ export function NotificationItem({
             className={cn(
               'h-8 px-4 text-[14px] font-semibold rounded-lg transition-colors',
               isFollowing
-                ? 'bg-ig-secondary text-ig-text hover:bg-[#dbdbdb]'
+                ? 'bg-ig-secondary text-ig-text hover:bg-ig-border/50'
                 : 'bg-ig-primary text-white hover:bg-ig-primary-hover',
             )}
           >
@@ -106,7 +106,7 @@ export function NotificationItem({
               e.stopPropagation();
               onOpenOrder?.(notification.order_id!);
             }}
-            className="h-8 px-3 text-[12px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] shrink-0"
+            className="h-8 px-3 text-[12px] font-semibold rounded-lg bg-ig-secondary hover:bg-ig-border/50 shrink-0"
           >
             주문 보기
           </button>

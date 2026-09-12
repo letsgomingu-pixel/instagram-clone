@@ -63,7 +63,7 @@ export function SearchPanel({ isOpen, onClose }: SearchPanelProps) {
             placeholder="검색"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-[16px] placeholder:text-ig-text-secondary outline-none"
+            className="w-full pl-10 pr-10 py-2.5 bg-ig-muted border border-ig-border/80 rounded-xl text-[16px] placeholder:text-ig-text-secondary outline-none focus:border-ig-primary"
             autoFocus
           />
           {query && (

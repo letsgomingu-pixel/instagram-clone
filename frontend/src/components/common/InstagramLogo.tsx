@@ -16,10 +16,10 @@ export function BrandIcon({ size = 28, className }: { size?: number; className?:
           x="256"
           y="228"
           textAnchor="middle"
-          fontFamily="'Outfit', system-ui, sans-serif"
+          fontFamily="'Plus Jakarta Sans', system-ui, sans-serif"
           fontSize="52"
           fontWeight="700"
-          fill="#0095FF"
+          fill="#29ABE2"
         >
           i am not a
         </text>
@@ -27,10 +27,10 @@ export function BrandIcon({ size = 28, className }: { size?: number; className?:
           x="256"
           y="298"
           textAnchor="middle"
-          fontFamily="'Outfit', system-ui, sans-serif"
+          fontFamily="'Plus Jakarta Sans', system-ui, sans-serif"
           fontSize="52"
           fontWeight="700"
-          fill="#0095FF"
+          fill="#29ABE2"
         >
           fishmonger
         </text>
@@ -52,10 +52,10 @@ export function BrandIcon({ size = 28, className }: { size?: number; className?:
         x="16"
         y="14"
         textAnchor="middle"
-        fontFamily="'Outfit', system-ui, sans-serif"
+        fontFamily="'Plus Jakarta Sans', system-ui, sans-serif"
         fontSize="7"
         fontWeight="700"
-        fill="#0095FF"
+        fill="#29ABE2"
       >
         i am not a
       </text>
@@ -63,10 +63,10 @@ export function BrandIcon({ size = 28, className }: { size?: number; className?:
         x="16"
         y="23"
         textAnchor="middle"
-        fontFamily="'Outfit', system-ui, sans-serif"
+        fontFamily="'Plus Jakarta Sans', system-ui, sans-serif"
         fontSize="7"
         fontWeight="700"
-        fill="#0095FF"
+        fill="#29ABE2"
       >
         fishmonger
       </text>

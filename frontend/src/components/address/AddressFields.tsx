@@ -42,7 +42,7 @@ export function AddressFields({
   onAddressLine1Change,
   onAddressLine2Change,
   inputClassName = 'w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs',
-  buttonClassName = 'shrink-0 px-3 py-2.5 text-xs font-semibold border border-ig-border rounded-lg bg-ig-surface hover:bg-[#fafafa]',
+  buttonClassName = 'shrink-0 px-3 py-2.5 text-xs font-semibold border border-ig-border rounded-lg bg-ig-surface hover:bg-ig-hover',
   compact = false,
   showLabels = true,
 }: AddressFieldsProps) {
@@ -86,7 +86,7 @@ export function AddressFields({
             placeholder="00000"
             value={postcode}
             readOnly
-            className={`${inputClassName} bg-[#efefef] cursor-default`}
+            className={`${inputClassName} bg-ig-muted cursor-default`}
           />
           <button type="button" onClick={handleSearch} disabled={loading} className={buttonClassName}>
             {loading ? '로딩...' : '주소 검색'}
@@ -102,7 +102,7 @@ export function AddressFields({
           placeholder="주소 검색 버튼으로 입력"
           value={addressLine1}
           readOnly
-          className={`${inputClassName} bg-[#efefef] cursor-default`}
+          className={`${inputClassName} bg-ig-muted cursor-default`}
         />
       </div>
 

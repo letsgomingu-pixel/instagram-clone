@@ -126,7 +126,7 @@ export function StoryEditor({
             type="button"
             onClick={addText}
             aria-label="텍스트 추가"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] text-sm font-semibold"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-ig-secondary hover:bg-ig-hover text-sm font-semibold"
           >
             <Type size={18} />
             텍스트
@@ -137,7 +137,7 @@ export function StoryEditor({
             aria-label="스티커 추가"
             className={cn(
               'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold',
-              showStickers ? 'bg-ig-primary text-white' : 'bg-ig-secondary hover:bg-[#dbdbdb]',
+              showStickers ? 'bg-ig-primary text-white' : 'bg-ig-secondary hover:bg-ig-hover',
             )}
           >
             <Sticker size={18} />

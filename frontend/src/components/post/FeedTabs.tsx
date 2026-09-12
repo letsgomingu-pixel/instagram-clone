@@ -35,7 +35,7 @@ export function TabBar<T extends string>({
           className={cn(
             'flex-1 py-3 text-sm font-semibold transition-colors',
             activeTab === id
-              ? 'text-ig-text border-b border-ig-text -mb-px'
+              ? 'text-ig-primary border-b-2 border-ig-primary -mb-px'
               : 'text-ig-text-secondary hover:text-ig-text',
           )}
         >

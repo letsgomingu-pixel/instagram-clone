@@ -136,7 +136,7 @@ export function PostCard({ post }: PostCardProps) {
       )}
 
       {post.post_type === 'review' && (
-        <div className="px-4 py-2 border-t border-ig-border bg-[#fafafa] space-y-1">
+        <div className="px-4 py-2 border-t border-ig-border bg-ig-muted space-y-1">
           {post.rating != null && (
             <p className="text-[13px] font-semibold text-amber-600">
               {'★'.repeat(post.rating)}{'☆'.repeat(5 - post.rating)}

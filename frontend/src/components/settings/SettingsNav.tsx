@@ -35,8 +35,8 @@ export function SettingsNav({ className }: SettingsNavProps) {
                 cn(
                   'flex items-center justify-between px-4 md:px-6 py-4 md:py-3 text-[16px] border-l-2 md:border-l-2 transition-colors',
                   isActive
-                    ? 'border-ig-text font-semibold text-ig-text bg-[#fafafa]'
-                    : 'border-transparent text-ig-text hover:bg-[#fafafa]',
+                    ? 'border-ig-text font-semibold text-ig-text bg-ig-hover'
+                    : 'border-transparent text-ig-text hover:bg-ig-hover',
                 )
               }
             >

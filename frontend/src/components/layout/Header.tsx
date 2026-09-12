@@ -39,7 +39,7 @@ export function MobileHeader({ config }: MobileHeaderProps) {
     user?.username === config.title;
 
   return (
-    <header className="md:hidden sticky top-0 z-30 bg-ig-surface border-b border-ig-border mobile-header-safe shrink-0">
+    <header className="md:hidden sticky top-0 z-30 glass-surface border-b border-ig-border/80 mobile-header-safe shrink-0">
       <div className="flex items-center justify-between px-4 h-[44px]">
         {config.headerVariant === 'home' && (
           <>

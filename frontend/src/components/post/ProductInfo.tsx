@@ -59,7 +59,7 @@ export function ProductInfo({
   if (!product.is_available) badges.push('품절');
 
   return (
-    <div className={compact ? 'px-3 py-2 border-t border-ig-border bg-[#fafafa]' : 'px-4 py-3 border-t border-ig-border bg-[#fafafa]'}>
+    <div className={compact ? 'px-3 py-2 border-t border-ig-border bg-ig-muted' : 'px-4 py-3 border-t border-ig-border bg-ig-muted'}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[15px] font-semibold truncate">{product.name}</p>

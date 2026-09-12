@@ -69,7 +69,7 @@ export function SettingsBlockedPage() {
                 type="button"
                 disabled={busyId === user.id}
                 onClick={() => void handleUnblock(user.id, user.username)}
-                className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-[#dbdbdb] disabled:opacity-50 shrink-0"
+                className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-ig-hover disabled:opacity-50 shrink-0"
               >
                 차단 해제
               </button>

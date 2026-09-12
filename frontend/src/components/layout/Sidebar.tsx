@@ -36,8 +36,10 @@ const navItems: NavItem[] = [
 
 function navButtonClass(active: boolean) {
   return cn(
-    'flex items-center gap-4 px-3 py-3 rounded-lg hover:bg-ig-secondary transition-colors w-full text-left',
-    active && 'font-bold',
+    'flex items-center gap-4 px-3 py-2.5 rounded-xl transition-all duration-200 w-full text-left',
+    active
+      ? 'bg-ig-hover text-ig-primary font-semibold'
+      : 'text-ig-text hover:bg-ig-hover/80',
   );
 }
 
@@ -86,7 +88,7 @@ export function Sidebar() {
     isNotificationsPanelOpen || location.pathname.startsWith('/notifications');
 
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 h-full w-[245px] border-r border-ig-border bg-ig-surface/95 backdrop-blur-sm flex-col px-3 py-8 z-40">
+    <aside className="hidden md:flex fixed left-0 top-0 h-full w-[245px] border-r border-ig-border/80 glass-surface flex-col px-3 py-8 z-40">
       <NavLink to="/" className="px-3 mb-6">
         <InstagramLogo className="text-[16px] leading-tight text-center hidden lg:block" />
         <div className="lg:hidden flex justify-center">

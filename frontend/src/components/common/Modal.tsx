@@ -47,7 +47,7 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center animate-fade-in">
-      <div className="absolute inset-0 bg-black/65" onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 bg-ig-text/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
       {overlayClose && (
         <button
           type="button"
@@ -62,7 +62,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         className={cn(
-          'relative z-10 bg-white rounded-xl overflow-hidden shadow-xl',
+          'relative z-10 bg-ig-surface rounded-2xl overflow-hidden shadow-[0_16px_48px_rgba(41,171,226,0.15)]',
           sizeMap[size],
           size === 'full' && 'rounded-none',
           className,
