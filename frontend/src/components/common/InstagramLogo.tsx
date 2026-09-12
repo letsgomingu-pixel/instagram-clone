@@ -1,17 +1,19 @@
 import { cn } from '@/utils/cn';
 
+const WORDMARK_VIEWBOX = { x: 90, y: 175, width: 340, height: 135 };
+
 export function BrandIcon({ size = 28, className }: { size?: number; className?: string }) {
   if (size >= 48) {
+    const width = Math.round(size * (WORDMARK_VIEWBOX.width / WORDMARK_VIEWBOX.height));
     return (
       <svg
-        width={size}
+        width={width}
         height={size}
-        viewBox="0 0 512 512"
+        viewBox={`${WORDMARK_VIEWBOX.x} ${WORDMARK_VIEWBOX.y} ${WORDMARK_VIEWBOX.width} ${WORDMARK_VIEWBOX.height}`}
         fill="none"
         className={className}
         aria-hidden="true"
       >
-        <rect width="512" height="512" fill="#FFFFFF" />
         <text
           x="256"
           y="228"

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { isAxiosError } from 'axios';
-import { BrandIcon } from '@/components/common/InstagramLogo';
+import { InstagramLogo } from '@/components/common/InstagramLogo';
 import { Button } from '@/components/common/Button';
 import { authInputClassName, authInputStyle } from '@/components/auth/authInputStyle';
 import { validateLogin } from '@/utils/validateForm';
@@ -71,7 +71,7 @@ export function LoginForm() {
     <div className="w-full max-w-[350px]">
       <div className="bg-ig-surface border border-ig-border/80 rounded-2xl px-10 py-10 mb-3 shadow-[0_8px_32px_rgba(41,171,226,0.1)]">
         <div className="flex justify-center mb-6">
-          <BrandIcon size={48} />
+          <InstagramLogo className="text-[22px] leading-tight text-center" />
         </div>
         <p className="text-center text-xs text-ig-text-secondary mb-4 leading-relaxed">
           사진과 동영상을 공유하는 소셜 플랫폼
