@@ -221,7 +221,7 @@ export function CheckoutPage() {
 
         <div className="flex gap-4">
           {quote.image_url && (
-            <div className="w-20 h-20 rounded-lg overflow-hidden bg-ig-secondary shrink-0">
+            <div className="h-20 w-20 min-h-0 shrink-0 overflow-hidden rounded-lg bg-ig-secondary">
               <PostCoverMedia imageUrl={quote.image_url} alt={quote.product_name} />
             </div>
           )}

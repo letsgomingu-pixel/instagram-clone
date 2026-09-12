@@ -27,10 +27,10 @@ export function PostCoverMedia({
 
   if (isVideo && url) {
     return (
-      <div className="relative w-full h-full bg-black">
+      <div className="relative h-full w-full min-h-0 overflow-hidden bg-black">
         <video
           src={resolveMediaUrl(url)}
-          className={className}
+          className={`absolute inset-0 block ${className}`}
           muted
           playsInline
           loop
@@ -49,5 +49,5 @@ export function PostCoverMedia({
     );
   }
 
-  return <MediaImage src={url} alt={alt} className={className} loading="lazy" />;
+  return <MediaImage src={url} alt={alt} className={`block ${className}`} loading="lazy" />;
 }

@@ -172,7 +172,7 @@ export function SearchPage() {
                   to={product.is_available ? `/checkout/${product.id}` : `/p/${product.post_id}`}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-ig-secondary"
                 >
-                  <div className="w-11 h-11 rounded-lg overflow-hidden bg-ig-secondary shrink-0">
+                  <div className="h-11 w-11 min-h-0 shrink-0 overflow-hidden rounded-lg bg-ig-secondary">
                     {product.image_url ? (
                       <PostCoverMedia imageUrl={product.image_url} alt={product.name} />
                     ) : (

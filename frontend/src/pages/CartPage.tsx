@@ -240,7 +240,7 @@ export function CartPage() {
             <ul className="divide-y divide-ig-border">
               {cart.items.map((item) => (
                 <li key={item.id} className="py-4 flex gap-3">
-                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-ig-secondary shrink-0">
+                  <div className="h-16 w-16 min-h-0 shrink-0 overflow-hidden rounded-lg bg-ig-secondary">
                     {item.image_url ? (
                       <PostCoverMedia imageUrl={item.image_url} alt={item.product.name} />
                     ) : null}
