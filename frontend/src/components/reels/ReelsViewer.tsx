@@ -23,7 +23,7 @@ import {
 
 import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
-import { ReelCommentsModal } from '@/components/reels/ReelCommentsModal';
+import { ReelCommentsPanel } from '@/components/reels/ReelCommentsModal';
 import { resolveMediaUrl } from '@/utils/media';
 import { reelShareUrl, shareUrl } from '@/utils/share';
 import * as reelsApi from '@/api/reels';
@@ -263,7 +263,8 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
 
 
-      <div className="relative w-full max-w-[420px] h-full max-h-[100dvh] md:max-h-[90vh] md:rounded-lg overflow-hidden">
+      <div className="flex items-center justify-center gap-4 h-full max-h-[100dvh] md:max-h-[90vh] px-2 md:px-4">
+      <div className="relative w-full max-w-[420px] h-full md:rounded-lg overflow-hidden shrink-0">
 
         <div
 
@@ -455,17 +456,18 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
       </div>
 
+      {commentsOpen && (
+        <div className="hidden md:flex h-full max-h-[85vh] w-[400px] rounded-xl overflow-hidden shrink-0 border border-white/20">
+          <ReelCommentsPanel reel={reel} isOpen onClose={() => setCommentsOpen(false)} />
+        </div>
+      )}
+      </div>
 
-
-      <ReelCommentsModal
-
-        reel={reel}
-
-        isOpen={commentsOpen}
-
-        onClose={() => setCommentsOpen(false)}
-
-      />
+      {commentsOpen && (
+        <div className="md:hidden fixed inset-0 z-[110] bg-white">
+          <ReelCommentsPanel reel={reel} isOpen onClose={() => setCommentsOpen(false)} />
+        </div>
+      )}
 
 
 

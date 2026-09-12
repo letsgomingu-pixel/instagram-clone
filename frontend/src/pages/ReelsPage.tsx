@@ -13,7 +13,7 @@ import {
 import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
 import { CreateReelModal } from '@/components/reels/CreateReel';
-import { ReelCommentsModal } from '@/components/reels/ReelCommentsModal';
+import { ReelCommentsPanel } from '@/components/reels/ReelCommentsModal';
 import { ReelOptionsMenu } from '@/components/reels/ReelOptionsMenu';
 import * as reelsApi from '@/api/reels';
 import { reelShareUrl, shareUrl } from '@/utils/share';
@@ -210,8 +210,8 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
         <div className="absolute bottom-0 left-0 right-14 p-4 z-10">{captionBlock(true)}</div>
       </div>
 
-      {/* Desktop: centered video + actions outside on the right */}
-      <div className="hidden md:flex items-center justify-center gap-5 h-full max-h-[90vh] px-4">
+      {/* Desktop: video + actions + comments panel (Instagram-style) */}
+      <div className="hidden md:flex items-center justify-center gap-4 h-full max-h-[90vh] px-4">
         <div
           className="relative w-[360px] h-[640px] max-h-[85vh] rounded-lg overflow-hidden bg-black shrink-0"
           onDoubleClick={handleDoubleClick}
@@ -225,10 +225,20 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
           )}
           <div className="absolute bottom-0 left-0 right-0 p-4 z-10">{captionBlock(true)}</div>
         </div>
-        <div className="flex flex-col items-center gap-6 self-end pb-24">{actionButtons('default')}</div>
+        <div className="flex flex-col items-center gap-6 self-end pb-24 shrink-0">{actionButtons('default')}</div>
+        {commentsOpen && (
+          <div className="h-[640px] max-h-[85vh] w-[400px] rounded-xl border border-ig-border shadow-sm shrink-0 overflow-hidden">
+            <ReelCommentsPanel reel={reel} isOpen onClose={() => setCommentsOpen(false)} />
+          </div>
+        )}
       </div>
 
-      <ReelCommentsModal reel={reel} isOpen={commentsOpen} onClose={() => setCommentsOpen(false)} />
+      {/* Mobile: full-screen comments sheet */}
+      {commentsOpen && (
+        <div className="md:hidden fixed inset-0 z-50 bg-white">
+          <ReelCommentsPanel reel={reel} isOpen onClose={() => setCommentsOpen(false)} />
+        </div>
+      )}
     </section>
   );
 }
