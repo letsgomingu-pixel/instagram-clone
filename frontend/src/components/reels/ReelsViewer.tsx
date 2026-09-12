@@ -25,6 +25,7 @@ import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
 import { ReelCommentsModal } from '@/components/reels/ReelCommentsModal';
 import { resolveMediaUrl } from '@/utils/media';
+import { reelShareUrl, shareUrl } from '@/utils/share';
 import * as reelsApi from '@/api/reels';
 
 import { useApp } from '@/contexts/AppContext';
@@ -171,27 +172,8 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
 
 
-  const handleShare = async () => {
-
-    const url = `${window.location.origin}/reels/${reel.id}`;
-
-    try {
-
-      if (navigator.share) await navigator.share({ url, title: `${reel.user.username}의 릴스` });
-
-      else {
-
-        await navigator.clipboard.writeText(url);
-
-        toast.success('링크가 복사되었습니다.');
-
-      }
-
-    } catch {
-
-      // cancelled
-
-    }
+  const handleShare = () => {
+    void shareUrl(reelShareUrl(reel.id), `${reel.user.username}의 릴스`);
 
   };
 

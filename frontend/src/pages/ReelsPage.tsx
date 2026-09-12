@@ -16,6 +16,7 @@ import { CreateReelModal } from '@/components/reels/CreateReel';
 import { ReelCommentsModal } from '@/components/reels/ReelCommentsModal';
 import { ReelOptionsMenu } from '@/components/reels/ReelOptionsMenu';
 import * as reelsApi from '@/api/reels';
+import { reelShareUrl, shareUrl } from '@/utils/share';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -79,17 +80,8 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
     });
   };
 
-  const handleShare = async () => {
-    const url = `${window.location.origin}/reels/${reel.id}`;
-    try {
-      if (navigator.share) await navigator.share({ url, title: `${reel.user.username}의 릴스` });
-      else {
-        await navigator.clipboard.writeText(url);
-        toast.success('링크가 복사되었습니다.');
-      }
-    } catch {
-      // cancelled
-    }
+  const handleShare = () => {
+    void shareUrl(reelShareUrl(reel.id), `${reel.user.username}의 릴스`);
   };
 
   const handleDeleteReel = async () => {

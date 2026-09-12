@@ -16,6 +16,7 @@ import {
 } from '@/components/post/PostActionIcons';
 import { formatRelativeTime } from '@/utils/formatDate';
 import { formatCompactCount } from '@/utils/formatNumber';
+import { postShareUrl, shareUrl } from '@/utils/share';
 import { useApp } from '@/contexts/AppContext';
 import { SaveCollectionModal } from '@/components/post/SaveCollectionModal';
 import { useAuth } from '@/hooks/useAuth';
@@ -67,18 +68,8 @@ export function PostCard({ post }: PostCardProps) {
     });
   };
 
-  const handleShare = async () => {
-    const url = `${window.location.origin}/p/${post.id}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ url, title: `${post.user.username}의 게시물` });
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast.success('링크가 클립보드에 복사되었습니다.');
-      }
-    } catch {
-      // User cancelled share or clipboard failed silently
-    }
+  const handleShare = () => {
+    void shareUrl(postShareUrl(post.id), `${post.user.username}의 게시물`);
   };
 
   const handleUnfollow = () => {
