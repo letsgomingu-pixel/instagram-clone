@@ -145,7 +145,14 @@ export function OrderReviewPage() {
           </div>
 
           <div>
-            <span className="block text-sm font-semibold mb-2">사진</span>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <span className="text-sm font-semibold">사진</span>
+              {hasFiles && (
+                <Button type="button" size="sm" variant="secondary" onClick={() => open()}>
+                  + 사진 추가
+                </Button>
+              )}
+            </div>
             {!hasFiles ? (
               <div
                 {...getRootProps()}

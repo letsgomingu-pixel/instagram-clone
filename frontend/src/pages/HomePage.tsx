@@ -77,6 +77,23 @@ export function HomePage() {
       <StoryBar />
       <FeedTabs activeTab={feedTab} onChange={setFeedTab} />
 
+      {user?.is_admin && feedTab !== 'reviews' && (
+        <div className="feed-card mb-3 px-4 py-2.5 flex items-center justify-between gap-3">
+          <p className="text-xs text-ig-text-secondary">
+            {feedTab === 'products' ? '새 수산물 상품을 등록하세요' : '가게 소식을 공유하세요'}
+          </p>
+          {feedTab === 'products' ? (
+            <Link to="/admin/products">
+              <Button size="sm">+ 상품 등록</Button>
+            </Link>
+          ) : (
+            <Button size="sm" onClick={() => setCreatePostOpen(true)}>
+              + 소식 올리기
+            </Button>
+          )}
+        </div>
+      )}
+
       <SuggestedUsersStrip />
 
       {posts.length === 0 ? (

@@ -136,14 +136,24 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
         <div className="flex items-center justify-center border-b border-ig-border h-[42px] relative">
           <h2 className="text-base font-semibold">새 게시물 만들기</h2>
           {previews.length > 0 && (
-            <button
-              onClick={handleShare}
-              disabled={uploading}
-              aria-label="게시물 공유"
-              className="absolute right-3 text-ig-primary font-semibold text-sm disabled:opacity-50"
-            >
-              {uploading ? '공유 중...' : '공유'}
-            </button>
+            <div className="absolute right-3 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => open()}
+                className="text-ig-primary font-semibold text-sm"
+              >
+                사진 추가
+              </button>
+              <button
+                type="button"
+                onClick={handleShare}
+                disabled={uploading}
+                aria-label="게시물 공유"
+                className="text-ig-primary font-semibold text-sm disabled:opacity-50"
+              >
+                {uploading ? '공유 중...' : '공유'}
+              </button>
+            </div>
           )}
           <button onClick={handleClose} className="absolute left-3 text-sm" aria-label="닫기">
             ✕

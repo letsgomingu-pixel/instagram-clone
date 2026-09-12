@@ -289,7 +289,14 @@ export function AdminProductsPage() {
         </label>
 
         <div>
-          <span className="text-sm font-medium block mb-2">상품 사진</span>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <span className="text-sm font-medium">상품 사진</span>
+            {hasFiles && (
+              <Button type="button" size="sm" variant="secondary" onClick={() => open()}>
+                + 사진 추가
+              </Button>
+            )}
+          </div>
           {!hasFiles ? (
             <div
               {...getRootProps()}
