@@ -200,6 +200,20 @@ body {
   animation: fade-in 0.2s ease-out;
 }
 
+input,
+textarea,
+select,
+button {
+  font-family: var(--font-sans);
+  letter-spacing: normal;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:focus {
+  font-family: var(--font-sans) !important;
+  letter-spacing: normal !important;
+}
+
 input:focus,
 textarea:focus {
   outline: none;

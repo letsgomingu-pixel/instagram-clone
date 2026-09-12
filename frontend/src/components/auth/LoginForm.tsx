@@ -82,7 +82,8 @@ export function LoginForm() {
             placeholder="사용자 이름 또는 이메일"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-3 py-2.5 bg-ig-muted border border-ig-border/80 rounded-xl text-xs placeholder:text-ig-text-secondary"
+            className="w-full px-3 py-2.5 bg-ig-muted border border-ig-border/80 rounded-xl text-sm font-sans tracking-normal placeholder:text-ig-text-secondary"
+            autoComplete="username"
             aria-label="사용자명 또는 이메일"
             disabled={requires2fa}
           />
@@ -91,7 +92,8 @@ export function LoginForm() {
             placeholder="비밀번호"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3 py-2.5 bg-ig-muted border border-ig-border/80 rounded-xl text-xs placeholder:text-ig-text-secondary"
+            className="w-full px-3 py-2.5 bg-ig-muted border border-ig-border/80 rounded-xl text-sm font-sans tracking-normal placeholder:text-ig-text-secondary"
+            autoComplete="current-password"
             aria-label="비밀번호"
             disabled={requires2fa}
           />
@@ -104,7 +106,7 @@ export function LoginForm() {
                 placeholder="6자리 인증 코드"
                 value={totpCode}
                 onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
-                className="w-full px-3 py-2.5 bg-ig-muted border border-ig-border/80 rounded-xl text-xs placeholder:text-ig-text-secondary"
+                className="w-full px-3 py-2.5 bg-ig-muted border border-ig-border/80 rounded-xl text-sm font-sans tracking-normal placeholder:text-ig-text-secondary"
                 aria-label="2단계 인증 코드"
               />
               <label className="flex items-center gap-2 text-xs text-ig-text-secondary px-1">
