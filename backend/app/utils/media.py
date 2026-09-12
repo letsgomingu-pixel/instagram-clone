@@ -12,7 +12,8 @@ from app.config import settings
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime"}
 ALLOWED_TYPES = ALLOWED_IMAGE_TYPES | ALLOWED_VIDEO_TYPES
-MAX_BYTES = settings.max_upload_size_mb * 1024 * 1024
+MAX_IMAGE_BYTES = settings.max_upload_size_mb * 1024 * 1024
+MAX_VIDEO_BYTES = settings.max_video_upload_size_mb * 1024 * 1024
 
 
 def ensure_media_dirs() -> None:
@@ -62,7 +63,7 @@ def _store_bytes(data: bytes, subdir: str, filename: str, content_type: str) -> 
 
 def save_image(upload: UploadFile, subdir: str) -> str:
     data = upload.file.read()
-    if len(data) > MAX_BYTES:
+    if len(data) > MAX_IMAGE_BYTES:
         raise HTTPException(status_code=400, detail=f"File exceeds {settings.max_upload_size_mb}MB limit")
     if len(data) < 32:
         raise HTTPException(status_code=400, detail="Invalid image file")
@@ -102,8 +103,11 @@ def save_video(upload: UploadFile, subdir: str) -> str:
     content_type = _normalize_video_content_type(upload)
 
     data = upload.file.read()
-    if len(data) > MAX_BYTES:
-        raise HTTPException(status_code=400, detail=f"File exceeds {settings.max_upload_size_mb}MB limit")
+    if len(data) > MAX_VIDEO_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Video exceeds {settings.max_video_upload_size_mb}MB limit",
+        )
     if len(data) < 1024:
         raise HTTPException(status_code=400, detail="Invalid video file")
 

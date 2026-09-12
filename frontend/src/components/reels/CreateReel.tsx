@@ -13,6 +13,9 @@ interface CreateReelModalProps {
   onClose: () => void;
 }
 
+const MAX_VIDEO_SIZE_MB = 100;
+const MAX_VIDEO_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
+
 function normalizeVideoFile(file: File): File {
   const allowed = new Set(['video/mp4', 'video/webm', 'video/quicktime']);
   if (file.type && allowed.has(file.type)) return file;
@@ -54,6 +57,10 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
+    if (file.size > MAX_VIDEO_BYTES) {
+      toast.error(`동영상은 최대 ${MAX_VIDEO_SIZE_MB}MB까지 업로드할 수 있습니다.`);
+      return;
+    }
     const normalized = normalizeVideoFile(file);
     setVideoFile(normalized);
     setVideoAspect(null);
@@ -132,7 +139,7 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
             <input {...getInputProps()} />
             <Film size={48} strokeWidth={1} className="text-ig-text-secondary mb-4" />
             <p className="text-xl font-light mb-2 text-center px-6">동영상을 선택하세요</p>
-            <p className="text-xs text-ig-text-secondary mb-3">MP4, WebM, MOV</p>
+            <p className="text-xs text-ig-text-secondary mb-3">MP4, WebM, MOV · 최대 {MAX_VIDEO_SIZE_MB}MB</p>
             <span className="inline-flex">
               <Button variant="primary" size="md" type="button">
                 컴퓨터에서 선택

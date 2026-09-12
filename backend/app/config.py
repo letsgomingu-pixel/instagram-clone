@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     media_root: str = "./media"
     max_upload_size_mb: int = 10
+    max_video_upload_size_mb: int = 100
     allowed_origins: str = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000"
     frontend_url: str = "http://localhost:5173"
     # When true, keeps the legacy letsgomingu/12345 demo user (pytest / local seed only).

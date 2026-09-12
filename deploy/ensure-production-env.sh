@@ -36,6 +36,7 @@ updates: dict[str, str] = {
     "FRONTEND_URL": os.environ.get("FRONTEND_URL", "https://iamnotafishmonger.com"),
     "SEED_DEMO_USERS": "false",
     "EMAIL_ENABLED": "true",
+    "MAX_VIDEO_UPLOAD_SIZE_MB": "100",
 }
 
 # Email — Resend takes priority when set
