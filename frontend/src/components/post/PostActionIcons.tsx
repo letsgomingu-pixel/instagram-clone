@@ -1,15 +1,13 @@
-import {
-  LogIn,
-  Menu,
-  MoreHorizontal,
-  Plus,
-  Search,
-  Smile,
-  type LucideIcon,
-} from 'lucide-react';
+import { LogIn, Menu, MoreHorizontal, Smile, type LucideIcon } from 'lucide-react';
 
 import { ExploreIcon } from '@/components/common/ExploreIcon';
 import { HomeIcon } from '@/components/common/HomeIcon';
+import {
+  NavCreateGlyph,
+  NavMessagesGlyph,
+  NavNotificationsGlyph,
+  NavSearchGlyph,
+} from '@/components/common/InstagramNavIcons';
 import {
   BookmarkOutlineIcon,
   BookmarkSolidIcon,
@@ -119,9 +117,12 @@ export function NavHomeIcon({
   return <HomeIcon size={ACTION_ICON_SIZE} filled={active} className={className} />;
 }
 
-export const NavSearchIcon = (props: Omit<NavIconProps, 'icon'>) => (
-  <NavIcon icon={Search} {...props} />
-);
+export function NavSearchIcon({
+  active: _active = false,
+  className,
+}: Omit<NavIconProps, 'icon' | 'filledWhenActive'>) {
+  return <NavSearchGlyph size={ACTION_ICON_SIZE} className={className} />;
+}
 
 export function NavExploreIcon({
   active = false,
@@ -133,19 +134,24 @@ export function NavExploreIcon({
   return <ExploreIcon size={ACTION_ICON_SIZE} filled={active} className={className} />;
 }
 
-export const NavCreateIcon = (props: Omit<NavIconProps, 'icon'>) => (
-  <NavIcon icon={Plus} {...props} />
-);
-
-export function NavMessagesIcon({ className }: Omit<NavIconProps, 'icon' | 'filledWhenActive'>) {
-  return <SendOutlineIcon size={ACTION_ICON_SIZE} color="currentColor" className={className} />;
+export function NavCreateIcon({ className }: Omit<NavIconProps, 'icon' | 'filledWhenActive' | 'active'>) {
+  return <NavCreateGlyph size={ACTION_ICON_SIZE} className={className} />;
 }
 
-export function NavNotificationsIcon({ active = false, className }: Omit<NavIconProps, 'icon' | 'filledWhenActive'>) {
-  if (active) {
-    return <HeartSolidIcon size={ACTION_ICON_SIZE} color="currentColor" className={className} />;
-  }
-  return <HeartOutlineIcon size={ACTION_ICON_SIZE} color="currentColor" className={className} />;
+export function NavMessagesIcon({
+  active: _active = false,
+  className,
+}: Omit<NavIconProps, 'icon' | 'filledWhenActive'>) {
+  return <NavMessagesGlyph size={ACTION_ICON_SIZE} className={className} />;
+}
+
+export function NavNotificationsIcon({
+  active = false,
+  className,
+}: Omit<NavIconProps, 'icon' | 'filledWhenActive'>) {
+  return (
+    <NavNotificationsGlyph size={ACTION_ICON_SIZE} filled={active} className={className} />
+  );
 }
 
 export const NavLoginIcon = (props: Omit<NavIconProps, 'icon'>) => (
