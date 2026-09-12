@@ -2,7 +2,7 @@ import {
   LogIn,
   Menu,
   MoreHorizontal,
-  Plus,
+  PlusSquare,
   Search,
   Smile,
   type LucideIcon,
@@ -134,7 +134,7 @@ export function NavExploreIcon({
 }
 
 export const NavCreateIcon = (props: Omit<NavIconProps, 'icon'>) => (
-  <NavIcon icon={Plus} {...props} />
+  <NavIcon icon={PlusSquare} {...props} />
 );
 
 export function NavMessagesIcon({ className }: Omit<NavIconProps, 'icon' | 'filledWhenActive'>) {
