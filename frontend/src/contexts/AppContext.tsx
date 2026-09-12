@@ -139,10 +139,6 @@ interface AppContextValue {
 
   setNotificationsPanelOpen: (open: boolean) => void;
 
-  isSearchPanelOpen: boolean;
-
-  setSearchPanelOpen: (open: boolean) => void;
-
   isCreatePostOpen: boolean;
 
   setCreatePostOpen: (open: boolean) => void;
@@ -229,7 +225,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const [isNotificationsPanelOpen, setNotificationsPanelOpen] = useState(false);
-  const [isSearchPanelOpen, setSearchPanelOpen] = useState(false);
   const [isCreatePostOpen, setCreatePostOpen] = useState(false);
 
   const [isCreateStoryOpen, setCreateStoryOpen] = useState(false);
@@ -1038,10 +1033,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setNotificationsPanelOpen,
 
-      isSearchPanelOpen,
-
-      setSearchPanelOpen,
-
       isCreatePostOpen,
 
       setCreatePostOpen,
@@ -1149,8 +1140,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       postModalFocusComments,
 
       isNotificationsPanelOpen,
-
-      isSearchPanelOpen,
 
       isCreatePostOpen,
 

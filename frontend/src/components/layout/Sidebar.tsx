@@ -21,7 +21,6 @@ import { InstagramLogo } from '@/components/common/InstagramLogo';
 
 type NavItem =
   | { kind: 'link'; to: string; label: string; renderIcon: (active: boolean) => React.ReactNode }
-  | { kind: 'search'; label: string; renderIcon: (active: boolean) => React.ReactNode }
   | { kind: 'notifications'; label: string; renderIcon: (active: boolean) => React.ReactNode }
   | { kind: 'create'; label: string; renderIcon: () => React.ReactNode };
 
@@ -29,7 +28,7 @@ const navItems: NavItem[] = [
   { kind: 'link', to: '/', label: '홈', renderIcon: (active) => <NavHomeIcon active={active} /> },
   { kind: 'link', to: '/reels', label: '릴스', renderIcon: (active) => <ReelsIcon size={24} filled={active} /> },
   { kind: 'link', to: '/messages', label: '메시지', renderIcon: (active) => <NavMessagesIcon active={active} /> },
-  { kind: 'search', label: '검색', renderIcon: (active) => <NavSearchIcon active={active} /> },
+  { kind: 'link', to: '/search', label: '검색', renderIcon: (active) => <NavSearchIcon active={active} /> },
   { kind: 'notifications', label: '알림', renderIcon: (active) => <NavNotificationsIcon active={active} /> },
   { kind: 'create', label: '만들기', renderIcon: () => <NavCreateIcon /> },
 ];
@@ -48,26 +47,15 @@ export function Sidebar() {
   const {
     setCreatePostOpen,
     setNotificationsPanelOpen,
-    setSearchPanelOpen,
     isNotificationsPanelOpen,
-    isSearchPanelOpen,
   } = useApp();
   const { requireAuth } = useRequireAuth();
   const { messageCount, notificationCount } = useUnreadBadges();
 
   const handleCreate = () => requireAuth(() => setCreatePostOpen(true));
 
-  const handleSearch = () => {
-    setNotificationsPanelOpen(false);
-    setSearchPanelOpen(true);
-    if (location.pathname !== '/explore' && location.pathname !== '/search') {
-      navigate('/explore');
-    }
-  };
-
   const handleNotifications = () => {
     requireAuth(() => {
-      setSearchPanelOpen(false);
       if (window.matchMedia('(min-width: 768px)').matches) {
         setNotificationsPanelOpen(!isNotificationsPanelOpen);
       } else {
@@ -80,9 +68,7 @@ export function Sidebar() {
     (item) => item.kind !== 'create' || user?.is_admin,
   );
 
-  const panelOpen = isNotificationsPanelOpen || isSearchPanelOpen;
-  const isSearchActive =
-    isSearchPanelOpen || location.pathname === '/search' || location.pathname === '/explore';
+  const panelOpen = isNotificationsPanelOpen;
   const isNotificationsActive =
     isNotificationsPanelOpen || location.pathname.startsWith('/notifications');
 
@@ -112,21 +98,6 @@ export function Sidebar() {
             );
           }
 
-          if (item.kind === 'search') {
-            return (
-              <button
-                key={item.label}
-                type="button"
-                onClick={handleSearch}
-                className={navButtonClass(isSearchActive)}
-                aria-label={item.label}
-              >
-                {item.renderIcon(isSearchActive)}
-                <span className="text-base hidden lg:inline">{item.label}</span>
-              </button>
-            );
-          }
-
           if (item.kind === 'notifications') {
             return (
               <button
@@ -149,10 +120,7 @@ export function Sidebar() {
             <NavLink
               key={item.to}
               to={item.to}
-              onClick={() => {
-                setNotificationsPanelOpen(false);
-                setSearchPanelOpen(false);
-              }}
+              onClick={() => setNotificationsPanelOpen(false)}
               className={({ isActive }) => navButtonClass(isActive && !panelOpen)}
             >
               {({ isActive }) => (
@@ -172,10 +140,7 @@ export function Sidebar() {
           <>
             <NavLink
               to="/cart"
-              onClick={() => {
-                setNotificationsPanelOpen(false);
-                setSearchPanelOpen(false);
-              }}
+              onClick={() => setNotificationsPanelOpen(false)}
               className={({ isActive }) => cn(navButtonClass(isActive), 'mt-2')}
             >
               <ShoppingCart size={24} />
@@ -183,10 +148,7 @@ export function Sidebar() {
             </NavLink>
             <NavLink
               to="/orders"
-              onClick={() => {
-                setNotificationsPanelOpen(false);
-                setSearchPanelOpen(false);
-              }}
+              onClick={() => setNotificationsPanelOpen(false)}
               className={({ isActive }) => navButtonClass(isActive)}
             >
               <Package size={24} />
@@ -198,10 +160,7 @@ export function Sidebar() {
         {isAuthenticated ? (
           <NavLink
             to={`/profile/${user?.username}`}
-            onClick={() => {
-              setNotificationsPanelOpen(false);
-              setSearchPanelOpen(false);
-            }}
+            onClick={() => setNotificationsPanelOpen(false)}
             className={({ isActive }) => cn(navButtonClass(isActive), 'mt-auto')}
           >
             <Avatar src={user?.avatar_url} alt="프로필" size="sm" />
@@ -220,10 +179,7 @@ export function Sidebar() {
 
       <Link
         to="/settings"
-        onClick={() => {
-          setNotificationsPanelOpen(false);
-          setSearchPanelOpen(false);
-        }}
+        onClick={() => setNotificationsPanelOpen(false)}
         className={navButtonClass(false)}
       >
         <NavMenuIcon />

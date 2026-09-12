@@ -11,7 +11,6 @@ import { CreateStoryModal } from '@/components/story/CreateStory';
 import { StoryViewer } from '@/components/story/StoryViewer';
 import { ReelsViewer } from '@/components/reels/ReelsViewer';
 import { LeftSlidePanel } from '@/components/layout/LeftSlidePanel';
-import { SearchPanel } from '@/components/layout/SearchPanel';
 import { NotificationsContent } from '@/components/notifications/NotificationsContent';
 import { useApp } from '@/contexts/AppContext';
 import { useMobileChrome } from '@/hooks/useMobileChrome';
@@ -52,8 +51,6 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
     setSelectedPost,
     isNotificationsPanelOpen,
     setNotificationsPanelOpen,
-    isSearchPanelOpen,
-    setSearchPanelOpen,
     isCreatePostOpen,
     setCreatePostOpen,
     isCreateStoryOpen,
@@ -65,7 +62,7 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
     profileReels,
   } = useApp();
 
-  const slidePanelOpen = isNotificationsPanelOpen || isSearchPanelOpen;
+  const slidePanelOpen = isNotificationsPanelOpen;
 
   return (
     <div className="min-h-full bg-ig-bg flex flex-col">
@@ -144,10 +141,6 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
         />
       </LeftSlidePanel>
 
-      <SearchPanel
-        isOpen={isSearchPanelOpen}
-        onClose={() => setSearchPanelOpen(false)}
-      />
     </div>
   );
 }
