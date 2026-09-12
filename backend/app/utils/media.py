@@ -79,9 +79,27 @@ def save_image(upload: UploadFile, subdir: str) -> str:
     return _store_bytes(buffer.getvalue(), subdir, filename, "image/jpeg")
 
 
+def _normalize_video_content_type(upload: UploadFile) -> str:
+    content_type = (upload.content_type or "").split(";")[0].strip().lower()
+    if content_type in ALLOWED_VIDEO_TYPES:
+        return content_type
+    filename = (upload.filename or "").lower()
+    ext_map = {
+        ".mp4": "video/mp4",
+        ".m4v": "video/mp4",
+        ".webm": "video/webm",
+        ".mov": "video/quicktime",
+    }
+    for ext, mime in ext_map.items():
+        if filename.endswith(ext):
+            return mime
+    if content_type in {"", "application/octet-stream", "binary/octet-stream"}:
+        return "video/mp4"
+    raise HTTPException(status_code=400, detail="Unsupported video type")
+
+
 def save_video(upload: UploadFile, subdir: str) -> str:
-    if upload.content_type not in ALLOWED_VIDEO_TYPES:
-        raise HTTPException(status_code=400, detail="Unsupported video type")
+    content_type = _normalize_video_content_type(upload)
 
     data = upload.file.read()
     if len(data) > MAX_BYTES:
@@ -93,9 +111,9 @@ def save_video(upload: UploadFile, subdir: str) -> str:
         "video/mp4": ".mp4",
         "video/webm": ".webm",
         "video/quicktime": ".mov",
-    }.get(upload.content_type or "", ".mp4")
+    }.get(content_type, ".mp4")
     filename = f"{uuid.uuid4().hex}{ext}"
-    return _store_bytes(data, subdir, filename, upload.content_type or "video/mp4")
+    return _store_bytes(data, subdir, filename, content_type)
 
 
 def save_story_media(upload: UploadFile, subdir: str = "stories") -> tuple[str, str]:

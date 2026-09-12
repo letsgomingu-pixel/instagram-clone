@@ -36,7 +36,7 @@ function ReelMedia({ reel, isActive }: { reel: Reel; isActive: boolean }) {
       <video
         src={resolveMediaUrl(reel.video_url)}
         poster={resolveMediaUrl(reel.thumbnail_url)}
-        className={`w-full h-full object-cover transition-opacity ${isActive ? 'opacity-100' : 'opacity-90'}`}
+        className={`w-full h-full object-contain transition-opacity ${isActive ? 'opacity-100' : 'opacity-90'}`}
         muted
         playsInline
         loop

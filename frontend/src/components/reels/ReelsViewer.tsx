@@ -281,7 +281,7 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
               poster={resolveMediaUrl(reel.thumbnail_url)}
 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
 
               muted
 
@@ -301,7 +301,7 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
               alt={reel.caption || '릴스'}
 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
 
             />
 

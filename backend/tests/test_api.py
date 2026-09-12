@@ -667,6 +667,17 @@ def test_create_reel(auth_headers):
     assert body["thumbnail_url"].startswith("/media/reels/")
 
 
+def test_create_reel_octet_stream_mime(auth_headers):
+    r = client.post(
+        "/api/v1/reels",
+        headers=auth_headers,
+        files={"video": ("clip.mp4", _make_video_bytes(), "application/octet-stream")},
+        data={"caption": "octet reel"},
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["video_url"].endswith(".mp4")
+
+
 def test_security_login_sessions(auth_headers):
     r = client.get("/api/v1/users/me/security", headers=auth_headers)
     assert r.status_code == 200, r.text
