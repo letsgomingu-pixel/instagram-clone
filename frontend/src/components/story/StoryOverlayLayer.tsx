@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { cn } from '@/utils/cn';
 import type { StoryOverlay } from '@/types';
 
@@ -7,6 +8,66 @@ interface StoryOverlayLayerProps {
   selectedId?: string | null;
   onSelect?: (id: string | null) => void;
   onChange?: (overlays: StoryOverlay[]) => void;
+}
+
+interface EditableStoryTextProps {
+  overlay: StoryOverlay;
+  editable: boolean;
+  isSelected: boolean;
+  onContentChange: (content: string) => void;
+}
+
+function EditableStoryText({
+  overlay,
+  editable,
+  isSelected,
+  onContentChange,
+}: EditableStoryTextProps) {
+  const textRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el || document.activeElement === el) return;
+    if (el.textContent !== overlay.content) {
+      el.textContent = overlay.content;
+    }
+  }, [overlay.content, overlay.id]);
+
+  useEffect(() => {
+    if (!editable || !isSelected) return;
+    const el = textRef.current;
+    if (!el) return;
+
+    requestAnimationFrame(() => {
+      el.focus();
+      const selection = window.getSelection();
+      if (!selection) return;
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      selection.removeAllRanges();
+      selection.addRange(range);
+    });
+  }, [editable, isSelected, overlay.id]);
+
+  return (
+    <span
+      ref={textRef}
+      contentEditable={editable && isSelected}
+      suppressContentEditableWarning
+      onPointerDown={(e) => {
+        if (editable && isSelected) {
+          e.stopPropagation();
+        }
+      }}
+      onInput={(e) => onContentChange(e.currentTarget.textContent || '')}
+      onBlur={(e) => onContentChange(e.currentTarget.textContent?.trim() || '텍스트')}
+      className="font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] outline-none whitespace-pre-wrap max-w-[240px] text-center min-w-[1ch]"
+      style={{
+        color: overlay.color || '#ffffff',
+        fontSize: overlay.font_size ? `${overlay.font_size}px` : '24px',
+      }}
+    />
+  );
 }
 
 export function StoryOverlayLayer({
@@ -23,6 +84,17 @@ export function StoryOverlayLayer({
 
   const handleDrag = (id: string, e: React.PointerEvent<HTMLDivElement>) => {
     if (!editable || !onChange) return;
+
+    const overlay = overlays.find((o) => o.id === id);
+    if (!overlay) return;
+
+    const target = e.target as HTMLElement;
+    if (overlay.type === 'text' && selectedId === id) {
+      if (target.isContentEditable || target.closest('[contenteditable="true"]')) {
+        return;
+      }
+    }
+
     e.preventDefault();
     e.stopPropagation();
     onSelect?.(id);
@@ -32,8 +104,6 @@ export function StoryOverlayLayer({
 
     const startX = e.clientX;
     const startY = e.clientY;
-    const overlay = overlays.find((o) => o.id === id);
-    if (!overlay) return;
     const originX = overlay.x;
     const originY = overlay.y;
 
@@ -62,6 +132,7 @@ export function StoryOverlayLayer({
         const isSelected = selectedId === overlay.id;
         const scale = overlay.scale ?? 1;
         const rotation = overlay.rotation ?? 0;
+        const isEditableText = editable && overlay.type === 'text' && isSelected;
 
         return (
           <div
@@ -75,7 +146,9 @@ export function StoryOverlayLayer({
               onSelect?.(overlay.id);
             }}
             className={cn(
-              'absolute pointer-events-auto cursor-grab active:cursor-grabbing select-none',
+              'absolute pointer-events-auto',
+              !isEditableText && 'select-none',
+              isEditableText ? 'cursor-text' : 'cursor-grab active:cursor-grabbing',
               editable && isSelected && 'ring-2 ring-white/80 rounded-md',
             )}
             style={{
@@ -85,20 +158,12 @@ export function StoryOverlayLayer({
             }}
           >
             {overlay.type === 'text' ? (
-              <span
-                contentEditable={editable && isSelected}
-                suppressContentEditableWarning
-                onBlur={(e) =>
-                  updateOverlay(overlay.id, { content: e.currentTarget.textContent || '텍스트' })
-                }
-                className="font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] outline-none whitespace-pre-wrap max-w-[240px] text-center"
-                style={{
-                  color: overlay.color || '#ffffff',
-                  fontSize: overlay.font_size ? `${overlay.font_size}px` : '24px',
-                }}
-              >
-                {overlay.content}
-              </span>
+              <EditableStoryText
+                overlay={overlay}
+                editable={editable}
+                isSelected={isSelected}
+                onContentChange={(content) => updateOverlay(overlay.id, { content })}
+              />
             ) : (
               <span className="text-5xl drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                 {overlay.content}
