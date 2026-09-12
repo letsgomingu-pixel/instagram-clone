@@ -83,7 +83,7 @@ export function AddressFields({
           <input
             id="address-postcode"
             type="text"
-            placeholder="00000"
+            placeholder="우편번호"
             value={postcode}
             readOnly
             className={`${inputClassName} bg-ig-muted cursor-default`}

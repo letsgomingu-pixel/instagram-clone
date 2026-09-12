@@ -9,6 +9,7 @@ import { Spinner } from '@/components/common/Spinner';
 import { formatPrice } from '@/components/post/ProductInfo';
 import * as ordersApi from '@/api/orders';
 import { useAuth } from '@/hooks/useAuth';
+import { getCheckoutShippingFields } from '@/utils/shipping';
 import {
   validatePhone,
   validatePostcode,
@@ -87,13 +88,12 @@ export function CheckoutPage() {
   }, [isAuthenticated, navigate, productId]);
 
   useEffect(() => {
-    if (user) {
-      setShippingName(user.full_name || '');
-      setPhone(user.phone || '');
-      setPostcode(user.postcode || '');
-      setAddressLine1(user.address_line1 || '');
-      setAddressLine2(user.address_line2 || '');
-    }
+    const shipping = getCheckoutShippingFields(user);
+    setShippingName(shipping.shippingName);
+    setPhone(shipping.phone);
+    setPostcode(shipping.postcode);
+    setAddressLine1(shipping.addressLine1);
+    setAddressLine2(shipping.addressLine2);
   }, [user]);
 
   useEffect(() => {
