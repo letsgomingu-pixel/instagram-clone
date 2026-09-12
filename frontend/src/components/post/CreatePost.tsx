@@ -68,13 +68,16 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
     });
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const hasFiles = previews.length > 0;
+  const { getRootProps, getInputProps, open, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
       'video/*': ['.mp4', '.webm', '.mov'],
     },
     multiple: true,
+    noClick: hasFiles,
+    noKeyboard: hasFiles,
   });
 
   const handleShare = async () => {
@@ -146,6 +149,8 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
             ✕
           </button>
         </div>
+
+        {hasFiles && <input {...getInputProps()} className="hidden" aria-hidden />}
 
         {!previews.length ? (
           <div
@@ -223,15 +228,17 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                   )}
                 </button>
               ))}
-              <div
-                {...getRootProps()}
-                className={`h-14 w-14 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer shrink-0 ${
-                  isDragActive ? 'border-ig-primary bg-ig-secondary' : 'border-ig-border'
+              <button
+                type="button"
+                onClick={() => open()}
+                className={`h-14 min-w-[3.5rem] px-1 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer shrink-0 ${
+                  isDragActive ? 'border-ig-primary bg-ig-secondary' : 'border-ig-border hover:border-ig-primary hover:bg-ig-secondary'
                 }`}
+                aria-label="사진 추가"
               >
-                <input {...getInputProps()} />
                 <ImagePlus size={20} className="text-ig-text-secondary" />
-              </div>
+                <span className="text-[10px] text-ig-text-secondary mt-0.5">추가</span>
+              </button>
             </div>
 
             <div className="p-3 border-t border-ig-border">

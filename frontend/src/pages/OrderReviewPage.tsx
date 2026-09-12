@@ -50,13 +50,16 @@ export function OrderReviewPage() {
     ]);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const hasFiles = files.length > 0;
+  const { getRootProps, getInputProps, open, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
       'video/*': ['.mp4', '.webm', '.mov'],
     },
     multiple: true,
+    noClick: hasFiles,
+    noKeyboard: hasFiles,
   });
 
   const removeFile = (index: number) => {
@@ -143,44 +146,55 @@ export function OrderReviewPage() {
 
           <div>
             <span className="block text-sm font-semibold mb-2">사진</span>
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer ${
-                isDragActive ? 'border-ig-primary bg-ig-secondary' : 'border-ig-border'
-              }`}
-            >
-              <input {...getInputProps()} />
-              <ImagePlus className="mx-auto mb-2 text-ig-text-secondary" size={28} />
-              <p className="text-sm text-ig-text-secondary">
-                클릭하거나 드래그하여 사진·동영상 업로드
-              </p>
-            </div>
-            {previews.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-3">
-                {previews.map((url, index) => (
-                  <div
-                    key={url}
-                    className="relative h-20 w-20 rounded-lg overflow-hidden border border-ig-border"
-                  >
-                    {files[index]?.type.startsWith('video/') ? (
-                      <video src={url} className="h-full w-full object-cover" muted />
-                    ) : (
-                      <img src={url} alt="" className="h-full w-full object-cover" />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => removeFile(index)}
-                      className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5"
-                      aria-label="사진 삭제"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
+            {!hasFiles ? (
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer ${
+                  isDragActive ? 'border-ig-primary bg-ig-secondary' : 'border-ig-border'
+                }`}
+              >
+                <input {...getInputProps()} />
+                <ImagePlus className="mx-auto mb-2 text-ig-text-secondary" size={28} />
+                <p className="text-sm text-ig-text-secondary">
+                  클릭하거나 드래그하여 사진·동영상 업로드
+                </p>
               </div>
-            )}
-            {files.length > 0 && (
-              <p className="text-xs text-ig-text-secondary mt-2">{files.length}개 파일 선택됨</p>
+            ) : (
+              <>
+                <input {...getInputProps()} className="hidden" aria-hidden />
+                <div className="flex flex-wrap gap-2">
+                  {previews.map((url, index) => (
+                    <div
+                      key={url}
+                      className="relative h-20 w-20 rounded-lg overflow-hidden border border-ig-border"
+                    >
+                      {files[index]?.type.startsWith('video/') ? (
+                        <video src={url} className="h-full w-full object-cover" muted />
+                      ) : (
+                        <img src={url} alt="" className="h-full w-full object-cover" />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5"
+                        aria-label="사진 삭제"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => open()}
+                    className="h-20 min-w-[5rem] px-2 rounded-lg border-2 border-dashed border-ig-border flex flex-col items-center justify-center gap-1 hover:border-ig-primary hover:bg-ig-secondary"
+                    aria-label="사진 추가"
+                  >
+                    <ImagePlus size={22} className="text-ig-text-secondary" />
+                    <span className="text-xs text-ig-text-secondary">사진 추가</span>
+                  </button>
+                </div>
+                <p className="text-xs text-ig-text-secondary mt-2">{files.length}개 파일 선택됨</p>
+              </>
             )}
           </div>
 
