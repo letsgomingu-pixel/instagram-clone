@@ -62,7 +62,6 @@ if [[ -f "$DEPLOY_PATH/deploy/patch-nginx-upload-limits.sh" ]]; then
   DEPLOY_PATH="$DEPLOY_PATH" bash "$DEPLOY_PATH/deploy/patch-nginx-upload-limits.sh"
 fi
 
-nginx -t
-systemctl reload nginx
+systemctl restart nginx
 
 echo "[OK] Redeploy complete — $(git -C "$DEPLOY_PATH" rev-parse --short HEAD)"

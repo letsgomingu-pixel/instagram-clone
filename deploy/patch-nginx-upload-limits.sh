@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Patch live nginx configs for large video uploads without overwriting certbot SSL.
-# Installs a global http-level limit AND patches site-specific configs.
+# Patch nginx for large video uploads (certbot-safe). Runs on every redeploy as root.
 
 set -euo pipefail
 
@@ -9,101 +8,117 @@ DOMAIN="${DOMAIN:-iamnotafishmonger.com}"
 GLOBAL_NAME="00-iamnotafishmonger-upload-limits.conf"
 GLOBAL_SRC="$DEPLOY_PATH/deploy/nginx-upload-limits-global.conf"
 GLOBAL_DST="/etc/nginx/conf.d/$GLOBAL_NAME"
+NGINX_MAIN="/etc/nginx/nginx.conf"
+BODY_LIMIT="client_max_body_size 200M;"
+
+echo "[patch-nginx] Applying upload limits (200M)..."
 
 if [[ -f "$GLOBAL_SRC" ]]; then
   cp "$GLOBAL_SRC" "$GLOBAL_DST"
-  echo "[patch-nginx] Installed global upload limits -> $GLOBAL_DST"
-else
-  echo "[patch-nginx] WARNING: missing $GLOBAL_SRC" >&2
+  echo "[patch-nginx] Installed $GLOBAL_DST"
 fi
 
-python3 << PY
+python3 << 'PY'
 import re
 from pathlib import Path
 
-DOMAIN = "${DOMAIN}"
+DOMAIN = "iamnotafishmonger.com"
 BACKEND = "127.0.0.1:8001"
 BODY_LIMIT = "client_max_body_size 200M;"
-TIMEOUT_DIRECTIVES = (
+TIMEOUTS = (
+    "client_body_timeout 300s;",
     "proxy_read_timeout 300s;",
     "proxy_send_timeout 300s;",
-    "client_body_timeout 300s;",
 )
+NGINX_MAIN = Path("/etc/nginx/nginx.conf")
 
-search_dirs = [
-    Path("/etc/nginx/sites-enabled"),
-    Path("/etc/nginx/sites-available"),
-    Path("/etc/nginx/conf.d"),
-]
+def upsert_body_limit(text: str) -> str:
+    if "client_max_body_size" in text:
+        return re.sub(r"client_max_body_size\s+[^;]+;", BODY_LIMIT, text)
+    return text
 
-files: list[Path] = []
-seen: set[Path] = set()
-for directory in search_dirs:
-    if not directory.is_dir():
-        continue
-    for path in sorted(directory.iterdir()):
-        if not path.is_file() or path in seen:
-            continue
-        if path.name == "${GLOBAL_NAME}":
-            continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except OSError:
-            continue
-        if DOMAIN not in text and BACKEND not in text:
-            continue
-        seen.add(path)
-        files.append(path)
-
-if not files:
-    print(f"[patch-nginx] No site-specific nginx config matched — global limits only")
-    raise SystemExit(0)
-
-changed_any = False
-for path in files:
-    text = path.read_text(encoding="utf-8")
-    original = text
-
-    text = re.sub(r"client_max_body_size\s+[^;]+;", BODY_LIMIT, text)
-
-    if BODY_LIMIT not in text:
-        text = re.sub(
-            r"(server\s*\{)",
-            rf"\1\n    {BODY_LIMIT}",
-            text,
-        )
-
-    def patch_proxy_block(match: re.Match[str]) -> str:
-        block = match.group(0)
-        if BACKEND not in block:
-            return block
-        if BODY_LIMIT.split()[0] not in block:
-            block = block.replace("{", "{\n        " + BODY_LIMIT, 1)
-        anchor = "proxy_set_header X-Forwarded-Proto $scheme;"
-        if anchor in block:
-            for directive in TIMEOUT_DIRECTIVES:
-                key = directive.split()[0]
-                if key not in block:
-                    block = block.replace(
-                        anchor,
-                        anchor + "\n        " + directive,
-                    )
-        return block
-
-    text = re.sub(
-        r"location[^{]+\{.*?\n    \}",
-        patch_proxy_block,
+def ensure_http_limits(text: str) -> str:
+    text = upsert_body_limit(text)
+    if BODY_LIMIT in text:
+        return text
+    return re.sub(
+        r"http\s*\{",
+        "http {\n    " + BODY_LIMIT + "\n    client_body_timeout 300s;",
         text,
-        flags=re.DOTALL,
+        count=1,
     )
 
+def patch_site_file(path: Path) -> bool:
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return False
+    original = text
+    text = upsert_body_limit(text)
+    if BODY_LIMIT not in text:
+        text = re.sub(r"(server\s*\{)", r"\1\n    " + BODY_LIMIT, text)
+
+    def patch_location(block: re.Match[str]) -> str:
+        chunk = block.group(0)
+        if BACKEND not in chunk and "/api" not in chunk:
+            return chunk
+        chunk = upsert_body_limit(chunk)
+        if "proxy_set_header X-Forwarded-Proto $scheme;" in chunk:
+            for directive in TIMEOUTS:
+                key = directive.split()[0]
+                if key not in chunk:
+                    chunk = chunk.replace(
+                        "proxy_set_header X-Forwarded-Proto $scheme;",
+                        "proxy_set_header X-Forwarded-Proto $scheme;\n        " + directive,
+                    )
+        return chunk
+
+    text = re.sub(r"location[^{]+\{.*?\n    \}", patch_location, text, flags=re.DOTALL)
     if text != original:
         path.write_text(text, encoding="utf-8")
-        changed_any = True
         print(f"[patch-nginx] Updated {path}")
+        return True
+    return False
 
-if changed_any:
-    print("[patch-nginx] Site configs patched (200M + 300s timeouts)")
-else:
-    print("[patch-nginx] Site configs already up to date")
+changed = False
+if NGINX_MAIN.is_file():
+    main_text = NGINX_MAIN.read_text(encoding="utf-8")
+    updated = ensure_http_limits(main_text)
+    if updated != main_text:
+        NGINX_MAIN.write_text(updated, encoding="utf-8")
+        print(f"[patch-nginx] Updated {NGINX_MAIN}")
+        changed = True
+
+search_roots = [Path("/etc/nginx/sites-enabled"), Path("/etc/nginx/sites-available"), Path("/etc/nginx/conf.d")]
+seen: set[Path] = set()
+for root in search_roots:
+    if not root.is_dir():
+        continue
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or path in seen:
+            continue
+        if path.name == "00-iamnotafishmonger-upload-limits.conf":
+            seen.add(path)
+            continue
+        try:
+            content = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        if DOMAIN not in content and BACKEND not in content and "/api" not in content:
+            continue
+        seen.add(path)
+        if patch_site_file(path):
+            changed = True
+
+if not changed:
+    print("[patch-nginx] Site configs unchanged (http-level limit applied)")
 PY
+
+nginx -t
+
+if ! grep -rq "client_max_body_size 200M" /etc/nginx/; then
+  echo "[patch-nginx] ERROR: client_max_body_size 200M not found in /etc/nginx after patch" >&2
+  exit 1
+fi
+
+echo "[patch-nginx] Verified client_max_body_size 200M in nginx config"
