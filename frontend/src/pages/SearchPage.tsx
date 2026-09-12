@@ -1,20 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Hash, Package, Search as SearchIcon, X } from 'lucide-react';
-import { Avatar } from '@/components/common/Avatar';
-import { Button } from '@/components/common/Button';
+import { Package, Search as SearchIcon, X } from 'lucide-react';
 import { PostCoverMedia } from '@/components/post/PostCoverMedia';
 import { ExploreGrid } from '@/components/explore/ExploreGrid';
 import { TabBar } from '@/components/post/FeedTabs';
 import { formatPrice } from '@/components/post/ProductInfo';
-import { useApp } from '@/contexts/AppContext';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useAuth } from '@/hooks/useAuth';
-import * as usersApi from '@/api/users';
 import * as searchApi from '@/api/search';
-import { useRequireAuth } from '@/hooks/useRequireAuth';
-import type { Product, User } from '@/types';
-import type { HashtagSearchOut, ProductSearchOut } from '@/types/search';
+import type { Product } from '@/types';
+import type { ProductSearchOut } from '@/types/search';
 
 const STORAGE_FILTERS: { value: Product['storage_type'] | ''; label: string }[] = [
   { value: '', label: '전체' },
@@ -31,48 +25,61 @@ const AVAILABILITY_FILTERS: { value: Product['availability'] | ''; label: string
 
 type FilterGroup = 'storage' | 'availability';
 
+function ProductSearchGrid({ products }: { products: ProductSearchOut[] }) {
+  return (
+    <div className="grid grid-cols-3 gap-[2px] md:gap-1 max-w-[935px]">
+      {products.map((product, index) => {
+        const isLarge = index % 10 === 0 || index % 10 === 5;
+
+        return (
+          <Link
+            key={product.id}
+            to={product.is_available ? `/checkout/${product.id}` : `/p/${product.post_id}`}
+            className={`relative group overflow-hidden bg-ig-secondary ${
+              isLarge ? 'col-span-2 row-span-2 aspect-square' : 'aspect-square'
+            }`}
+          >
+            {product.image_url ? (
+              <PostCoverMedia imageUrl={product.image_url} alt={product.name} />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <Package size={24} className="text-ig-text-secondary" />
+              </div>
+            )}
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-6 opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity">
+              <p className="text-xs font-semibold text-white truncate">{product.name}</p>
+              <p className="text-[11px] text-white/80">
+                {formatPrice(product.price)} / {product.unit}
+                {!product.is_available && ' · 품절'}
+              </p>
+            </div>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 export function SearchPage() {
   const [query, setQuery] = useState('');
   const [filterGroup, setFilterGroup] = useState<FilterGroup>('storage');
   const [storageFilter, setStorageFilter] = useState<Product['storage_type'] | ''>('');
   const [availabilityFilter, setAvailabilityFilter] = useState<Product['availability'] | ''>('');
-  const [results, setResults] = useState<User[]>([]);
   const [productResults, setProductResults] = useState<ProductSearchOut[]>([]);
-  const [hashtagResults, setHashtagResults] = useState<HashtagSearchOut[]>([]);
+  const [loading, setLoading] = useState(false);
   const debouncedQuery = useDebounce(query, 300);
-  const { requireAuth } = useRequireAuth();
-  const { isAuthenticated } = useAuth();
-  const { followUser, unfollowUser } = useApp();
 
   const hasSearchInput =
     debouncedQuery.length >= 1 || storageFilter || availabilityFilter;
 
-  const handleFollowClick = (user: User) => {
-    requireAuth(async () => {
-      if (user.is_following) await unfollowUser(user.id);
-      else await followUser(user.id);
-      setResults((prev) =>
-        prev.map((u) => (u.id === user.id ? { ...u, is_following: !u.is_following } : u)),
-      );
-    });
-  };
-
   useEffect(() => {
     if (!hasSearchInput) {
-      setResults([]);
       setProductResults([]);
-      setHashtagResults([]);
+      setLoading(false);
       return;
     }
 
-    if (debouncedQuery.length >= 1 && isAuthenticated) {
-      usersApi.searchUsersApi(debouncedQuery).then(setResults).catch(() => setResults([]));
-      searchApi.searchHashtags(debouncedQuery).then(setHashtagResults).catch(() => setHashtagResults([]));
-    } else {
-      setResults([]);
-      setHashtagResults([]);
-    }
-
+    setLoading(true);
     searchApi
       .searchProducts({
         q: debouncedQuery.length >= 1 ? debouncedQuery : undefined,
@@ -80,8 +87,9 @@ export function SearchPage() {
         availability: availabilityFilter || undefined,
       })
       .then(setProductResults)
-      .catch(() => setProductResults([]));
-  }, [debouncedQuery, storageFilter, availabilityFilter, hasSearchInput, isAuthenticated]);
+      .catch(() => setProductResults([]))
+      .finally(() => setLoading(false));
+  }, [debouncedQuery, storageFilter, availabilityFilter, hasSearchInput]);
 
   return (
     <div className="md:pt-0">
@@ -146,97 +154,18 @@ export function SearchPage() {
       </div>
 
       {hasSearchInput ? (
-        <div className="bg-white border border-ig-border md:rounded-lg overflow-hidden">
-          {!isAuthenticated && debouncedQuery.length >= 1 && (
-            <div className="px-4 py-3 border-b border-ig-border bg-ig-secondary text-sm text-ig-text-secondary">
-              계정·해시태그 검색은{' '}
-              <Link to="/login" className="text-ig-link font-semibold hover:underline">
-                로그인
-              </Link>
-              이 필요합니다. 상품 검색은 로그인 없이 이용할 수 있습니다.
-            </div>
-          )}
-          {productResults.length > 0 && (
-            <div className="border-b border-ig-border">
-              <p className="px-4 py-2 text-xs font-semibold text-ig-text-secondary bg-ig-secondary">상품</p>
-              {productResults.map((product) => (
-                <Link
-                  key={product.id}
-                  to={product.is_available ? `/checkout/${product.id}` : `/p/${product.post_id}`}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-ig-secondary"
-                >
-                  <div className="h-11 w-11 min-h-0 shrink-0 overflow-hidden rounded-lg bg-ig-secondary">
-                    {product.image_url ? (
-                      <PostCoverMedia imageUrl={product.image_url} alt={product.name} />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Package size={18} className="text-ig-text-secondary" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{product.name}</p>
-                    <p className="text-xs text-ig-text-secondary">
-                      {formatPrice(product.price)} / {product.unit}
-                      {!product.is_available && ' · 품절'}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-          {hashtagResults.length > 0 && (
-            <div className="border-b border-ig-border">
-              {hashtagResults.map((tag) => (
-                <Link
-                  key={tag.name}
-                  to={`/explore/tags/${tag.name}`}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-ig-secondary"
-                >
-                  <div className="w-11 h-11 rounded-full bg-ig-secondary flex items-center justify-center">
-                    <Hash size={20} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">#{tag.name}</p>
-                    <p className="text-xs text-ig-text-secondary">게시물 {tag.post_count.toLocaleString()}개</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-          {results.map((user) => (
-            <div
-              key={user.id}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-ig-secondary transition-colors"
-            >
-              <Link to={`/profile/${user.username}`}>
-                <Avatar src={user.avatar_url} alt={user.username} size="md" />
-              </Link>
-              <div className="flex-1 min-w-0">
-                <Link
-                  to={`/profile/${user.username}`}
-                  className="text-sm font-semibold hover:underline block truncate"
-                >
-                  {user.username}
-                </Link>
-                <p className="text-sm text-ig-text-secondary truncate">{user.full_name}</p>
-              </div>
-              <Button
-                variant={user.is_following ? 'secondary' : 'primary'}
-                size="sm"
-                onClick={() => handleFollowClick(user)}
-              >
-                {user.is_following ? '팔로잉' : '팔로우'}
-              </Button>
-            </div>
-          ))}
-          {productResults.length === 0 && results.length === 0 && hashtagResults.length === 0 && (
-            <p className="text-sm text-ig-text-secondary text-center py-8">검색 결과가 없습니다.</p>
-          )}
-        </div>
-      ) : null}
-
-      {!hasSearchInput && <ExploreGrid />}
+        loading ? (
+          <div className="flex justify-center py-16">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-ig-border border-t-ig-primary" />
+          </div>
+        ) : productResults.length > 0 ? (
+          <ProductSearchGrid products={productResults} />
+        ) : (
+          <p className="text-sm text-ig-text-secondary text-center py-8">검색 결과가 없습니다.</p>
+        )
+      ) : (
+        <ExploreGrid />
+      )}
     </div>
   );
 }
