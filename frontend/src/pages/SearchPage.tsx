@@ -14,7 +14,7 @@ import * as usersApi from '@/api/users';
 import * as searchApi from '@/api/search';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import type { Product, User } from '@/types';
-import type { HashtagSearchOut, ProductSearchOut, RecentSearchOut } from '@/types/search';
+import type { HashtagSearchOut, ProductSearchOut } from '@/types/search';
 
 const STORAGE_FILTERS: { value: Product['storage_type'] | ''; label: string }[] = [
   { value: '', label: '전체' },
@@ -39,7 +39,6 @@ export function SearchPage() {
   const [results, setResults] = useState<User[]>([]);
   const [productResults, setProductResults] = useState<ProductSearchOut[]>([]);
   const [hashtagResults, setHashtagResults] = useState<HashtagSearchOut[]>([]);
-  const [recentSearches, setRecentSearches] = useState<RecentSearchOut[]>([]);
   const debouncedQuery = useDebounce(query, 300);
   const { requireAuth } = useRequireAuth();
   const { isAuthenticated } = useAuth();
@@ -47,12 +46,6 @@ export function SearchPage() {
 
   const hasSearchInput =
     debouncedQuery.length >= 1 || storageFilter || availabilityFilter;
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      searchApi.getRecentSearches().then(setRecentSearches).catch(() => setRecentSearches([]));
-    }
-  }, [isAuthenticated]);
 
   const handleFollowClick = (user: User) => {
     requireAuth(async () => {
@@ -240,50 +233,6 @@ export function SearchPage() {
           {productResults.length === 0 && results.length === 0 && hashtagResults.length === 0 && (
             <p className="text-sm text-ig-text-secondary text-center py-8">검색 결과가 없습니다.</p>
           )}
-        </div>
-      ) : isAuthenticated && recentSearches.length > 0 ? (
-        <div className="bg-white border border-ig-border md:rounded-lg overflow-hidden mb-4">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-ig-border">
-            <span className="text-sm font-semibold">최근 검색</span>
-            <button
-              type="button"
-              onClick={() => searchApi.clearRecentSearches().then(() => setRecentSearches([]))}
-              className="text-xs text-ig-primary font-semibold"
-            >
-              모두 지우기
-            </button>
-          </div>
-          {recentSearches.map((item) => (
-            <div key={item.id} className="flex items-center gap-2 px-4 py-3 hover:bg-ig-secondary">
-              <button
-                type="button"
-                onClick={() => setQuery(item.query)}
-                className="flex items-center gap-3 flex-1 min-w-0 text-left"
-              >
-                {item.search_type === 'hashtag' ? (
-                  <Hash size={16} />
-                ) : item.search_type === 'product' ? (
-                  <Package size={16} />
-                ) : (
-                  <SearchIcon size={16} />
-                )}
-                <span className="text-sm truncate">{item.query}</span>
-              </button>
-              <button
-                type="button"
-                aria-label="검색 기록 삭제"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  searchApi.deleteRecentSearch(item.id).then(() => {
-                    setRecentSearches((prev) => prev.filter((r) => r.id !== item.id));
-                  });
-                }}
-                className="p-1 text-ig-text-secondary hover:text-ig-text shrink-0"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          ))}
         </div>
       ) : null}
 
