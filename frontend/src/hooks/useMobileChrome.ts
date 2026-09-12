@@ -143,7 +143,7 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
       };
     }
 
-    if (pathname === '/search' || pathname === '/explore') {
+    if (pathname === '/search' || pathname === '/explore' || pathname.startsWith('/explore/')) {
       return {
         showHeader: true,
         showHeaderNav: true,

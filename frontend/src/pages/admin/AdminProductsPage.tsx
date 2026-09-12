@@ -228,7 +228,7 @@ export function AdminProductsPage() {
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium">보관</span>
+            <span className="text-sm font-medium">상품 유형</span>
             <select
               value={storageType}
               onChange={(e) => setStorageType(e.target.value as Product['storage_type'])}
@@ -367,7 +367,7 @@ export function AdminProductsPage() {
                         />
                       </label>
                       <label className="block text-xs">
-                        <span className="font-medium">보관</span>
+                        <span className="font-medium">상품 유형</span>
                         <select
                           value={editStorageType}
                           onChange={(e) =>

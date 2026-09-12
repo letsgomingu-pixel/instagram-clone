@@ -9,6 +9,9 @@ import { CreatePostModal } from '@/components/post/CreatePost';
 import { CreateStoryModal } from '@/components/story/CreateStory';
 import { StoryViewer } from '@/components/story/StoryViewer';
 import { ReelsViewer } from '@/components/reels/ReelsViewer';
+import { LeftSlidePanel } from '@/components/layout/LeftSlidePanel';
+import { SearchPanel } from '@/components/layout/SearchPanel';
+import { NotificationsContent } from '@/components/notifications/NotificationsContent';
 import { useApp } from '@/contexts/AppContext';
 import { useMobileChrome } from '@/hooks/useMobileChrome';
 import { cn } from '@/utils/cn';
@@ -23,7 +26,10 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
 
   const isHome = location.pathname === '/';
   const isSuggested = location.pathname === '/suggested';
-  const isExplore = location.pathname === '/explore' || location.pathname === '/search';
+  const isExplore =
+    location.pathname === '/explore' ||
+    location.pathname === '/search' ||
+    location.pathname.startsWith('/explore/');
   const isReels = location.pathname === '/reels' || location.pathname.startsWith('/reels/');
   const isMessages = location.pathname.startsWith('/messages');
   const isNotifications = location.pathname.startsWith('/notifications');
@@ -48,6 +54,10 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
     selectedPost,
     postModalFocusComments,
     setSelectedPost,
+    isNotificationsPanelOpen,
+    setNotificationsPanelOpen,
+    isSearchPanelOpen,
+    setSearchPanelOpen,
     isCreatePostOpen,
     setCreatePostOpen,
     isCreateStoryOpen,
@@ -119,6 +129,22 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
           onClose={() => setActiveReelIndex(null)}
         />
       )}
+
+      <LeftSlidePanel
+        isOpen={isNotificationsPanelOpen}
+        onClose={() => setNotificationsPanelOpen(false)}
+        title="알림"
+      >
+        <NotificationsContent
+          variant="panel"
+          onClose={() => setNotificationsPanelOpen(false)}
+        />
+      </LeftSlidePanel>
+
+      <SearchPanel
+        isOpen={isSearchPanelOpen}
+        onClose={() => setSearchPanelOpen(false)}
+      />
     </div>
   );
 }

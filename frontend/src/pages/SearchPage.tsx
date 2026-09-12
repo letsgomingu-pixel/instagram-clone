@@ -120,7 +120,7 @@ export function SearchPage() {
         <div className="feed-card mb-3">
           <TabBar
             tabs={[
-              { id: 'storage', label: '보관' },
+              { id: 'storage', label: '상품 유형' },
               { id: 'availability', label: '제철' },
             ]}
             activeTab={filterGroup}

@@ -135,6 +135,14 @@ interface AppContextValue {
 
   setSelectedPost: (post: Post | null | ((prev: Post | null) => Post | null), focusComments?: boolean) => void;
 
+  isNotificationsPanelOpen: boolean;
+
+  setNotificationsPanelOpen: (open: boolean) => void;
+
+  isSearchPanelOpen: boolean;
+
+  setSearchPanelOpen: (open: boolean) => void;
+
   isCreatePostOpen: boolean;
 
   setCreatePostOpen: (open: boolean) => void;
@@ -220,6 +228,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const [isNotificationsPanelOpen, setNotificationsPanelOpen] = useState(false);
+  const [isSearchPanelOpen, setSearchPanelOpen] = useState(false);
   const [isCreatePostOpen, setCreatePostOpen] = useState(false);
 
   const [isCreateStoryOpen, setCreateStoryOpen] = useState(false);
@@ -1024,6 +1034,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setSelectedPost,
 
+      isNotificationsPanelOpen,
+
+      setNotificationsPanelOpen,
+
+      isSearchPanelOpen,
+
+      setSearchPanelOpen,
+
       isCreatePostOpen,
 
       setCreatePostOpen,
@@ -1129,6 +1147,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       selectedPost,
 
       postModalFocusComments,
+
+      isNotificationsPanelOpen,
+
+      isSearchPanelOpen,
 
       isCreatePostOpen,
 

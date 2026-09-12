@@ -1,11 +1,11 @@
 import { NavLink, Link } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
 import { Avatar } from '@/components/common/Avatar';
 import { ReelsIcon } from '@/components/common/ReelsIcon';
 import {
   NavCreateIcon,
   NavHomeIcon,
   NavLoginIcon,
+  NavMessagesIcon,
   NavSearchIcon,
 } from '@/components/post/PostActionIcons';
 import { useAuth } from '@/hooks/useAuth';
@@ -28,11 +28,11 @@ export function BottomNav() {
       </NavLink>
 
       <NavLink
-        to="/search"
+        to="/reels"
         className="flex flex-1 items-center justify-center min-h-[49px]"
-        aria-label="검색"
+        aria-label="릴스"
       >
-        {({ isActive }) => <NavSearchIcon active={isActive} />}
+        {({ isActive }) => <ReelsIcon size={24} filled={isActive} />}
       </NavLink>
 
       {showCreate ? (
@@ -44,32 +44,40 @@ export function BottomNav() {
         >
           <NavCreateIcon />
         </button>
-      ) : isAuthenticated ? (
+      ) : (
         <NavLink
-          to="/cart"
+          to="/search"
           className="flex flex-1 items-center justify-center min-h-[49px]"
-          aria-label="장바구니"
+          aria-label="검색"
         >
-          {({ isActive }) => (
-            <ShoppingCart size={24} strokeWidth={isActive ? 2.5 : 1.75} className={isActive ? 'text-ig-text' : 'text-ig-text-secondary'} />
-          )}
+          {({ isActive }) => <NavSearchIcon active={isActive} />}
         </NavLink>
-      ) : null}
+      )}
 
-      <NavLink
-        to="/reels"
-        className="flex flex-1 items-center justify-center min-h-[49px]"
-        aria-label="릴스"
-      >
-        {({ isActive }) => <ReelsIcon size={24} filled={isActive} />}
-      </NavLink>
+      {isAuthenticated ? (
+        <NavLink
+          to="/messages"
+          className="flex flex-1 items-center justify-center min-h-[49px]"
+          aria-label="메시지"
+        >
+          <NavMessagesIcon />
+        </NavLink>
+      ) : (
+        <NavLink
+          to="/search"
+          className="flex flex-1 items-center justify-center min-h-[49px]"
+          aria-label="검색"
+        >
+          {({ isActive }) => <NavSearchIcon active={isActive} />}
+        </NavLink>
+      )}
 
       {isAuthenticated ? (
         <NavLink
           to={`/profile/${user?.username}`}
           className="flex flex-1 items-center justify-center min-h-[49px]"
           aria-label="프로필"
-          >
+        >
           {({ isActive }) => (
             <div className={cn(isActive && 'ring-2 ring-ig-primary rounded-full p-[1px]')}>
               <Avatar src={user?.avatar_url} alt="프로필" size="xs" />
