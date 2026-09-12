@@ -39,15 +39,12 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (!acceptedFiles.length) return;
-    setFiles((prev) => {
-      const next = [...prev, ...acceptedFiles].slice(0, 10);
-      return next;
-    });
+    setFiles((prev) => [...prev, ...acceptedFiles]);
     setPreviews((prev) => {
       const next = [
         ...prev,
         ...acceptedFiles.map((file) => URL.createObjectURL(file)),
-      ].slice(0, 10);
+      ];
       if (prev.length === 0 && next.length > 0) {
         setPreviewIndex(0);
       }
@@ -77,9 +74,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
       'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
       'video/*': ['.mp4', '.webm', '.mov'],
     },
-    maxFiles: Math.max(1, 10 - files.length),
     multiple: true,
-    disabled: files.length >= 10,
   });
 
   const handleShare = async () => {
@@ -162,7 +157,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
             <input {...getInputProps()} />
             <ImagePlus size={48} strokeWidth={1} className="text-ig-text-secondary mb-4" />
             <p className="text-xl font-light mb-2">사진과 동영상을 여기에 끌어다 놓으세요</p>
-            <p className="text-xs text-ig-text-secondary mb-3">최대 10개까지 선택 가능</p>
+            <p className="text-xs text-ig-text-secondary mb-3">여러 장 선택 가능</p>
             <Button variant="primary" size="md">컴퓨터에서 선택</Button>
           </div>
         ) : (
@@ -228,17 +223,15 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                   )}
                 </button>
               ))}
-              {files.length < 10 && (
-                <div
-                  {...getRootProps()}
-                  className={`h-14 w-14 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer shrink-0 ${
-                    isDragActive ? 'border-ig-primary bg-ig-secondary' : 'border-ig-border'
-                  }`}
-                >
-                  <input {...getInputProps()} />
-                  <ImagePlus size={20} className="text-ig-text-secondary" />
-                </div>
-              )}
+              <div
+                {...getRootProps()}
+                className={`h-14 w-14 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer shrink-0 ${
+                  isDragActive ? 'border-ig-primary bg-ig-secondary' : 'border-ig-border'
+                }`}
+              >
+                <input {...getInputProps()} />
+                <ImagePlus size={20} className="text-ig-text-secondary" />
+              </div>
             </div>
 
             <div className="p-3 border-t border-ig-border">

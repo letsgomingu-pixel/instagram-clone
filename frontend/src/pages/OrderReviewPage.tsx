@@ -10,8 +10,6 @@ import { Button } from '@/components/common/Button';
 import { Spinner } from '@/components/common/Spinner';
 import { useApp } from '@/contexts/AppContext';
 
-const MAX_FILES = 10;
-
 export function OrderReviewPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
@@ -45,11 +43,11 @@ export function OrderReviewPage() {
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (!acceptedFiles.length) return;
-    setFiles((prev) => [...prev, ...acceptedFiles].slice(0, MAX_FILES));
+    setFiles((prev) => [...prev, ...acceptedFiles]);
     setPreviews((prev) => [
       ...prev,
       ...acceptedFiles.map((file) => URL.createObjectURL(file)),
-    ].slice(0, MAX_FILES));
+    ]);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -58,9 +56,7 @@ export function OrderReviewPage() {
       'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
       'video/*': ['.mp4', '.webm', '.mov'],
     },
-    maxFiles: MAX_FILES,
     multiple: true,
-    disabled: files.length >= MAX_FILES,
   });
 
   const removeFile = (index: number) => {
@@ -151,12 +147,12 @@ export function OrderReviewPage() {
               {...getRootProps()}
               className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer ${
                 isDragActive ? 'border-ig-primary bg-ig-secondary' : 'border-ig-border'
-              } ${files.length >= MAX_FILES ? 'opacity-50 cursor-not-allowed' : ''}`}
+              }`}
             >
               <input {...getInputProps()} />
               <ImagePlus className="mx-auto mb-2 text-ig-text-secondary" size={28} />
               <p className="text-sm text-ig-text-secondary">
-                클릭하거나 드래그하여 사진·동영상 업로드 (최대 {MAX_FILES}개)
+                클릭하거나 드래그하여 사진·동영상 업로드
               </p>
             </div>
             {previews.length > 0 && (

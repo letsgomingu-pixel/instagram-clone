@@ -69,19 +69,17 @@ export function AdminProductsPage() {
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (!acceptedFiles.length) return;
-    setFiles((prev) => [...prev, ...acceptedFiles].slice(0, 10));
+    setFiles((prev) => [...prev, ...acceptedFiles]);
     setPreviews((prev) => [
       ...prev,
       ...acceptedFiles.map((file) => URL.createObjectURL(file)),
-    ].slice(0, 10));
+    ]);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
-    maxFiles: Math.max(1, 10 - files.length),
     multiple: true,
-    disabled: files.length >= 10,
   });
 
   const resetForm = () => {
@@ -297,7 +295,7 @@ export function AdminProductsPage() {
           >
             <input {...getInputProps()} />
             <ImagePlus className="mx-auto mb-2 text-ig-text-secondary" size={28} />
-            <p className="text-sm text-ig-text-secondary">클릭하거나 드래그하여 사진 업로드 (최대 10장)</p>
+            <p className="text-sm text-ig-text-secondary">클릭하거나 드래그하여 사진 업로드</p>
           </div>
           {previews.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-3">

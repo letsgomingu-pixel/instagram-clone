@@ -12,8 +12,6 @@ OptionalUploadFiles = Annotated[list[UploadFile] | None, File()]
 def collect_upload_files(
     image: UploadFile | None,
     files: list[UploadFile] | None,
-    *,
-    max_files: int = 10,
 ) -> list[UploadFile]:
     """Merge optional single `image` and repeated `files` form fields."""
     uploads: list[UploadFile] = []
@@ -25,6 +23,4 @@ def collect_upload_files(
                 uploads.append(upload)
     if not uploads:
         raise HTTPException(status_code=400, detail="At least one media file is required")
-    if len(uploads) > max_files:
-        raise HTTPException(status_code=400, detail=f"Maximum {max_files} media items allowed")
     return uploads
