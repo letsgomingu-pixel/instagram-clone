@@ -18,6 +18,7 @@ from app.schemas.admin import (
 from app.schemas.order import AdminOrderOut, AdminOrderUpdate
 from app.schemas.post import PostOut
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
+from app.utils.uploads import OptionalUploadFiles, collect_upload_files
 from app.services.admin import (
     delete_post,
     delete_user,
@@ -114,16 +115,9 @@ async def admin_create_product(
     caption: str | None = Form(None),
     location: str | None = Form(None),
     image: UploadFile | None = File(None),
-    files: list[UploadFile] = File(default=[]),
+    files: OptionalUploadFiles = None,
 ):
-    uploads: list[UploadFile] = []
-    if image:
-        uploads.append(image)
-    uploads.extend(files)
-    if not uploads:
-        raise HTTPException(status_code=400, detail="At least one media file is required")
-    if len(uploads) > 10:
-        raise HTTPException(status_code=400, detail="Maximum 10 media items allowed")
+    uploads = collect_upload_files(image, files)
 
     try:
         product_data = ProductCreate(

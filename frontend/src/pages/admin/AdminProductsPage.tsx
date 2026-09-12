@@ -79,8 +79,9 @@ export function AdminProductsPage() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
-    maxFiles: 10,
+    maxFiles: Math.max(1, 10 - files.length),
     multiple: true,
+    disabled: files.length >= 10,
   });
 
   const resetForm = () => {

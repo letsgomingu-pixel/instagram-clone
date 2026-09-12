@@ -1026,6 +1026,32 @@ def test_admin_create_product():
     assert body["product"]["unit"] == "1kg"
 
 
+def test_admin_create_product_multiple_files():
+    headers = _admin_login()
+    r = client.post(
+        "/api/v1/admin/products",
+        headers=headers,
+        data={
+            "name": "멀티사진상품",
+            "price": "15000",
+            "unit": "500g",
+            "storage_type": "fresh",
+            "availability": "year_round",
+            "stock": "5",
+        },
+        files=[
+            ("files", ("a.jpg", _make_image_bytes(), "image/jpeg")),
+            ("files", ("b.jpg", _make_image_bytes(), "image/jpeg")),
+            ("files", ("c.jpg", _make_image_bytes(), "image/jpeg")),
+        ],
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert len(body["media"]) == 3
+    assert body["media"][0]["position"] == 0
+    assert body["media"][2]["position"] == 2
+
+
 def test_feed_products_tab(auth_headers):
     admin_headers = _admin_login()
     created = _create_admin_product(admin_headers, name="대방어", price=45000)
@@ -1083,6 +1109,23 @@ def test_feed_daily_tab(auth_headers):
     ids = [p["id"] for p in feed.json()["items"]]
     assert daily_id in ids
     assert product["id"] not in ids
+
+
+def test_create_daily_post_multiple_files():
+    admin_headers = _admin_login()
+    r = client.post(
+        "/api/v1/posts",
+        headers=admin_headers,
+        data={"caption": "여러 장 소식"},
+        files=[
+            ("files", ("n1.jpg", _make_image_bytes(), "image/jpeg")),
+            ("files", ("n2.jpg", _make_image_bytes(), "image/jpeg")),
+        ],
+    )
+    assert r.status_code == 201, r.text
+    body = r.json()
+    assert body["post_type"] == "standard"
+    assert len(body["media"]) == 2
 
 
 def test_explore_products_tab():

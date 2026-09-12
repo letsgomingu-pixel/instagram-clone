@@ -19,6 +19,7 @@ from app.schemas.post import (
     SaveToggleResponse,
 )
 from app.services.notifications import create_post_activity_notifications, create_mention_notifications, create_reply_notification, create_tag_notifications
+from app.utils.uploads import OptionalUploadFiles, collect_upload_files
 from app.services.posts import (
     build_post_out,
     build_posts_out,
@@ -171,16 +172,9 @@ async def create_review(
     rating: int = Form(..., ge=1, le=5),
     caption: str | None = Form(None),
     image: UploadFile | None = File(None),
-    files: list[UploadFile] = File(default=[]),
+    files: OptionalUploadFiles = None,
 ):
-    uploads: list[UploadFile] = []
-    if image:
-        uploads.append(image)
-    uploads.extend(files)
-    if not uploads:
-        raise HTTPException(status_code=400, detail="At least one media file is required")
-    if len(uploads) > 10:
-        raise HTTPException(status_code=400, detail="Maximum 10 media items allowed")
+    uploads = collect_upload_files(image, files)
 
     saved_media: list[tuple[str, str]] = []
     for upload in uploads:
@@ -202,7 +196,7 @@ async def create_post(
     current_user: CurrentUser,
     db: DbSession,
     image: UploadFile | None = File(None),
-    files: list[UploadFile] = File(default=[]),
+    files: OptionalUploadFiles = None,
     caption: str | None = Form(None),
     location: str | None = Form(None),
     tagged_usernames: str | None = Form(None),
@@ -210,14 +204,7 @@ async def create_post(
     if not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Only sellers can create news posts")
 
-    uploads: list[UploadFile] = []
-    if image:
-        uploads.append(image)
-    uploads.extend(files)
-    if not uploads:
-        raise HTTPException(status_code=400, detail="At least one media file is required")
-    if len(uploads) > 10:
-        raise HTTPException(status_code=400, detail="Maximum 10 media items allowed")
+    uploads = collect_upload_files(image, files)
 
     saved_media: list[tuple[str, str]] = []
     for upload in uploads:

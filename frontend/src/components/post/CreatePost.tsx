@@ -39,12 +39,36 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (!acceptedFiles.length) return;
-    setFiles((prev) => [...prev, ...acceptedFiles].slice(0, 10));
-    setPreviews((prev) => [
-      ...prev,
-      ...acceptedFiles.map((file) => URL.createObjectURL(file)),
-    ].slice(0, 10));
-    setPreviewIndex(0);
+    setFiles((prev) => {
+      const next = [...prev, ...acceptedFiles].slice(0, 10);
+      return next;
+    });
+    setPreviews((prev) => {
+      const next = [
+        ...prev,
+        ...acceptedFiles.map((file) => URL.createObjectURL(file)),
+      ].slice(0, 10);
+      if (prev.length === 0 && next.length > 0) {
+        setPreviewIndex(0);
+      }
+      return next;
+    });
+  }, []);
+
+  const removeFile = useCallback((index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => {
+      const removed = prev[index];
+      if (removed) URL.revokeObjectURL(removed);
+      const next = prev.filter((_, i) => i !== index);
+      setPreviewIndex((current) => {
+        if (next.length === 0) return 0;
+        if (current > index) return current - 1;
+        if (current >= next.length) return next.length - 1;
+        return current;
+      });
+      return next;
+    });
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -53,8 +77,9 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
       'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
       'video/*': ['.mp4', '.webm', '.mov'],
     },
-    maxFiles: 10,
+    maxFiles: Math.max(1, 10 - files.length),
     multiple: true,
+    disabled: files.length >= 10,
   });
 
   const handleShare = async () => {
@@ -175,7 +200,47 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
                   </div>
                 </>
               )}
+              <button
+                type="button"
+                onClick={() => removeFile(previewIndex)}
+                className="absolute top-3 left-3 bg-black/60 text-white rounded-full p-1"
+                aria-label="현재 사진 삭제"
+              >
+                <X size={16} />
+              </button>
             </div>
+
+            <div className="px-3 pt-3 flex flex-wrap gap-2 items-center border-t border-ig-border">
+              {previews.map((url, index) => (
+                <button
+                  key={url}
+                  type="button"
+                  onClick={() => setPreviewIndex(index)}
+                  className={`relative h-14 w-14 rounded-lg overflow-hidden border-2 shrink-0 ${
+                    index === previewIndex ? 'border-ig-primary' : 'border-ig-border'
+                  }`}
+                  aria-label={`미리보기 ${index + 1}`}
+                >
+                  {files[index]?.type.startsWith('video/') ? (
+                    <video src={url} className="h-full w-full object-cover" muted />
+                  ) : (
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  )}
+                </button>
+              ))}
+              {files.length < 10 && (
+                <div
+                  {...getRootProps()}
+                  className={`h-14 w-14 rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer shrink-0 ${
+                    isDragActive ? 'border-ig-primary bg-ig-secondary' : 'border-ig-border'
+                  }`}
+                >
+                  <input {...getInputProps()} />
+                  <ImagePlus size={20} className="text-ig-text-secondary" />
+                </div>
+              )}
+            </div>
+
             <div className="p-3 border-t border-ig-border">
               <textarea
                 placeholder="문구 입력..."

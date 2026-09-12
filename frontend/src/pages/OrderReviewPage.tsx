@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useDropzone } from 'react-dropzone';
+import { ImagePlus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as ordersApi from '@/api/orders';
 import { createReview } from '@/api/posts';
@@ -7,6 +9,8 @@ import { ProductInfo } from '@/components/post/ProductInfo';
 import { Button } from '@/components/common/Button';
 import { Spinner } from '@/components/common/Spinner';
 import { useApp } from '@/contexts/AppContext';
+
+const MAX_FILES = 10;
 
 export function OrderReviewPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -18,6 +22,7 @@ export function OrderReviewPage() {
   const [rating, setRating] = useState(5);
   const [caption, setCaption] = useState('');
   const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
 
   useEffect(() => {
     if (!orderId) return;
@@ -37,6 +42,35 @@ export function OrderReviewPage() {
       })
       .finally(() => setLoading(false));
   }, [orderId, navigate]);
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (!acceptedFiles.length) return;
+    setFiles((prev) => [...prev, ...acceptedFiles].slice(0, MAX_FILES));
+    setPreviews((prev) => [
+      ...prev,
+      ...acceptedFiles.map((file) => URL.createObjectURL(file)),
+    ].slice(0, MAX_FILES));
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
+      'video/*': ['.mp4', '.webm', '.mov'],
+    },
+    maxFiles: MAX_FILES,
+    multiple: true,
+    disabled: files.length >= MAX_FILES,
+  });
+
+  const removeFile = (index: number) => {
+    setPreviews((prev) => {
+      const removed = prev[index];
+      if (removed) URL.revokeObjectURL(removed);
+      return prev.filter((_, i) => i !== index);
+    });
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,17 +146,43 @@ export function OrderReviewPage() {
           </div>
 
           <div>
-            <label htmlFor="review-files" className="block text-sm font-semibold mb-2">
-              사진
-            </label>
-            <input
-              id="review-files"
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              onChange={(e) => setFiles(Array.from(e.target.files || []))}
-              className="block w-full text-sm"
-            />
+            <span className="block text-sm font-semibold mb-2">사진</span>
+            <div
+              {...getRootProps()}
+              className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer ${
+                isDragActive ? 'border-ig-primary bg-ig-secondary' : 'border-ig-border'
+              } ${files.length >= MAX_FILES ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <input {...getInputProps()} />
+              <ImagePlus className="mx-auto mb-2 text-ig-text-secondary" size={28} />
+              <p className="text-sm text-ig-text-secondary">
+                클릭하거나 드래그하여 사진·동영상 업로드 (최대 {MAX_FILES}개)
+              </p>
+            </div>
+            {previews.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {previews.map((url, index) => (
+                  <div
+                    key={url}
+                    className="relative h-20 w-20 rounded-lg overflow-hidden border border-ig-border"
+                  >
+                    {files[index]?.type.startsWith('video/') ? (
+                      <video src={url} className="h-full w-full object-cover" muted />
+                    ) : (
+                      <img src={url} alt="" className="h-full w-full object-cover" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5"
+                      aria-label="사진 삭제"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             {files.length > 0 && (
               <p className="text-xs text-ig-text-secondary mt-2">{files.length}개 파일 선택됨</p>
             )}
