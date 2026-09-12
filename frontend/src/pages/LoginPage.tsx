@@ -13,7 +13,7 @@ const FOOTER_LINKS = [
 export function LoginPage() {
   return (
     <div className="min-h-full flex flex-col">
-      <main className="flex-1 flex items-center justify-center px-4 py-10">
+      <main className="auth-page flex-1 flex items-center justify-center px-4 py-10 font-sans">
         <LoginForm />
       </main>
 

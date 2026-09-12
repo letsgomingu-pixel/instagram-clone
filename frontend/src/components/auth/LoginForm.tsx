@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { isAxiosError } from 'axios';
-import { InstagramLogo } from '@/components/common/InstagramLogo';
+import { BrandIcon } from '@/components/common/InstagramLogo';
 import { Button } from '@/components/common/Button';
+import { authInputClassName, authInputStyle } from '@/components/auth/authInputStyle';
 import { validateLogin } from '@/utils/validateForm';
 import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
@@ -70,7 +71,7 @@ export function LoginForm() {
     <div className="w-full max-w-[350px]">
       <div className="bg-ig-surface border border-ig-border/80 rounded-2xl px-10 py-10 mb-3 shadow-[0_8px_32px_rgba(41,171,226,0.1)]">
         <div className="flex justify-center mb-6">
-          <InstagramLogo className="text-[22px] leading-tight text-center" />
+          <BrandIcon size={48} />
         </div>
         <p className="text-center text-xs text-ig-text-secondary mb-4 leading-relaxed">
           사진과 동영상을 공유하는 소셜 플랫폼
@@ -82,8 +83,11 @@ export function LoginForm() {
             placeholder="사용자 이름 또는 이메일"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="auth-input w-full px-3 py-2.5 bg-ig-muted border border-ig-border/80 rounded-xl placeholder:text-ig-text-secondary"
+            className={authInputClassName}
+            style={authInputStyle}
             name="username"
+            size={1}
+            lang="en"
             autoComplete="username"
             aria-label="사용자명 또는 이메일"
             disabled={requires2fa}
@@ -93,8 +97,10 @@ export function LoginForm() {
             placeholder="비밀번호"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="auth-input w-full px-3 py-2.5 bg-ig-muted border border-ig-border/80 rounded-xl placeholder:text-ig-text-secondary"
+            className={authInputClassName}
+            style={authInputStyle}
             name="password"
+            size={1}
             autoComplete="current-password"
             aria-label="비밀번호"
             disabled={requires2fa}
@@ -108,7 +114,9 @@ export function LoginForm() {
                 placeholder="6자리 인증 코드"
                 value={totpCode}
                 onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
-                className="auth-input w-full px-3 py-2.5 bg-ig-muted border border-ig-border/80 rounded-xl placeholder:text-ig-text-secondary"
+                className={authInputClassName}
+                style={authInputStyle}
+                size={1}
                 aria-label="2단계 인증 코드"
               />
               <label className="flex items-center gap-2 text-xs text-ig-text-secondary px-1">
