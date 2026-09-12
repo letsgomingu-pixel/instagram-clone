@@ -4,6 +4,7 @@ import { BottomNav } from './BottomNav';
 import { MobileHeader } from './Header';
 import { SuggestionsPanel } from './SuggestionsPanel';
 import { SiteFooter } from './SiteFooter';
+import { MessagesPill } from './MessagesPill';
 import { PostModal } from '@/components/post/PostModal';
 import { CreatePostModal } from '@/components/post/CreatePost';
 import { CreateStoryModal } from '@/components/story/CreateStory';
@@ -34,11 +35,6 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
   const isMessages = location.pathname.startsWith('/messages');
   const isNotifications = location.pathname.startsWith('/notifications');
   const isSettings = location.pathname.startsWith('/settings');
-  // Real Instagram's profile page is a wide, grid-heavy layout with no right
-  // "suggested for you" rail — same treatment as explore/reels, not the
-  // narrow single-column feed. (Only matches /profile/:username; the
-  // /profile/edit route uses its own <MainLayout showSuggestions={false}/>
-  // instance and never reaches this check with that literal pathname.)
   const isProfile = location.pathname.startsWith('/profile/');
   const showSidebar =
     showSuggestions &&
@@ -69,6 +65,8 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
     profileReels,
   } = useApp();
 
+  const slidePanelOpen = isNotificationsPanelOpen || isSearchPanelOpen;
+
   return (
     <div className="min-h-full bg-ig-bg flex flex-col">
       <Sidebar />
@@ -76,25 +74,29 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
 
       <div
         className={cn(
-          'md:ml-[245px] flex-1 flex flex-col',
+          'flex-1 flex flex-col transition-[margin] duration-200',
+          slidePanelOpen
+            ? 'md:ml-[calc(var(--sidebar-width)+var(--slide-panel-width))]'
+            : 'md:ml-[var(--sidebar-width)]',
           chrome.showBottomNav && 'mobile-content-with-bottom-nav',
         )}
       >
         <div
-          className={`mx-auto flex flex-1 w-full justify-center gap-8 px-0 md:px-4 ${
-            isExplore || isReels || isMessages || isSettings ? 'max-w-full' : 'max-w-[935px]'
-          }`}
+          className={cn(
+            'mx-auto flex flex-1 w-full justify-center gap-8 px-0 md:px-4',
+            isExplore || isReels || isMessages || isSettings ? 'max-w-full' : 'max-w-[935px]',
+          )}
         >
           <main
-            className={`w-full ${
-              isHome ? 'pt-0 md:pt-[30px]' : 'md:pt-8'
-            } ${
+            className={cn(
+              'w-full',
+              isHome ? 'pt-0 md:pt-[30px]' : 'md:pt-8',
               isExplore || isReels || isMessages || isSettings || isProfile
                 ? 'max-w-[935px]'
                 : isNotifications
                   ? 'max-w-[600px]'
-                  : 'max-w-[470px]'
-            }`}
+                  : 'max-w-[470px]',
+            )}
           >
             <Outlet />
           </main>
@@ -109,6 +111,7 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
       </div>
 
       {chrome.showBottomNav && <BottomNav />}
+      <MessagesPill />
 
       {selectedPost && (
         <PostModal

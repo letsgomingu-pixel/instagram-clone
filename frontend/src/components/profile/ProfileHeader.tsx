@@ -96,7 +96,7 @@ export function ProfileHeader({
 
   return (
 
-    <div className="bg-ig-surface border border-ig-border/80 md:rounded-2xl mb-4 overflow-hidden shadow-[0_4px_20px_rgba(41,171,226,0.06)]">
+    <div className="bg-ig-surface mb-4 border-b border-ig-border md:border-0 overflow-hidden">
 
       <div className="px-4 md:px-8 py-6 md:py-10">
 

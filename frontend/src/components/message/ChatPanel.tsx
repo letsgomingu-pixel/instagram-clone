@@ -22,6 +22,7 @@ interface ChatPanelProps {
   onLoadOlder?: () => Promise<void>;
   onBack?: () => void;
   showBackButton?: boolean;
+  onNewMessage?: () => void;
 }
 
 export function ChatPanel({
@@ -34,6 +35,7 @@ export function ChatPanel({
   onLoadOlder,
   onBack,
   showBackButton,
+  onNewMessage,
 }: ChatPanelProps) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -123,23 +125,24 @@ export function ChatPanel({
     }
 
     return (
-      <div className="hidden md:flex flex-col items-center justify-center h-full text-center px-8">
-        <div className="w-24 h-24 rounded-full border-2 border-ig-text flex items-center justify-center mb-4">
+      <div className="hidden md:flex flex-col items-center justify-center h-full text-center px-8 bg-ig-surface">
+        <div className="w-[96px] h-[96px] rounded-full border-2 border-ig-text flex items-center justify-center mb-4">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M22 2L11 13" />
             <path d="M22 2L15 22L11 13L2 9L22 2Z" />
           </svg>
         </div>
-        <h2 className="text-xl font-light mb-2">내 메시지</h2>
-        <p className="text-sm text-ig-text-secondary max-w-[250px]">
-          친구에게 사진과 동영상, 메시지를 보내보세요
+        <h2 className="text-[22px] font-light mb-2">내 메시지</h2>
+        <p className="text-[14px] text-ig-text-secondary max-w-[280px] leading-[18px]">
+          친구나 그룹에 비공개 사진과 메시지를 보내보세요
         </p>
-        <Link
-          to="/search"
-          className="mt-4 inline-flex items-center justify-center h-8 px-4 text-sm font-semibold rounded-lg bg-ig-primary text-white hover:bg-ig-primary-hover"
+        <button
+          type="button"
+          onClick={onNewMessage}
+          className="mt-4 inline-flex items-center justify-center h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-primary text-white hover:bg-ig-primary-hover"
         >
           메시지 보내기
-        </Link>
+        </button>
       </div>
     );
   }

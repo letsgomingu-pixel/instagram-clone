@@ -21,6 +21,7 @@ import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { formatCount } from '@/utils/formatDate';
+import { cn } from '@/utils/cn';
 import { resolveMediaUrl } from '@/utils/media';
 import type { Reel } from '@/types';
 
@@ -95,85 +96,136 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
     }
   };
 
+  const actionButtons = (tone: 'reels' | 'default') => (
+    <>
+      <button
+        onClick={() => requireAuth(() => toggleReelLike(reel.id))}
+        className={cn(
+          'flex flex-col items-center gap-1',
+          tone === 'reels' ? 'text-white' : 'text-ig-text',
+        )}
+        aria-label="좋아요"
+      >
+        <PostLikeIcon liked={reel.is_liked} size={REEL_ACTION_ICON_SIZE} tone={tone} />
+        <span className="text-[12px] font-semibold">{formatCount(reel.like_count)}</span>
+      </button>
+      <button
+        onClick={() => requireAuth(() => setCommentsOpen(true))}
+        className={cn(
+          'flex flex-col items-center gap-1',
+          tone === 'reels' ? 'text-white' : 'text-ig-text',
+        )}
+        aria-label="댓글"
+      >
+        <PostCommentIcon size={REEL_ACTION_ICON_SIZE} tone={tone} />
+        <span className="text-[12px] font-semibold">{formatCount(reel.comment_count)}</span>
+      </button>
+      <button
+        onClick={() => requireAuth(handleShare)}
+        className={tone === 'reels' ? 'text-white' : 'text-ig-text'}
+        aria-label="공유"
+      >
+        <PostShareIcon size={REEL_ACTION_ICON_SIZE} tone={tone} />
+      </button>
+      <div className="relative">
+        <button
+          onClick={() => setMenuOpen((v) => !v)}
+          className={tone === 'reels' ? 'text-white' : 'text-ig-text'}
+          aria-label="더보기"
+        >
+          <PostMoreIcon size={REEL_ACTION_ICON_SIZE} tone={tone} />
+        </button>
+        {menuOpen && (
+          <ReelOptionsMenu
+            reelId={reel.id}
+            isOwnReel={isOwnReel}
+            onDelete={() => void handleDeleteReel()}
+            onReport={!isOwnReel ? (reason) => reelsApi.reportReel(reel.id, reason) : undefined}
+            onClose={() => setMenuOpen(false)}
+          />
+        )}
+      </div>
+    </>
+  );
+
+  const captionBlock = (lightText: boolean) => (
+    <>
+      <Link
+        to={`/profile/${reel.user.username}`}
+        className={cn('flex items-center gap-3 mb-3', lightText ? 'text-white' : 'text-ig-text')}
+      >
+        <Avatar src={reel.user.avatar_url} alt={reel.user.username} size="sm" />
+        <span className="text-[14px] font-semibold hover:underline">{reel.user.username}</span>
+        {showFollow && (
+          <button
+            type="button"
+            onClick={handleFollow}
+            className={cn(
+              'ml-1 text-[14px] font-semibold rounded-lg px-3 py-1',
+              lightText
+                ? 'border border-white hover:bg-white/10'
+                : 'border border-ig-border hover:bg-ig-secondary',
+            )}
+          >
+            팔로우
+          </button>
+        )}
+      </Link>
+      {reel.caption && (
+        <p className={cn('text-[14px] mb-2 line-clamp-2', lightText ? 'text-white' : 'text-ig-text')}>
+          {reel.caption}
+        </p>
+      )}
+      {reel.audio_name && (
+        <div
+          className={cn(
+            'flex items-center gap-2 text-[13px]',
+            lightText ? 'text-white' : 'text-ig-text-secondary',
+          )}
+        >
+          <Music2 size={14} />
+          <span className="truncate">{reel.audio_name}</span>
+        </div>
+      )}
+    </>
+  );
+
   return (
-    <section className="relative w-full h-[calc(100dvh-var(--mobile-header-stack,92px))] md:h-[calc(100dvh)] snap-start snap-always flex items-center justify-center bg-black">
+    <section className="relative w-full h-[calc(100dvh-var(--mobile-header-stack,92px))] md:h-[calc(100dvh)] snap-start snap-always flex items-center justify-center bg-black md:bg-white">
+      {/* Mobile: full-screen overlay actions */}
       <div
-        className="relative w-full max-w-[420px] h-full md:max-h-[90vh] md:rounded-lg overflow-hidden"
+        className="md:hidden relative w-full max-w-[420px] h-full overflow-hidden"
         onDoubleClick={handleDoubleClick}
       >
         <ReelMedia reel={reel} isActive={isActive} />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60 pointer-events-none" />
-
         {showHeart && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <DoubleTapHeartIcon tone="reels" className="animate-heart-pop drop-shadow-lg" />
           </div>
         )}
-
         <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5 z-10">
-          <button
-            onClick={() => requireAuth(() => toggleReelLike(reel.id))}
-            className="flex flex-col items-center gap-1 text-white"
-            aria-label="좋아요"
-          >
-            <PostLikeIcon liked={reel.is_liked} size={REEL_ACTION_ICON_SIZE} tone="reels" />
-            <span className="text-[12px] font-semibold">{formatCount(reel.like_count)}</span>
-          </button>
-          <button
-            onClick={() => requireAuth(() => setCommentsOpen(true))}
-            className="flex flex-col items-center gap-1 text-white"
-            aria-label="댓글"
-          >
-            <PostCommentIcon size={REEL_ACTION_ICON_SIZE} tone="reels" />
-            <span className="text-[12px] font-semibold">{formatCount(reel.comment_count)}</span>
-          </button>
-          <button onClick={() => requireAuth(handleShare)} className="text-white" aria-label="공유">
-            <PostShareIcon size={REEL_ACTION_ICON_SIZE} tone="reels" />
-          </button>
-          <div className="relative">
-            <button onClick={() => setMenuOpen((v) => !v)} className="text-white" aria-label="더보기">
-              <PostMoreIcon size={REEL_ACTION_ICON_SIZE} tone="reels" />
-            </button>
-            {menuOpen && (
-              <ReelOptionsMenu
-                reelId={reel.id}
-                isOwnReel={isOwnReel}
-                onDelete={() => void handleDeleteReel()}
-                onReport={
-                  !isOwnReel
-                    ? (reason) => reelsApi.reportReel(reel.id, reason)
-                    : undefined
-                }
-                onClose={() => setMenuOpen(false)}
-              />
-            )}
-          </div>
+          {actionButtons('reels')}
         </div>
+        <div className="absolute bottom-0 left-0 right-14 p-4 z-10">{captionBlock(true)}</div>
+      </div>
 
-        <div className="absolute bottom-0 left-0 right-14 p-4 z-10 text-white">
-          <Link to={`/profile/${reel.user.username}`} className="flex items-center gap-3 mb-3">
-            <Avatar src={reel.user.avatar_url} alt={reel.user.username} size="sm" />
-            <span className="text-[14px] font-semibold hover:underline">{reel.user.username}</span>
-            {showFollow && (
-              <button
-                type="button"
-                onClick={handleFollow}
-                className="ml-1 text-[14px] font-semibold border border-white rounded-lg px-3 py-1 hover:bg-white/10"
-              >
-                팔로우
-              </button>
-            )}
-          </Link>
-
-          {reel.caption && <p className="text-[14px] mb-2 line-clamp-2">{reel.caption}</p>}
-
-          {reel.audio_name && (
-            <div className="flex items-center gap-2 text-[13px]">
-              <Music2 size={14} />
-              <span className="truncate">{reel.audio_name}</span>
+      {/* Desktop: centered video + actions outside on the right */}
+      <div className="hidden md:flex items-center justify-center gap-5 h-full max-h-[90vh] px-4">
+        <div
+          className="relative w-[360px] h-[640px] max-h-[85vh] rounded-lg overflow-hidden bg-black shrink-0"
+          onDoubleClick={handleDoubleClick}
+        >
+          <ReelMedia reel={reel} isActive={isActive} />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60 pointer-events-none" />
+          {showHeart && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <DoubleTapHeartIcon tone="reels" className="animate-heart-pop drop-shadow-lg" />
             </div>
           )}
+          <div className="absolute bottom-0 left-0 right-0 p-4 z-10">{captionBlock(true)}</div>
         </div>
+        <div className="flex flex-col items-center gap-6 self-end pb-24">{actionButtons('default')}</div>
       </div>
 
       <ReelCommentsModal reel={reel} isOpen={commentsOpen} onClose={() => setCommentsOpen(false)} />
@@ -223,7 +275,7 @@ export function ReelsPage() {
       <button
         type="button"
         onClick={() => requireAuth(() => setCreateOpen(true))}
-        className="fixed top-16 right-4 md:right-8 z-40 rounded-full bg-white/10 text-white px-4 py-2 text-sm font-semibold hover:bg-white/20"
+        className="fixed top-16 right-4 md:right-8 z-40 rounded-lg border border-ig-border bg-ig-surface text-ig-text px-4 py-2 text-sm font-semibold hover:bg-ig-secondary md:top-6"
         aria-label="릴스 만들기"
       >
         + 릴스
@@ -231,7 +283,7 @@ export function ReelsPage() {
       <CreateReelModal isOpen={createOpen} onClose={() => setCreateOpen(false)} />
 
       {reels.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-white">
+        <div className="flex flex-col items-center justify-center py-24 text-ig-text md:bg-white min-h-[50vh]">
           <p className="text-[16px] mb-4">아직 릴스가 없습니다.</p>
           <button
             type="button"
@@ -244,7 +296,7 @@ export function ReelsPage() {
       ) : (
         <div
           ref={containerRef}
-          className="fixed inset-x-0 bottom-0 md:left-[245px] top-[var(--mobile-header-stack,92px)] md:top-0 overflow-y-scroll snap-y snap-mandatory scroll-smooth bg-black z-20"
+          className="fixed inset-x-0 bottom-0 md:left-[var(--sidebar-width)] top-[var(--mobile-header-stack,92px)] md:top-0 overflow-y-scroll snap-y snap-mandatory scroll-smooth bg-black md:bg-white z-20"
           style={{ scrollbarWidth: 'none' }}
         >
           {reels.map((reel, index) => (

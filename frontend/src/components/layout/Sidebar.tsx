@@ -20,14 +20,14 @@ import { cn } from '@/utils/cn';
 import { InstagramLogo } from '@/components/common/InstagramLogo';
 
 type NavItem =
-  | { kind: 'link'; to: string; label: string; isReels?: boolean; renderIcon: (active: boolean) => React.ReactNode }
+  | { kind: 'link'; to: string; label: string; renderIcon: (active: boolean) => React.ReactNode }
   | { kind: 'search'; label: string; renderIcon: (active: boolean) => React.ReactNode }
   | { kind: 'notifications'; label: string; renderIcon: (active: boolean) => React.ReactNode }
   | { kind: 'create'; label: string; renderIcon: () => React.ReactNode };
 
 const navItems: NavItem[] = [
   { kind: 'link', to: '/', label: '홈', renderIcon: (active) => <NavHomeIcon active={active} /> },
-  { kind: 'link', to: '/reels', label: '릴스', isReels: true, renderIcon: (active) => <ReelsIcon size={24} filled={active} /> },
+  { kind: 'link', to: '/reels', label: '릴스', renderIcon: (active) => <ReelsIcon size={24} filled={active} /> },
   { kind: 'link', to: '/messages', label: '메시지', renderIcon: (active) => <NavMessagesIcon active={active} /> },
   { kind: 'search', label: '검색', renderIcon: (active) => <NavSearchIcon active={active} /> },
   { kind: 'notifications', label: '알림', renderIcon: (active) => <NavNotificationsIcon active={active} /> },
@@ -36,10 +36,8 @@ const navItems: NavItem[] = [
 
 function navButtonClass(active: boolean) {
   return cn(
-    'flex items-center gap-4 px-3 py-2.5 rounded-xl transition-all duration-200 w-full text-left',
-    active
-      ? 'bg-ig-hover text-ig-primary font-semibold'
-      : 'text-ig-text hover:bg-ig-hover/80',
+    'flex items-center gap-4 px-3 py-3 rounded-lg hover:bg-ig-secondary transition-colors w-full text-left',
+    active && 'font-bold',
   );
 }
 
@@ -71,7 +69,7 @@ export function Sidebar() {
     requireAuth(() => {
       setSearchPanelOpen(false);
       if (window.matchMedia('(min-width: 768px)').matches) {
-        setNotificationsPanelOpen(true);
+        setNotificationsPanelOpen(!isNotificationsPanelOpen);
       } else {
         navigate('/notifications');
       }
@@ -82,13 +80,14 @@ export function Sidebar() {
     (item) => item.kind !== 'create' || user?.is_admin,
   );
 
+  const panelOpen = isNotificationsPanelOpen || isSearchPanelOpen;
   const isSearchActive =
     isSearchPanelOpen || location.pathname === '/search' || location.pathname === '/explore';
   const isNotificationsActive =
     isNotificationsPanelOpen || location.pathname.startsWith('/notifications');
 
   return (
-    <aside className="hidden md:flex fixed left-0 top-0 h-full w-[245px] border-r border-ig-border/80 glass-surface flex-col px-3 py-8 z-40">
+    <aside className="hidden md:flex fixed left-0 top-0 h-full w-[var(--sidebar-width)] border-r border-ig-border bg-ig-surface flex-col px-3 py-8 z-50">
       <NavLink to="/" className="px-3 mb-6">
         <InstagramLogo className="text-[16px] leading-tight text-center hidden lg:block" />
         <div className="lg:hidden flex justify-center">
@@ -154,12 +153,12 @@ export function Sidebar() {
                 setNotificationsPanelOpen(false);
                 setSearchPanelOpen(false);
               }}
-              className={({ isActive }) => navButtonClass(isActive)}
+              className={({ isActive }) => navButtonClass(isActive && !panelOpen)}
             >
               {({ isActive }) => (
                 <>
                   <span className="relative">
-                    {item.renderIcon(isActive)}
+                    {item.renderIcon(isActive && !panelOpen)}
                     {item.to === '/messages' && <NavBadge count={messageCount} />}
                   </span>
                   <span className="text-base hidden lg:inline">{item.label}</span>

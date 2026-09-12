@@ -55,7 +55,7 @@ export function NotificationItem({
             {actor.username}
           </Link>{' '}
           <span>{getNotificationMessage(notification)}</span>
-          <span className="text-ig-text-secondary"> · {time}</span>
+          <span className="text-ig-text-secondary"> {time}</span>
         </p>
       </div>
 
@@ -70,7 +70,7 @@ export function NotificationItem({
               }}
               className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-primary text-white hover:bg-ig-primary-hover"
             >
-              수락
+              확인
             </button>
             <button
               type="button"
@@ -80,7 +80,7 @@ export function NotificationItem({
               }}
               className="h-8 px-4 text-[14px] font-semibold rounded-lg bg-ig-secondary hover:bg-ig-border/50"
             >
-              거절
+              삭제
             </button>
           </>
         ) : type === 'follow' ? (

@@ -28,7 +28,7 @@ export function StoryBar() {
   const otherStories = stories.filter((story) => story.user.username !== user?.username);
 
   return (
-    <div className="feed-card">
+    <div className="feed-card mb-3">
       <div className="flex gap-3 md:gap-4 px-4 py-[14px] overflow-x-auto hide-scrollbar">
         {isAuthenticated && user && (
           <div className="flex flex-col items-center gap-1 shrink-0 w-[66px]">

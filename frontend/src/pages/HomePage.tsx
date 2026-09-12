@@ -48,8 +48,8 @@ export function HomePage() {
 
   if (loading) {
     return (
-      <div>
-        <div className="feed-card animate-pulse">
+      <>
+        <div className="feed-card mb-3 animate-pulse">
           <div className="flex gap-4 px-4 py-4 overflow-hidden">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="flex flex-col items-center gap-2 shrink-0">
@@ -62,7 +62,7 @@ export function HomePage() {
         {Array.from({ length: 2 }).map((_, i) => (
           <FeedPostSkeleton key={i} />
         ))}
-      </div>
+      </>
     );
   }
 
@@ -73,17 +73,18 @@ export function HomePage() {
   });
 
   return (
-    <div>
+    <>
       <StoryBar />
-      <SuggestedUsersStrip />
       <FeedTabs activeTab={feedTab} onChange={setFeedTab} />
+
+      <SuggestedUsersStrip />
 
       {posts.length === 0 ? (
         <div className="feed-card py-20 px-6 text-center">
           <div className="mx-auto mb-4 flex h-[62px] w-[62px] items-center justify-center rounded-full border-2 border-ig-text">
             <svg
               aria-hidden
-              className="h-6 w-6"
+              className="h-6 w-6 text-ig-text"
               fill="none"
               stroke="currentColor"
               strokeWidth="1.5"
@@ -123,10 +124,10 @@ export function HomePage() {
       {feedHasMore && (
         <div ref={sentinelRef} className="flex justify-center py-8 min-h-[72px]">
           {feedLoadingMore && (
-            <div className="h-7 w-7 animate-spin rounded-full border-2 border-ig-border border-t-ig-text-secondary" />
+            <div className="h-7 w-7 animate-spin rounded-full border-2 border-ig-border border-t-ig-primary" />
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }

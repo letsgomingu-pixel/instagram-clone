@@ -62,7 +62,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         className={cn(
-          'relative z-10 bg-ig-surface rounded-2xl overflow-hidden shadow-[0_16px_48px_rgba(41,171,226,0.15)]',
+          'relative z-10 bg-ig-surface rounded-xl overflow-hidden shadow-[0_0_24px_rgba(0,0,0,0.15)]',
           sizeMap[size],
           size === 'full' && 'rounded-none',
           className,

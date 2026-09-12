@@ -2,21 +2,22 @@
 
 @theme {
   --font-brand: "DM Serif Display", Georgia, serif;
-  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-instagram: var(--font-brand);
-  /* Refreshing sky-blue palette */
-  --color-ig-primary: #29abe2;
-  --color-ig-primary-hover: #1a96cc;
-  --color-ig-secondary: #e5f5fc;
+  --color-ig-primary: #0095f6;
+  --color-ig-primary-hover: #1877f2;
+  --color-ig-secondary: #efefef;
   --color-ig-surface: #ffffff;
-  --color-ig-border: #c8e6f5;
-  --color-ig-text: #0d1b2a;
-  --color-ig-text-secondary: #5e8699;
-  --color-ig-bg: #f5fafe;
-  --color-ig-hover: #edf7fc;
-  --color-ig-muted: #f0f7fb;
-  --color-ig-red: #ef6b5a;
-  --color-ig-link: #29abe2;
+  --color-ig-border: #dbdbdb;
+  --color-ig-text: #262626;
+  --color-ig-text-secondary: #8e8e8e;
+  --color-ig-bg: #fafafa;
+  --color-ig-hover: #fafafa;
+  --color-ig-muted: #fafafa;
+  --color-ig-red: #ed4956;
+  --color-ig-link: #0095f6;
+  --sidebar-width: 245px;
+  --slide-panel-width: 397px;
 }
 
 * {
@@ -32,8 +33,7 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background: linear-gradient(160deg, #fafdff 0%, #f0f8fd 45%, #e8f4fb 100%);
-  background-attachment: fixed;
+  background-color: var(--color-ig-bg);
   color: var(--color-ig-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -46,14 +46,8 @@ body {
   letter-spacing: -0.02em;
 }
 
-.glass-surface {
-  background-color: color-mix(in srgb, var(--color-ig-surface) 88%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
 .story-ring {
-  background: linear-gradient(135deg, #29abe2, #5ec8ef, #8dd9f5, #b8e8fa);
+  background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
   padding: 2px;
   border-radius: 50%;
 }
@@ -75,6 +69,47 @@ body {
 .feed-card {
   background-color: var(--color-ig-surface);
   border-bottom: 1px solid var(--color-ig-border);
+}
+
+@media (min-width: 768px) {
+  .feed-card {
+    border: 1px solid var(--color-ig-border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+}
+
+/* Instagram notification filter pills */
+.ig-filter-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 16px;
+}
+
+.ig-filter-pill {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--color-ig-secondary);
+  color: var(--color-ig-text);
+  transition: background 0.15s ease;
+}
+
+.ig-filter-pill:hover {
+  background: #e0e0e0;
+}
+
+.ig-filter-pill-active {
+  background: var(--color-ig-text);
+  color: var(--color-ig-surface);
+}
+
+.ig-filter-pill-active:hover {
+  background: var(--color-ig-text);
 }
 
 .preserve-line-breaks {
@@ -103,16 +138,6 @@ body {
 @media (min-width: 768px) {
   .mobile-content-with-bottom-nav {
     padding-bottom: 0;
-  }
-
-  .feed-card {
-    border: 1px solid var(--color-ig-border);
-    border-radius: 16px;
-    margin-bottom: 20px;
-    overflow: hidden;
-    box-shadow:
-      0 1px 2px rgba(13, 27, 42, 0.04),
-      0 8px 24px rgba(41, 171, 226, 0.07);
   }
 }
 
@@ -178,8 +203,6 @@ body {
 input:focus,
 textarea:focus {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(41, 171, 226, 0.28);
-  border-color: var(--color-ig-primary);
 }
 
 input[type='number'] {

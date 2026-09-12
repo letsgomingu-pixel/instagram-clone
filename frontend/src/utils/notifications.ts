@@ -1,18 +1,45 @@
 import type { Notification, NotificationTab } from '@/types';
 
-export type NotificationPeriod = 'new' | 'today' | 'this_week' | 'earlier';
+export type NotificationPeriod = 'new' | 'earlier';
 
-export const notificationTabs: { id: NotificationTab; label: string }[] = [
-  { id: 'following', label: '팔로잉' },
-  { id: 'you', label: '회원님' },
+export type NotificationFilter = 'all' | 'following' | 'comments' | 'follows' | 'tags';
+
+export const notificationFilters: { id: NotificationFilter; label: string }[] = [
+  { id: 'all', label: '모두' },
+  { id: 'following', label: '내가 팔로우하는 사람' },
+  { id: 'comments', label: '댓글' },
+  { id: 'follows', label: '팔로우' },
+  { id: 'tags', label: '태그 및…' },
 ];
 
 export const periodLabels: Record<NotificationPeriod, string> = {
-  new: '새로운 알림',
-  today: '오늘',
-  this_week: '이번 주',
-  earlier: '이전',
+  new: '',
+  earlier: '이전 활동',
 };
+
+export function filterNotifications(
+  notifications: Notification[],
+  filter: NotificationFilter,
+): Notification[] {
+  const withoutFollowRequests = notifications.filter((n) => n.type !== 'follow_request');
+
+  if (filter === 'all') return withoutFollowRequests;
+  if (filter === 'following') {
+    return withoutFollowRequests.filter((n) => n.actor.is_following);
+  }
+  if (filter === 'comments') {
+    return withoutFollowRequests.filter((n) =>
+      ['comment', 'reply', 'mention'].includes(n.type),
+    );
+  }
+  if (filter === 'follows') {
+    return withoutFollowRequests.filter((n) => n.type === 'follow');
+  }
+  if (filter === 'tags') {
+    return withoutFollowRequests.filter((n) => n.type === 'mention');
+  }
+  return withoutFollowRequests;
+}
 
 export function formatNotificationTime(dateString: string): string {
   const date = new Date(dateString);
@@ -28,7 +55,8 @@ export function formatNotificationTime(dateString: string): string {
   if (diffHour < 24) return `${diffHour}시간`;
   if (diffDay < 7) return `${diffDay}일`;
   if (diffWeek < 4) return `${diffWeek}주`;
-  return `${Math.floor(diffDay / 30)}개월`;
+
+  return date.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
 }
 
 export function getNotificationMessage(notification: Notification): string {
@@ -76,32 +104,19 @@ export function isOrderNotification(type: Notification['type']): boolean {
   return type.startsWith('order_');
 }
 
-function getNotificationPeriod(notification: Notification, now: Date): NotificationPeriod {
-  if (!notification.is_read) return 'new';
-
-  const diffMs = now.getTime() - new Date(notification.created_at).getTime();
-  const diffHours = diffMs / (1000 * 60 * 60);
-
-  if (diffHours < 24) return 'today';
-  if (diffHours < 24 * 7) return 'this_week';
-  return 'earlier';
-}
-
 export function groupNotificationsByPeriod(
   notifications: Notification[],
 ): { period: NotificationPeriod; items: Notification[] }[] {
-  const now = new Date();
-  const order: NotificationPeriod[] = ['new', 'today', 'this_week', 'earlier'];
-  const groups = new Map<NotificationPeriod, Notification[]>();
+  const unread = notifications.filter((n) => !n.is_read);
+  const read = notifications.filter((n) => n.is_read);
+  const groups: { period: NotificationPeriod; items: Notification[] }[] = [];
 
-  for (const notification of notifications) {
-    const period = getNotificationPeriod(notification, now);
-    const list = groups.get(period) ?? [];
-    list.push(notification);
-    groups.set(period, list);
-  }
+  if (unread.length) groups.push({ period: 'new', items: unread });
+  if (read.length) groups.push({ period: 'earlier', items: read });
 
-  return order
-    .filter((period) => groups.has(period))
-    .map((period) => ({ period, items: groups.get(period)! }));
+  return groups;
+}
+
+export function notificationTabForFilter(filter: NotificationFilter): NotificationTab {
+  return filter === 'following' ? 'following' : 'you';
 }

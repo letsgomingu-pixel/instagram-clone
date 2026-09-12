@@ -108,7 +108,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
   const isVideo = currentFile?.type.startsWith('video/');
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} size="md" showClose={false}>
+    <Modal isOpen={isOpen} onClose={handleClose} size="md" showClose={false} overlayClose>
       <div className="w-[400px] max-w-[95vw]">
         <div className="flex items-center justify-center border-b border-ig-border h-[42px] relative">
           <h2 className="text-base font-semibold">새 게시물 만들기</h2>
@@ -131,7 +131,7 @@ export function CreatePostModal({ isOpen, onClose }: CreatePostModalProps) {
           <div
             {...getRootProps()}
             className={`flex flex-col items-center justify-center h-[300px] cursor-pointer transition-colors ${
-              isDragActive ? 'bg-blue-50' : 'hover:bg-ig-secondary'
+              isDragActive ? 'bg-ig-secondary' : 'hover:bg-ig-secondary'
             }`}
           >
             <input {...getInputProps()} />

@@ -8,7 +8,7 @@ export function SuggestionsPanel() {
   const { user, isAuthenticated } = useAuth();
 
   return (
-    <aside className="hidden lg:block w-[320px] pt-8 pl-8">
+    <aside className="hidden lg:block w-[300px] pt-6 pl-4 shrink-0">
       {isAuthenticated ? (
         <div className="flex items-center gap-3 mb-6">
           <Link to={`/profile/${user?.username}`}>
@@ -22,7 +22,7 @@ export function SuggestionsPanel() {
           </div>
         </div>
       ) : (
-        <div className="bg-ig-surface border border-ig-border/80 rounded-2xl p-5 mb-6 shadow-[0_4px_20px_rgba(41,171,226,0.08)]">
+        <div className="mb-6 p-4 border border-ig-border rounded-lg bg-ig-surface">
           <p className="text-sm font-semibold mb-1">i am not a fishmonger에 오신 것을 환영합니다</p>
           <p className="text-xs text-ig-text-secondary mb-3">
             로그인하고 친구들의 사진과 동영상을 확인해보세요.

@@ -1,17 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronRight } from 'lucide-react';
 import { NotificationItem } from '@/components/notification/NotificationItem';
+import { Avatar } from '@/components/common/Avatar';
 import {
+  filterNotifications,
   groupNotificationsByPeriod,
-  notificationTabs,
+  notificationFilters,
+  notificationTabForFilter,
   periodLabels,
+  type NotificationFilter,
 } from '@/utils/notifications';
 import * as notificationsApi from '@/api/notifications';
 import * as postsApi from '@/api/posts';
 import * as usersApi from '@/api/users';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
-import type { Notification, NotificationTab } from '@/types';
+import type { Notification } from '@/types';
+import type { User } from '@/types';
 import { cn } from '@/utils/cn';
 
 interface NotificationsContentProps {
@@ -23,8 +29,9 @@ export function NotificationsContent({ variant = 'page', onClose }: Notification
   const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useAuth();
   const { setSelectedPost, followUser, unfollowUser, suggestedUsers } = useApp();
-  const [tab, setTab] = useState<NotificationTab>('you');
+  const [filter, setFilter] = useState<NotificationFilter>('all');
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [followRequests, setFollowRequests] = useState<User[]>([]);
   const [followOverrides, setFollowOverrides] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(true);
 
@@ -32,10 +39,12 @@ export function NotificationsContent({ variant = 'page', onClose }: Notification
     if (!isAuthenticated || isLoading) {
       setLoading(false);
       setNotifications([]);
+      setFollowRequests([]);
       return;
     }
 
     const fetchNotifications = () => {
+      const tab = notificationTabForFilter(filter);
       notificationsApi
         .getNotifications(tab)
         .then(setNotifications)
@@ -45,17 +54,26 @@ export function NotificationsContent({ variant = 'page', onClose }: Notification
 
     setLoading(true);
     fetchNotifications();
+    usersApi.getFollowRequests().then(setFollowRequests).catch(() => setFollowRequests([]));
 
     const intervalId = window.setInterval(() => {
-      if (document.visibilityState === 'visible') fetchNotifications();
+      if (document.visibilityState === 'visible') {
+        fetchNotifications();
+        usersApi.getFollowRequests().then(setFollowRequests).catch(() => setFollowRequests([]));
+      }
     }, 10000);
 
     return () => window.clearInterval(intervalId);
-  }, [tab, isAuthenticated, isLoading]);
+  }, [filter, isAuthenticated, isLoading]);
+
+  const filteredNotifications = useMemo(
+    () => filterNotifications(notifications, filter),
+    [notifications, filter],
+  );
 
   const groupedNotifications = useMemo(
-    () => groupNotificationsByPeriod(notifications),
-    [notifications],
+    () => groupNotificationsByPeriod(filteredNotifications),
+    [filteredNotifications],
   );
 
   const isFollowing = (userId: number, actor?: Notification['actor']) => {
@@ -121,18 +139,14 @@ export function NotificationsContent({ variant = 'page', onClose }: Notification
 
   const handleAcceptFollowRequest = (userId: number) => {
     void usersApi.acceptFollowRequestByUser(userId).then(() => {
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.actor.id === userId && n.type === 'follow_request' ? { ...n, is_read: true } : n,
-        ),
-      );
+      setFollowRequests((prev) => prev.filter((u) => u.id !== userId));
       void followUser(userId);
     });
   };
 
   const handleRejectFollowRequest = (userId: number) => {
     void usersApi.rejectFollowRequestByUser(userId).then(() => {
-      setNotifications((prev) => prev.filter((n) => !(n.actor.id === userId && n.type === 'follow_request')));
+      setFollowRequests((prev) => prev.filter((u) => u.id !== userId));
     });
   };
 
@@ -152,38 +166,60 @@ export function NotificationsContent({ variant = 'page', onClose }: Notification
     );
   }
 
+  const followRequestLabel =
+    followRequests.length === 1
+      ? followRequests[0].username
+      : followRequests.length > 1
+        ? `${followRequests[0].username} 외 ${followRequests.length - 1}명`
+        : '';
+
   return (
     <div className={variant === 'page' ? 'md:-mt-8' : undefined}>
-      <div
-        className={
-          variant === 'page'
-            ? 'bg-ig-surface border-0 md:border border-ig-border/80 md:rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(41,171,226,0.06)]'
-            : 'bg-ig-surface'
-        }
-      >
+      <div className="bg-ig-surface">
         {variant === 'page' && (
           <div className="hidden md:block px-4 py-4 border-b border-ig-border">
             <h1 className="text-[16px] font-bold text-ig-text">알림</h1>
           </div>
         )}
 
-        <div className="flex border-b border-ig-border">
-          {notificationTabs.map(({ id, label }) => (
+        <div className="ig-filter-pills border-b border-ig-border">
+          {notificationFilters.map(({ id, label }) => (
             <button
               key={id}
               type="button"
-              onClick={() => setTab(id)}
-              className={cn(
-                'flex-1 py-3 text-[14px] font-semibold border-b-2 transition-colors',
-                tab === id
-                  ? 'border-ig-primary text-ig-primary'
-                  : 'border-transparent text-ig-text-secondary hover:text-ig-text',
-              )}
+              onClick={() => setFilter(id)}
+              className={cn('ig-filter-pill', filter === id && 'ig-filter-pill-active')}
             >
               {label}
             </button>
           ))}
         </div>
+
+        {followRequests.length > 0 && (
+          <Link
+            to="/settings/follow-requests"
+            onClick={() => onClose?.()}
+            className="flex items-center gap-3 px-4 py-3 border-b border-ig-border hover:bg-ig-secondary transition-colors"
+          >
+            <div className="flex -space-x-2 shrink-0">
+              {followRequests.slice(0, 2).map((requester) => (
+                <Avatar
+                  key={requester.id}
+                  src={requester.avatar_url}
+                  alt={requester.username}
+                  size="sm"
+                  className="h-11 w-11 border-2 border-ig-surface"
+                />
+              ))}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[14px] font-semibold text-ig-text">팔로우 요청</p>
+              <p className="text-[14px] text-ig-text-secondary truncate">{followRequestLabel}</p>
+            </div>
+            <span className="h-2 w-2 rounded-full bg-ig-primary shrink-0" aria-hidden />
+            <ChevronRight size={16} className="text-ig-text-secondary shrink-0" />
+          </Link>
+        )}
 
         {groupedNotifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
@@ -192,16 +228,16 @@ export function NotificationsContent({ variant = 'page', onClose }: Notification
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               </svg>
             </div>
-            <p className="text-[14px] text-ig-text-secondary">
-              {tab === 'you' ? '아직 알림이 없습니다.' : '팔로잉 활동 알림이 없습니다.'}
-            </p>
+            <p className="text-[14px] text-ig-text-secondary">아직 알림이 없습니다.</p>
           </div>
         ) : (
           groupedNotifications.map(({ period, items }) => (
             <section key={period}>
-              <h2 className="px-4 py-3 text-[16px] font-bold text-ig-text border-b border-ig-border">
-                {periodLabels[period]}
-              </h2>
+              {periodLabels[period] && (
+                <h2 className="px-4 py-3 text-[16px] font-bold text-ig-text border-b border-ig-border">
+                  {periodLabels[period]}
+                </h2>
+              )}
               <div>
                 {items.map((notification) => (
                   <NotificationItem

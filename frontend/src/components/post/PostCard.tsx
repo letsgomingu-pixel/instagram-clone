@@ -96,15 +96,15 @@ export function PostCard({ post }: PostCardProps) {
 
   return (
     <article className="group feed-card">
-      <header className="flex items-center justify-between px-4 py-[14px]">
+      <header className="flex items-center justify-between px-4 py-3">
         <Link to={`/profile/${post.user.username}`} className="flex items-center gap-3 min-w-0">
           <Avatar src={post.user.avatar_url} alt={post.user.username} size="sm" />
           <div className="min-w-0 leading-tight">
-            <span className="text-[14px] font-semibold hover:underline block truncate">
+            <span className="text-[14px] font-semibold hover:text-ig-primary transition-colors block truncate">
               {post.user.username}
             </span>
             {post.location && (
-              <p className="text-[12px] text-ig-text truncate">{post.location}</p>
+              <p className="text-[12px] text-ig-text-secondary truncate">{post.location}</p>
             )}
           </div>
         </Link>
@@ -136,7 +136,7 @@ export function PostCard({ post }: PostCardProps) {
       )}
 
       {post.post_type === 'review' && (
-        <div className="px-4 py-2 border-t border-ig-border bg-ig-muted space-y-1">
+        <div className="px-4 py-2 border-t border-ig-border space-y-1">
           {post.rating != null && (
             <p className="text-[13px] font-semibold text-amber-600">
               {'★'.repeat(post.rating)}{'☆'.repeat(5 - post.rating)}
@@ -150,9 +150,9 @@ export function PostCard({ post }: PostCardProps) {
         </div>
       )}
 
-      <div className="px-4 pb-4">
-        <div className="flex items-center justify-between py-1">
-          <div className="flex items-center gap-4">
+      <div className="px-4 pb-4 pt-1">
+        <div className="flex items-center justify-between py-2 mb-1">
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <button
                 onClick={handleLike}
