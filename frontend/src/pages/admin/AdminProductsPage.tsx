@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone, type FileRejection } from 'react-dropzone';
 import { ImagePlus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createAdminProduct, getAdminProducts, updateAdminProduct } from '@/api/admin';
@@ -76,18 +76,23 @@ export function AdminProductsPage() {
     ]);
   }, []);
 
+  const onDropRejected = useCallback((rejections: FileRejection[]) => {
+    if (!rejections.length) return;
+    toast.error('JPG, PNG, MP4, MOV, WebM 형식만 업로드할 수 있습니다.');
+  }, []);
+
   const hasFiles = files.length > 0;
   const { getRootProps, getInputProps, open, isDragActive } = useDropzone({
     onDrop,
+    onDropRejected,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
-      'video/mp4': ['.mp4', '.m4v'],
-      'video/webm': ['.webm'],
-      'video/quicktime': ['.mov'],
+      'image/*': [],
+      'video/*': [],
     },
     multiple: true,
     noClick: hasFiles,
     noKeyboard: hasFiles,
+    useFsAccessApi: false,
   });
 
   const resetForm = () => {
