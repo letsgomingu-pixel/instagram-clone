@@ -1,21 +1,18 @@
 #!/usr/bin/env bash
 # Patch nginx for large video uploads (certbot-safe). Runs on every redeploy as root.
+# Sets client_max_body_size once in nginx.conf http {} and in site server/location blocks.
 
 set -euo pipefail
 
 DEPLOY_PATH="${DEPLOY_PATH:-/var/www/iamnotafishmonger}"
-DOMAIN="${DOMAIN:-iamnotafishmonger.com}"
-GLOBAL_NAME="00-iamnotafishmonger-upload-limits.conf"
-GLOBAL_SRC="$DEPLOY_PATH/deploy/nginx-upload-limits-global.conf"
-GLOBAL_DST="/etc/nginx/conf.d/$GLOBAL_NAME"
-NGINX_MAIN="/etc/nginx/nginx.conf"
-BODY_LIMIT="client_max_body_size 200M;"
+LEGACY_GLOBAL="/etc/nginx/conf.d/00-iamnotafishmonger-upload-limits.conf"
 
 echo "[patch-nginx] Applying upload limits (200M)..."
 
-if [[ -f "$GLOBAL_SRC" ]]; then
-  cp "$GLOBAL_SRC" "$GLOBAL_DST"
-  echo "[patch-nginx] Installed $GLOBAL_DST"
+# Older deploys dropped a conf.d snippet that duplicated http {} directives — remove it.
+if [[ -f "$LEGACY_GLOBAL" ]]; then
+  rm -f "$LEGACY_GLOBAL"
+  echo "[patch-nginx] Removed legacy duplicate config $LEGACY_GLOBAL"
 fi
 
 python3 << 'PY'
@@ -39,14 +36,16 @@ def upsert_body_limit(text: str) -> str:
 
 def ensure_http_limits(text: str) -> str:
     text = upsert_body_limit(text)
-    if BODY_LIMIT in text:
-        return text
-    return re.sub(
-        r"http\s*\{",
-        "http {\n    " + BODY_LIMIT + "\n    client_body_timeout 300s;",
-        text,
-        count=1,
-    )
+    if BODY_LIMIT not in text:
+        text = re.sub(
+            r"http\s*\{",
+            "http {\n    " + BODY_LIMIT + "\n    client_body_timeout 300s;",
+            text,
+            count=1,
+        )
+    elif "client_body_timeout" not in text:
+        text = text.replace(BODY_LIMIT, BODY_LIMIT + "\n    client_body_timeout 300s;", 1)
+    return text
 
 def patch_site_file(path: Path) -> bool:
     try:
@@ -98,7 +97,6 @@ for root in search_roots:
         if not path.is_file() or path in seen:
             continue
         if path.name == "00-iamnotafishmonger-upload-limits.conf":
-            seen.add(path)
             continue
         try:
             content = path.read_text(encoding="utf-8")
@@ -111,7 +109,7 @@ for root in search_roots:
             changed = True
 
 if not changed:
-    print("[patch-nginx] Site configs unchanged (http-level limit applied)")
+    print("[patch-nginx] nginx.conf / site configs already configured")
 PY
 
 nginx -t
