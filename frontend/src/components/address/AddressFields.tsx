@@ -12,6 +12,24 @@ interface AddressFieldsProps {
   inputClassName?: string;
   buttonClassName?: string;
   compact?: boolean;
+  showLabels?: boolean;
+}
+
+function FieldLabel({
+  htmlFor,
+  children,
+  required,
+}: {
+  htmlFor?: string;
+  children: React.ReactNode;
+  required?: boolean;
+}) {
+  return (
+    <label htmlFor={htmlFor} className="block text-xs font-semibold text-ig-text mb-1.5">
+      {children}
+      {required && <span className="text-ig-red ml-0.5">*</span>}
+    </label>
+  );
 }
 
 export function AddressFields({
@@ -26,6 +44,7 @@ export function AddressFields({
   inputClassName = 'w-full px-3 py-2.5 bg-ig-secondary border border-ig-border rounded-lg text-xs',
   buttonClassName = 'shrink-0 px-3 py-2.5 text-xs font-semibold border border-ig-border rounded-lg bg-ig-surface hover:bg-[#fafafa]',
   compact = false,
+  showLabels = true,
 }: AddressFieldsProps) {
   const { openSearch, loading } = useDaumPostcode();
 
@@ -36,46 +55,69 @@ export function AddressFields({
     });
   };
 
+  const label = (id: string, text: string, required = false) =>
+    showLabels ? (
+      <FieldLabel htmlFor={id} required={required}>
+        {text}
+      </FieldLabel>
+    ) : null;
+
   return (
     <div className={compact ? 'space-y-2' : 'space-y-3'}>
-      <input
-        type="tel"
-        placeholder="휴대폰 번호 (010-1234-5678)"
-        value={phone}
-        onChange={(e) => onPhoneChange(e.target.value)}
-        className={inputClassName}
-        autoComplete="tel"
-      />
-
-      <div className="flex gap-2">
+      <div>
+        {label('address-phone', '휴대폰 번호', true)}
         <input
+          id="address-phone"
+          type="tel"
+          placeholder="010-1234-5678"
+          value={phone}
+          onChange={(e) => onPhoneChange(e.target.value)}
+          className={inputClassName}
+          autoComplete="tel"
+        />
+      </div>
+
+      <div>
+        {label('address-postcode', '우편번호', true)}
+        <div className="flex gap-2">
+          <input
+            id="address-postcode"
+            type="text"
+            placeholder="00000"
+            value={postcode}
+            readOnly
+            className={`${inputClassName} bg-[#efefef] cursor-default`}
+          />
+          <button type="button" onClick={handleSearch} disabled={loading} className={buttonClassName}>
+            {loading ? '로딩...' : '주소 검색'}
+          </button>
+        </div>
+      </div>
+
+      <div>
+        {label('address-line1', '주소', true)}
+        <input
+          id="address-line1"
           type="text"
-          placeholder="우편번호"
-          value={postcode}
+          placeholder="주소 검색 버튼으로 입력"
+          value={addressLine1}
           readOnly
           className={`${inputClassName} bg-[#efefef] cursor-default`}
         />
-        <button type="button" onClick={handleSearch} disabled={loading} className={buttonClassName}>
-          {loading ? '로딩...' : '주소 검색'}
-        </button>
       </div>
 
-      <input
-        type="text"
-        placeholder="주소"
-        value={addressLine1}
-        readOnly
-        className={`${inputClassName} bg-[#efefef] cursor-default`}
-      />
-
-      <input
-        type="text"
-        placeholder="상세주소 (동·호수 등)"
-        value={addressLine2}
-        onChange={(e) => onAddressLine2Change(e.target.value)}
-        className={inputClassName}
-        autoComplete="address-line2"
-      />
+      <div>
+        {label('address-line2', '상세주소', true)}
+        <input
+          id="address-line2"
+          type="text"
+          placeholder="동·호수 등"
+          value={addressLine2}
+          onChange={(e) => onAddressLine2Change(e.target.value)}
+          className={inputClassName}
+          autoComplete="address-line2"
+        />
+      </div>
     </div>
   );
 }

@@ -96,6 +96,7 @@ export function SettingsShippingPage() {
             onAddressLine2Change={setAddressLine2}
             inputClassName={settingsInputClass}
             buttonClassName={settingsButtonClass}
+            showLabels={false}
           />
         </SettingsField>
       </div>

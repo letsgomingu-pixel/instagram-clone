@@ -276,13 +276,20 @@ export function CheckoutPage() {
         <div>
           <h2 className="text-sm font-semibold mb-3">배송지 <span className="text-ig-red">*</span></h2>
           <div className="space-y-3">
-            <input
-              type="text"
-              placeholder="받는 분"
-              value={shippingName}
-              onChange={(e) => setShippingName(e.target.value)}
-              className="w-full px-3 py-2.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
-            />
+            <div>
+              <label htmlFor="shipping-name" className="block text-xs font-semibold text-ig-text mb-1.5">
+                받는 분 <span className="text-ig-red">*</span>
+              </label>
+              <input
+                id="shipping-name"
+                type="text"
+                placeholder="홍길동"
+                value={shippingName}
+                onChange={(e) => setShippingName(e.target.value)}
+                className="w-full px-3 py-2.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
+                autoComplete="name"
+              />
+            </div>
             <AddressFields
               phone={phone}
               postcode={postcode}
