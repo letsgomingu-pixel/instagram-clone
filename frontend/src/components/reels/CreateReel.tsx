@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Film } from 'lucide-react';
-import axios from 'axios';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
 import * as reelsApi from '@/api/reels';
 import { useApp } from '@/contexts/AppContext';
 import toast from 'react-hot-toast';
+import { formatApiError } from '@/utils/formatApiError';
 
 interface CreateReelModalProps {
   isOpen: boolean;
@@ -94,8 +94,7 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
       toast.success('릴스가 공유되었습니다!');
       handleClose();
     } catch (err) {
-      const detail = axios.isAxiosError(err) ? err.response?.data?.detail : undefined;
-      toast.error(typeof detail === 'string' ? detail : '릴스 업로드에 실패했습니다.');
+      toast.error(formatApiError(err, '릴스 업로드에 실패했습니다.'));
     } finally {
       setUploading(false);
     }

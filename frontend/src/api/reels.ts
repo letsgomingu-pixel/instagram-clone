@@ -39,7 +39,9 @@ export async function addReelComment(reelId: number, content: string): Promise<R
 }
 
 export async function createReel(form: FormData): Promise<Reel> {
-  const { data } = await api.post<Reel>('/reels', form);
+  const { data } = await api.post<Reel>('/reels', form, {
+    timeout: 10 * 60 * 1000,
+  });
   return data;
 }
 
