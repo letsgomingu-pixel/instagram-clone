@@ -7,7 +7,7 @@ import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
 import { StoryOverlayLayer } from '@/components/story/StoryOverlayLayer';
 import { formatRelativeTime } from '@/utils/formatDate';
-import { resolveMediaUrl } from '@/utils/media';
+import { isStoryVideoItem, resolveMediaUrl } from '@/utils/media';
 import * as storiesApi from '@/api/stories';
 import type { StoryViewerEntry } from '@/types';
 
@@ -17,37 +17,24 @@ import { useAuth } from '@/hooks/useAuth';
 
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
-
-
 interface StoryViewerProps {
-
   initialIndex: number;
-
   onClose: () => void;
-
 }
 
-
-
 const IMAGE_STORY_DURATION = 5000;
-
-
+const mediaClassName = 'absolute inset-0 h-full w-full object-cover object-center';
 
 export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
-
   const { stories, markStoryViewed, refreshStories } = useApp();
-
   const { requireAuth, isAuthenticated } = useRequireAuth();
-
   const { user } = useAuth();
-
   const [storyIndex, setStoryIndex] = useState(initialIndex);
-
   const [itemIndex, setItemIndex] = useState(0);
-
   const [progress, setProgress] = useState(0);
-
+  const [videoFailed, setVideoFailed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const goNextRef = useRef<() => void>(() => undefined);
 
   // "누가 봤는지" — only the story's own author can see this, and while the
   // list is open the story must stop auto-advancing (otherwise it moves on
@@ -59,16 +46,13 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
   const paused = showViewers;
 
   const story = stories[storyIndex];
-
   const item = story?.items[itemIndex];
+  const isVideo = isStoryVideoItem(item) && !videoFailed;
+  const isOwn = !!user && !!story && story.user.id === user.id;
 
   useEffect(() => {
     setStoryLiked(item?.is_liked ?? false);
   }, [item?.id, item?.is_liked]);
-
-  const isVideo = item?.media_type === 'video';
-
-  const isOwn = !!user && !!story && story.user.id === user.id;
 
   const sendStoryReply = useCallback(async () => {
     if (!replyText.trim() || !item) return;
@@ -83,13 +67,14 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
 
   useEffect(() => {
     setShowViewers(false);
-    if (!story || !isOwn) {
+    if (!story?.id || !isOwn) {
       setViewers([]);
       return;
     }
+    const storyId = story.id;
     let cancelled = false;
     storiesApi
-      .getStoryViewers(story.id)
+      .getStoryViewers(storyId)
       .then((data) => {
         if (!cancelled) setViewers(data);
       })
@@ -99,228 +84,132 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
     return () => {
       cancelled = true;
     };
-  }, [story, isOwn]);
-
-
+  }, [story?.id, isOwn]);
 
   const goNext = useCallback(() => {
-
     if (!story) return;
 
     if (itemIndex < story.items.length - 1) {
-
       setItemIndex((i) => i + 1);
-
       setProgress(0);
-
     } else if (storyIndex < stories.length - 1) {
-
       setStoryIndex((i) => i + 1);
-
       setItemIndex(0);
-
       setProgress(0);
-
     } else {
-
       onClose();
-
     }
-
   }, [story, itemIndex, storyIndex, stories.length, onClose]);
 
-
-
   const goPrev = useCallback(() => {
-
     if (itemIndex > 0) {
-
       setItemIndex((i) => i - 1);
-
       setProgress(0);
-
     } else if (storyIndex > 0) {
-
       const prevStory = stories[storyIndex - 1];
-
       setStoryIndex((i) => i - 1);
-
       setItemIndex(prevStory.items.length - 1);
-
       setProgress(0);
-
     }
-
   }, [itemIndex, storyIndex, stories]);
 
-
+  goNextRef.current = goNext;
 
   useEffect(() => {
-
     if (!story) return;
-
     markStoryViewed(story.id);
-
-  }, [story, markStoryViewed]);
-
-
+  }, [story?.id, markStoryViewed]);
 
   useEffect(() => {
-
     setProgress(0);
-
-  }, [storyIndex, itemIndex]);
-
-
+    setVideoFailed(false);
+  }, [storyIndex, itemIndex, item?.id]);
 
   useEffect(() => {
-
     if (!item || isVideo || paused) return;
 
-
-
-    const interval = setInterval(() => {
-
-      setProgress((p) => {
-
-        if (p >= 100) {
-
-          goNext();
-
-          return 0;
-
-        }
-
-        return p + (100 / (IMAGE_STORY_DURATION / 50));
-
-      });
-
+    const startedAt = Date.now();
+    let advanced = false;
+    const interval = window.setInterval(() => {
+      const next = Math.min(100, ((Date.now() - startedAt) / IMAGE_STORY_DURATION) * 100);
+      setProgress(next);
+      if (next >= 100 && !advanced) {
+        advanced = true;
+        goNextRef.current();
+      }
     }, 50);
 
-    return () => clearInterval(interval);
-
-  }, [goNext, storyIndex, itemIndex, item, isVideo, paused]);
-
-
+    return () => window.clearInterval(interval);
+  }, [item?.id, isVideo, paused]);
 
   useEffect(() => {
-
     const video = videoRef.current;
-
     if (!item || !isVideo || !video) return;
 
-
-
     const handleLoaded = () => {
-
       video.currentTime = 0;
-
-      void video.play().catch(() => undefined);
-
+      void video.play().catch(() => setVideoFailed(true));
     };
-
-
 
     const handleTimeUpdate = () => {
-
       if (!video.duration) return;
-
       setProgress((video.currentTime / video.duration) * 100);
-
-      if (video.currentTime >= video.duration - 0.05) {
-
-        goNext();
-
-      }
-
     };
 
+    const handleEnded = () => {
+      goNextRef.current();
+    };
 
+    const handleError = () => {
+      setVideoFailed(true);
+    };
 
     video.addEventListener('loadedmetadata', handleLoaded);
-
     video.addEventListener('timeupdate', handleTimeUpdate);
-
+    video.addEventListener('ended', handleEnded);
+    video.addEventListener('error', handleError);
     if (video.readyState >= 1) handleLoaded();
 
-
-
     return () => {
-
       video.removeEventListener('loadedmetadata', handleLoaded);
-
       video.removeEventListener('timeupdate', handleTimeUpdate);
-
+      video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('error', handleError);
     };
-
-  }, [goNext, item, isVideo, storyIndex, itemIndex]);
-
-
+  }, [item?.id, isVideo]);
 
   useEffect(() => {
-
     const video = videoRef.current;
-
     if (!isVideo || !video) return;
-
     if (paused) {
-
       video.pause();
-
     } else {
-
-      void video.play().catch(() => undefined);
-
+      void video.play().catch(() => setVideoFailed(true));
     }
-
   }, [paused, isVideo]);
 
-
-
   useEffect(() => {
-
     const handleKey = (e: KeyboardEvent) => {
-
       if (e.key === 'Escape') {
-
         if (showViewers) setShowViewers(false);
-
         else onClose();
-
         return;
-
       }
-
       if (showViewers) return;
-
       if (e.key === 'ArrowRight') goNext();
-
       if (e.key === 'ArrowLeft') goPrev();
-
     };
-
     document.body.style.overflow = 'hidden';
-
     window.addEventListener('keydown', handleKey);
-
     return () => {
-
       document.body.style.overflow = '';
-
       window.removeEventListener('keydown', handleKey);
-
     };
-
   }, [onClose, goNext, goPrev, showViewers]);
-
-
 
   if (!story || !item) return null;
 
-
-
   const altText = `${story.user.username}의 스토리`;
-
   const handleDeleteStory = async () => {
     if (!window.confirm('스토리를 삭제할까요?')) return;
     try {
@@ -334,23 +223,14 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
   };
 
   return (
-
     <div className="fixed inset-0 z-50 bg-black flex items-center justify-center animate-fade-in">
-
       <button
-
         onClick={onClose}
-
         className="absolute top-4 right-4 z-10 text-white hover:opacity-70"
-
         aria-label="닫기"
-
       >
-
         <X size={28} />
-
       </button>
-
       {isOwn && (
         <button
           type="button"
@@ -363,138 +243,77 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
       )}
 
       {storyIndex > 0 || itemIndex > 0 ? (
-
         <button
-
           onClick={goPrev}
-
           className="absolute left-2 z-10 text-white/80 hover:text-white p-2 hidden md:block"
-
           aria-label="이전"
-
         >
-
           <ChevronLeft size={32} />
-
         </button>
-
       ) : null}
-
-
 
       {storyIndex < stories.length - 1 || itemIndex < story.items.length - 1 ? (
-
         <button
-
           onClick={goNext}
-
           className="absolute right-2 z-10 text-white/80 hover:text-white p-2 hidden md:block"
-
           aria-label="다음"
-
         >
-
           <ChevronRight size={32} />
-
         </button>
-
       ) : null}
 
-
-
-      <div className="relative w-full max-w-[400px] h-full max-h-[90vh] md:rounded-xl overflow-hidden">
-
+      <div className="relative w-full max-w-[400px] h-full max-h-[100dvh] md:max-h-[90vh] md:rounded-xl overflow-hidden bg-black">
         <div className="absolute top-2 left-2 right-2 z-10 flex gap-1" data-testid="story-progress">
-
           {story.items.map((_, i) => (
-
             <div
-
               key={i}
-
               data-testid="story-progress-bar"
-
               className="flex-1 h-[2px] bg-white/30 rounded-full overflow-hidden"
-
             >
-
               <div
-
                 className="h-full bg-white transition-all duration-75"
-
                 style={{
-
                   width: i < itemIndex ? '100%' : i === itemIndex ? `${progress}%` : '0%',
-
                 }}
-
               />
-
             </div>
-
           ))}
-
         </div>
-
-
 
         <div className="absolute top-5 left-3 right-3 z-10 flex items-center gap-3">
-
           <Avatar src={story.user.avatar_url} alt={story.user.username} size="sm" />
-
           <div className="flex-1">
-
             <span className="text-white text-sm font-semibold">{story.user.username}</span>
-
             <span className="text-white/70 text-xs ml-2">{formatRelativeTime(item.created_at)}</span>
-
           </div>
-
         </div>
 
-
-
         {isVideo ? (
-
           <video
-
             ref={videoRef}
-
             src={resolveMediaUrl(item.image_url)}
-
-            className="w-full h-full object-cover"
-
+            className={mediaClassName}
             muted
-
             playsInline
-
-            preload="metadata"
-
+            preload="auto"
             aria-label={altText}
-
+            onError={() => setVideoFailed(true)}
           />
-
         ) : (
-
-          <MediaImage src={item.image_url} alt={altText} className="w-full h-full object-cover" />
-
+          <MediaImage
+            src={item.image_url}
+            alt={altText}
+            className={mediaClassName}
+            draggable={false}
+          />
         )}
-
-
 
         <StoryOverlayLayer overlays={item.overlays ?? []} />
 
-
-
-        <div className="absolute inset-0 flex">
-
-          <button className="flex-1" onClick={goPrev} aria-label="이전 스토리" />
-
-          <button className="flex-1" onClick={goNext} aria-label="다음 스토리" />
-
+        <div className="absolute inset-0 z-[1] flex">
+          <button type="button" className="flex-1 bg-transparent" onClick={goPrev} aria-label="이전 스토리" />
+          <button type="button" className="flex-1 bg-transparent" onClick={goNext} aria-label="다음 스토리" />
         </div>
-
-
 
         {isOwn ? (
           <button
@@ -581,13 +400,7 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
             </div>
           </div>
         )}
-
       </div>
-
     </div>
-
   );
-
 }
-
-

@@ -921,7 +921,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       storiesApi.markStoryViewed(storyId).catch(() => undefined);
 
-      setStories((prev) => prev.map((s) => (s.id === storyId ? { ...s, viewed: true } : s)));
+      setStories((prev) => {
+        const current = prev.find((s) => s.id === storyId);
+        if (!current || current.viewed) return prev;
+        return prev.map((s) => (s.id === storyId ? { ...s, viewed: true } : s));
+      });
 
     },
 

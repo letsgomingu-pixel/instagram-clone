@@ -68,6 +68,15 @@ export function isVideoMediaUrl(url?: string | null): boolean {
   return VIDEO_EXT.test(url);
 }
 
+/** Prefer the file extension over a stale/wrong media_type from the API. */
+export function isStoryVideoItem(item?: { media_type?: string | null; image_url?: string | null } | null): boolean {
+  if (!item) return false;
+  const url = item.image_url ?? '';
+  if (IMAGE_EXT.test(url)) return false;
+  if (VIDEO_EXT.test(url)) return true;
+  return item.media_type === 'video';
+}
+
 /** Turn API media paths (`/media/...`) into absolute URLs for the Vite dev server. */
 export function resolveMediaUrl(url?: string | null): string {
   if (!url) return '';
