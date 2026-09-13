@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { ImagePlus } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
-import { Button } from '@/components/common/Button';
 import { StoryEditor } from '@/components/story/StoryEditor';
 import * as storiesApi from '@/api/stories';
 import { useApp } from '@/contexts/AppContext';
@@ -117,24 +116,27 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
               ✕
             </button>
           </div>
-          <label className="flex flex-col items-center justify-center h-[360px] cursor-pointer hover:bg-ig-secondary">
+          <div className="relative h-[360px] hover:bg-ig-secondary">
+            <div className="flex h-full flex-col items-center justify-center pointer-events-none">
+              <ImagePlus size={48} strokeWidth={1} className="text-ig-text-secondary mb-4" />
+              <p className="text-xl font-light mb-2 text-center px-6">사진 또는 동영상을 선택하세요</p>
+              <p className="text-xs text-ig-text-secondary mb-3">휴대폰 앨범에서 여러 장 선택 가능</p>
+              <span className="inline-flex h-8 items-center rounded-xl bg-ig-primary px-4 text-sm font-semibold text-white">
+                사진/동영상 선택
+              </span>
+            </div>
             <input
               ref={inputRef}
               type="file"
               accept="image/*,video/*,.heic,.heif,.mov,.mp4,.webm,.m4v"
               multiple
-              className="sr-only"
+              aria-label="사진 또는 동영상 선택"
+              className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
               onChange={(event) => {
                 void queueFiles(Array.from(event.target.files ?? []));
               }}
             />
-            <ImagePlus size={48} strokeWidth={1} className="text-ig-text-secondary mb-4" />
-            <p className="text-xl font-light mb-2 text-center px-6">사진 또는 동영상을 선택하세요</p>
-            <p className="text-xs text-ig-text-secondary mb-3">휴대폰 앨범에서 여러 장 선택 가능</p>
-            <Button type="button" variant="primary" size="md">
-              사진/동영상 선택
-            </Button>
-          </label>
+          </div>
           {error && <p className="px-4 pb-4 text-sm text-ig-red text-center">{error}</p>}
         </div>
       ) : (
