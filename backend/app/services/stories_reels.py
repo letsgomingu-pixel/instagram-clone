@@ -116,7 +116,14 @@ def get_user_reels(db: Session, user_id: int, offset: int, limit: int) -> tuple[
     return list(reels), total
 
 
-def build_story_out(db: Session, story: Story, viewer: User, viewed_ids: set[int] | None = None) -> StoryOut:
+def build_story_out(
+    db: Session,
+    story: Story,
+    viewer: User,
+    viewed_ids: set[int] | None = None,
+    *,
+    include_all_items: bool = False,
+) -> StoryOut:
     if viewed_ids is None:
         viewed_ids = set(
             db.scalars(
@@ -155,7 +162,7 @@ def build_story_out(db: Session, story: Story, viewer: User, viewed_ids: set[int
         created = created.astimezone(timezone.utc)
         return now - created < cutoff
 
-    live_items = [i for i in story.items if _item_is_live(i)]
+    live_items = list(story.items) if include_all_items else [i for i in story.items if _item_is_live(i)]
     items = sorted(live_items, key=lambda i: i.created_at)
     liked_ids = _liked_story_item_ids(db, viewer.id, [i.id for i in items])
     return StoryOut(
@@ -238,7 +245,7 @@ def create_story(
     story = db.scalar(
         select(Story).where(Story.id == story.id).options(joinedload(Story.items))
     )
-    return build_story_out(db, story, user)  # type: ignore[arg-type]
+    return build_story_out(db, story, user, include_all_items=True)  # type: ignore[arg-type]
 
 
 def mark_story_viewed(db: Session, viewer: User, story_id: int) -> bool:

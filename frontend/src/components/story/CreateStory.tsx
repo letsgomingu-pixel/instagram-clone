@@ -21,7 +21,7 @@ interface QueuedStory {
 }
 
 export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
-  const { refreshStories, upsertStory } = useApp();
+  const { upsertStory } = useApp();
   const inputRef = useRef<HTMLInputElement>(null);
   const [queue, setQueue] = useState<QueuedStory[]>([]);
   const [overlays, setOverlays] = useState<StoryOverlay[]>([]);
@@ -95,12 +95,7 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
           form.append('overlays', JSON.stringify(overlays));
         }
         lastCreated = await storiesApi.createStory(form);
-        upsertStory(lastCreated);
-      }
-      try {
-        await refreshStories();
-      } catch {
-        // Keep the story we just saved even if the feed refresh fails.
+        if (lastCreated) upsertStory(lastCreated);
       }
       if (lastCreated) upsertStory(lastCreated);
       toast.success(queue.length > 1 ? `스토리 ${queue.length}개가 공유되었습니다!` : '스토리가 공유되었습니다!');
@@ -130,7 +125,7 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
             <ImagePlus size={48} strokeWidth={1} className="text-ig-text-secondary mb-4" />
             <p className="text-xl font-light mb-2 text-center px-6">사진 또는 동영상을 선택하세요</p>
             <p className="text-xs text-ig-text-secondary mb-3">휴대폰 앨범에서 여러 장 선택 가능</p>
-            <label className="relative inline-flex h-8 cursor-pointer items-center overflow-hidden rounded-xl bg-ig-primary px-4 text-sm font-semibold text-white hover:bg-ig-primary-hover">
+            <label className="relative inline-flex h-8 cursor-pointer items-center overflow-hidden rounded-xl bg-ig-primary px-4 text-sm font-semibold text-white transition duration-150 hover:bg-ig-primary-hover active:scale-95 active:brightness-90">
               사진/동영상 선택
               <input
                 ref={inputRef}

@@ -202,6 +202,15 @@ export function StoryEditor({
             ))}
           </div>
         )}
+
+        <button
+          type="button"
+          onClick={onShare}
+          disabled={uploading}
+          className="w-full h-11 rounded-xl bg-ig-primary text-white text-sm font-semibold hover:bg-ig-primary-hover disabled:opacity-50 active:scale-[0.98] active:brightness-90 transition"
+        >
+          {uploading ? '올리는 중...' : '스토리 올리기'}
+        </button>
       </div>
     </div>
   );
