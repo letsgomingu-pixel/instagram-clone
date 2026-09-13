@@ -43,16 +43,23 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
     onClose();
   };
 
-  const openFilePicker = () => {
-    inputRef.current?.click();
-  };
-
   const queueFiles = useCallback(async (files: File[]) => {
     if (!files.length) {
       setError('사진 또는 동영상을 선택해 주세요.');
       return;
     }
     setError(null);
+    const immediate = files.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+      mediaType: isVideoUpload(file) ? 'video' : 'image',
+    }));
+    setQueue((prev) => {
+      prev.forEach((item) => URL.revokeObjectURL(item.preview));
+      return immediate;
+    });
+    setOverlays([]);
+
     const next: QueuedStory[] = [];
     for (const file of files) {
       const normalized = await normalizeStoryFile(file);
@@ -66,7 +73,6 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
       prev.forEach((item) => URL.revokeObjectURL(item.preview));
       return next;
     });
-    setOverlays([]);
   }, []);
 
   const handleShare = async () => {
@@ -121,28 +127,23 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
             </button>
           </div>
           <div className="flex h-[360px] flex-col items-center justify-center">
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/*,video/*,.heic,.heif,.mov,.mp4,.webm,.m4v"
-              multiple
-              tabIndex={-1}
-              aria-hidden
-              className="pointer-events-none absolute h-px w-px opacity-0"
-              onChange={(event) => {
-                void queueFiles(Array.from(event.target.files ?? []));
-              }}
-            />
             <ImagePlus size={48} strokeWidth={1} className="text-ig-text-secondary mb-4" />
             <p className="text-xl font-light mb-2 text-center px-6">사진 또는 동영상을 선택하세요</p>
             <p className="text-xs text-ig-text-secondary mb-3">휴대폰 앨범에서 여러 장 선택 가능</p>
-            <button
-              type="button"
-              onClick={openFilePicker}
-              className="inline-flex h-8 items-center rounded-xl bg-ig-primary px-4 text-sm font-semibold text-white hover:bg-ig-primary-hover"
-            >
+            <label className="relative inline-flex h-8 cursor-pointer items-center overflow-hidden rounded-xl bg-ig-primary px-4 text-sm font-semibold text-white hover:bg-ig-primary-hover">
               사진/동영상 선택
-            </button>
+              <input
+                ref={inputRef}
+                type="file"
+                accept="image/*,video/*,.heic,.heif,.mov,.mp4,.webm,.m4v"
+                multiple
+                aria-label="사진 또는 동영상 선택"
+                className="absolute inset-0 z-10 cursor-pointer opacity-0"
+                onChange={(event) => {
+                  void queueFiles(Array.from(event.target.files ?? []));
+                }}
+              />
+            </label>
           </div>
           {error && <p className="px-4 pb-4 text-sm text-ig-red text-center">{error}</p>}
         </div>
