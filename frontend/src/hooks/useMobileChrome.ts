@@ -5,7 +5,6 @@ export type MobileHeaderVariant = 'home' | 'back-title' | 'profile' | 'title-onl
 
 export interface MobileChromeConfig {
   showHeader: boolean;
-  showHeaderNav: boolean;
   showBottomNav: boolean;
   headerVariant: MobileHeaderVariant;
   title?: string;
@@ -29,7 +28,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname.startsWith('/messages/') && pathname.split('/').length > 2) {
       return {
         showHeader: false,
-        showHeaderNav: false,
         showBottomNav: false,
         headerVariant: 'none',
       };
@@ -38,7 +36,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname.startsWith('/checkout/')) {
       return {
         showHeader: true,
-        showHeaderNav: false,
         showBottomNav: false,
         headerVariant: 'back-title',
         title: '주문하기',
@@ -49,7 +46,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname.match(/^\/orders\/\d+\/review$/)) {
       return {
         showHeader: true,
-        showHeaderNav: false,
         showBottomNav: false,
         headerVariant: 'back-title',
         title: '리뷰 작성',
@@ -60,7 +56,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname.startsWith('/orders/') && orderId) {
       return {
         showHeader: true,
-        showHeaderNav: false,
         showBottomNav: true,
         headerVariant: 'back-title',
         title: '주문 상세',
@@ -71,7 +66,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname === '/cart') {
       return {
         showHeader: true,
-        showHeaderNav: false,
         showBottomNav: true,
         headerVariant: 'back-title',
         title: '장바구니',
@@ -82,7 +76,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname === '/orders') {
       return {
         showHeader: true,
-        showHeaderNav: false,
         showBottomNav: true,
         headerVariant: 'back-title',
         title: '내 주문',
@@ -93,8 +86,7 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname === '/reels' || pathname.startsWith('/reels/')) {
       return {
         showHeader: true,
-        showHeaderNav: true,
-        showBottomNav: false,
+        showBottomNav: true,
         headerVariant: 'title-only',
         title: '릴스',
       };
@@ -103,7 +95,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname === '/messages') {
       return {
         showHeader: true,
-        showHeaderNav: true,
         showBottomNav: true,
         headerVariant: 'title-only',
         title: '메시지',
@@ -113,7 +104,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname === '/settings') {
       return {
         showHeader: true,
-        showHeaderNav: true,
         showBottomNav: false,
         headerVariant: 'back-title',
         title: '설정 및 활동',
@@ -124,7 +114,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname.startsWith('/settings/')) {
       return {
         showHeader: true,
-        showHeaderNav: false,
         showBottomNav: false,
         headerVariant: 'back-title',
         title: SETTINGS_TITLES[pathname] ?? '설정',
@@ -135,7 +124,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname.startsWith('/notifications')) {
       return {
         showHeader: true,
-        showHeaderNav: true,
         showBottomNav: false,
         headerVariant: 'back-title',
         title: '알림',
@@ -146,7 +134,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname === '/search' || pathname === '/explore' || pathname.startsWith('/explore/')) {
       return {
         showHeader: true,
-        showHeaderNav: true,
         showBottomNav: true,
         headerVariant: 'title-only',
         title: '검색',
@@ -156,7 +143,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname.startsWith('/profile/') && username) {
       return {
         showHeader: true,
-        showHeaderNav: true,
         showBottomNav: true,
         headerVariant: 'profile',
         title: username,
@@ -167,7 +153,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname === '/suggested') {
       return {
         showHeader: true,
-        showHeaderNav: true,
         showBottomNav: true,
         headerVariant: 'back-title',
         title: '회원님을 위한 추천',
@@ -178,7 +163,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
     if (pathname === '/') {
       return {
         showHeader: true,
-        showHeaderNav: true,
         showBottomNav: true,
         headerVariant: 'home',
       };
@@ -186,7 +170,6 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
 
     return {
       showHeader: true,
-      showHeaderNav: true,
       showBottomNav: true,
       headerVariant: 'back-title',
       title: '',

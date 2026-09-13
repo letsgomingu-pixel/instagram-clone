@@ -191,7 +191,7 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
   );
 
   return (
-    <section className="relative w-full h-[calc(100dvh-var(--mobile-header-stack,92px))] md:h-[calc(100dvh)] snap-start snap-always flex items-center justify-center bg-black md:bg-white">
+    <section className="relative w-full h-[calc(100dvh-var(--mobile-header-stack,44px)-49px-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh)] snap-start snap-always flex items-center justify-center bg-black md:bg-white">
       {/* Mobile: full-screen overlay actions */}
       <div
         className="md:hidden relative w-full max-w-[420px] h-full overflow-hidden"
@@ -306,7 +306,7 @@ export function ReelsPage() {
       ) : (
         <div
           ref={containerRef}
-          className="fixed inset-x-0 bottom-0 md:left-[var(--sidebar-width)] top-[var(--mobile-header-stack,92px)] md:top-0 overflow-y-scroll snap-y snap-mandatory scroll-smooth bg-black md:bg-white z-20"
+          className="fixed inset-x-0 bottom-[calc(49px+env(safe-area-inset-bottom,0px))] md:bottom-0 md:left-[var(--sidebar-width)] top-[var(--mobile-header-stack,44px)] md:top-0 overflow-y-scroll snap-y snap-mandatory scroll-smooth bg-black md:bg-white z-20"
           style={{ scrollbarWidth: 'none' }}
         >
           {reels.map((reel, index) => (

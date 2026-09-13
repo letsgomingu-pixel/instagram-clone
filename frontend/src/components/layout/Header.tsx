@@ -5,7 +5,6 @@ import { ProfileOptionsMenu } from '@/components/profile/ProfileOptionsMenu';
 import { useProfileMenu } from '@/contexts/ProfileMenuContext';
 import { InstagramLogo } from '@/components/common/InstagramLogo';
 import { NavBadge } from '@/components/common/NavBadge';
-import { MobileHeaderIconStrip } from '@/components/layout/MobileHeaderIconStrip';
 import {
   NavIcon,
   NavMessagesIcon,
@@ -124,8 +123,6 @@ export function MobileHeader({ config }: MobileHeaderProps) {
           </>
         )}
       </div>
-
-      {config.showHeaderNav && <MobileHeaderIconStrip />}
     </header>
   );
 }

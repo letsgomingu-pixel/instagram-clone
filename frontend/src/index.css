@@ -120,11 +120,11 @@ body {
 
 .mobile-header-safe {
   padding-top: env(safe-area-inset-top, 0px);
-  --mobile-header-stack: calc(92px + env(safe-area-inset-top, 0px));
+  --mobile-header-stack: calc(44px + env(safe-area-inset-top, 0px));
 }
 
 .mobile-sticky-below-header {
-  top: var(--mobile-header-stack, 92px);
+  top: var(--mobile-header-stack, 44px);
 }
 
 .mobile-bottom-nav-safe {

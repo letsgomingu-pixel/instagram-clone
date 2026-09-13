@@ -290,7 +290,7 @@ export function MessagesPage() {
 
   return (
     <div className="md:-mt-8 md:-mx-4 md:h-[calc(100vh)]">
-      <div className="bg-ig-surface border-ig-border md:border-t overflow-hidden h-[calc(100dvh-var(--mobile-header-stack,92px)-49px-env(safe-area-inset-bottom))] md:h-full">
+      <div className="bg-ig-surface border-ig-border md:border-t overflow-hidden h-[calc(100dvh-var(--mobile-header-stack,44px)-49px-env(safe-area-inset-bottom))] md:h-full">
         <div className="flex h-full">
           <div
             className={`w-full md:w-[397px] md:border-r border-ig-border shrink-0 h-full ${
