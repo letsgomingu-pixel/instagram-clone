@@ -49,7 +49,7 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
       return;
     }
     setError(null);
-    const immediate = files.map((file) => ({
+    const immediate: QueuedStory[] = files.map((file) => ({
       file,
       preview: URL.createObjectURL(file),
       mediaType: isVideoUpload(file) ? 'video' : 'image',
