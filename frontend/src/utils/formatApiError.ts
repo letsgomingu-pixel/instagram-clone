@@ -1,12 +1,26 @@
 import axios from 'axios';
 
-export function formatApiError(err: unknown, fallback: string): string {
-  if (!axios.isAxiosError(err)) {
-    return fallback;
+function getErrorPayload(err: unknown): { status?: number; detail?: unknown; hasResponse: boolean } {
+  if (axios.isAxiosError(err)) {
+    return {
+      status: err.response?.status,
+      detail: err.response?.data?.detail,
+      hasResponse: Boolean(err.response),
+    };
   }
+  if (err && typeof err === 'object' && 'response' in err) {
+    const response = (err as { response?: { status?: number; data?: { detail?: unknown } } }).response;
+    return {
+      status: response?.status,
+      detail: response?.data?.detail,
+      hasResponse: Boolean(response),
+    };
+  }
+  return { hasResponse: false };
+}
 
-  const status = err.response?.status;
-  const detail = err.response?.data?.detail;
+export function formatApiError(err: unknown, fallback: string): string {
+  const { status, detail, hasResponse } = getErrorPayload(err);
 
   if (status === 413) {
     return '동영상 용량이 서버 업로드 제한을 초과했습니다.';
@@ -44,7 +58,7 @@ export function formatApiError(err: unknown, fallback: string): string {
       .filter(Boolean);
     if (messages.length) return messages.join(', ');
   }
-  if (!err.response) {
+  if (!hasResponse) {
     return '네트워크 오류로 업로드에 실패했습니다.';
   }
   return status ? `${fallback} (HTTP ${status})` : fallback;

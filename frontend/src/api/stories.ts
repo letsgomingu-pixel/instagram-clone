@@ -1,14 +1,27 @@
 import type { Story, StoryViewerEntry } from '@/types';
 import { api } from './client';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
 export async function getStoriesFeed(): Promise<Story[]> {
   const { data } = await api.get<Story[]>('/stories/feed');
   return data;
 }
 
 export async function createStory(form: FormData): Promise<Story> {
-  const { data } = await api.post<Story>('/stories', form);
-  return data;
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_BASE_URL.replace(/\/$/, '')}/stories`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: form,
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw Object.assign(new Error('Story upload failed'), {
+      response: { status: response.status, data: payload },
+    });
+  }
+  return payload as Story;
 }
 
 export async function markStoryViewed(storyId: number): Promise<void> {

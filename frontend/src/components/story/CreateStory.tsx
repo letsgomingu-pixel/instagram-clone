@@ -1,5 +1,4 @@
-import { useCallback, useState } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useCallback, useRef, useState } from 'react';
 import { ImagePlus } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
 import { Button } from '@/components/common/Button';
@@ -24,9 +23,11 @@ interface QueuedStory {
 
 export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
   const { refreshStories, upsertStory } = useApp();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [queue, setQueue] = useState<QueuedStory[]>([]);
   const [overlays, setOverlays] = useState<StoryOverlay[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const reset = () => {
     setQueue((prev) => {
@@ -34,6 +35,8 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
       return [];
     });
     setOverlays([]);
+    setError(null);
+    if (inputRef.current) inputRef.current.value = '';
   };
 
   const handleClose = () => {
@@ -41,10 +44,14 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
     onClose();
   };
 
-  const onDrop = useCallback(async (acceptedFiles: File[]) => {
-    if (!acceptedFiles.length) return;
+  const queueFiles = useCallback(async (files: File[]) => {
+    if (!files.length) {
+      setError('사진 또는 동영상을 선택해 주세요.');
+      return;
+    }
+    setError(null);
     const next: QueuedStory[] = [];
-    for (const file of acceptedFiles) {
+    for (const file of files) {
       const normalized = await normalizeStoryFile(file);
       next.push({
         file: normalized,
@@ -59,24 +66,13 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
     setOverlays([]);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    onDropRejected: () => {
-      toast.error('지원하는 사진 또는 동영상 파일을 선택해 주세요.');
-    },
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.heic', '.heif'],
-      'video/*': ['.mp4', '.webm', '.mov', '.m4v'],
-    },
-    multiple: true,
-  });
-
   const handleShare = async () => {
     if (!queue.length) {
-      toast.error('미디어를 선택해주세요.');
+      setError('미디어를 선택해주세요.');
       return;
     }
     setUploading(true);
+    setError(null);
     try {
       let lastCreated = null;
       for (const [index, item] of queue.entries()) {
@@ -101,7 +97,9 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
       toast.success(queue.length > 1 ? `스토리 ${queue.length}개가 공유되었습니다!` : '스토리가 공유되었습니다!');
       handleClose();
     } catch (err) {
-      toast.error(formatApiError(err, '스토리 업로드에 실패했습니다.'));
+      const message = formatApiError(err, '스토리 업로드에 실패했습니다.');
+      setError(message);
+      toast.error(message);
     } finally {
       setUploading(false);
     }
@@ -115,34 +113,44 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
         <div className="w-[400px] max-w-[95vw]">
           <div className="flex items-center justify-center border-b border-ig-border h-[42px] relative">
             <h2 className="text-base font-semibold">스토리 만들기</h2>
-            <button onClick={handleClose} className="absolute left-3 text-sm" aria-label="닫기">
+            <button type="button" onClick={handleClose} className="absolute left-3 text-sm" aria-label="닫기">
               ✕
             </button>
           </div>
-          <div
-            {...getRootProps()}
-            className={`flex flex-col items-center justify-center h-[360px] cursor-pointer transition-colors ${
-              isDragActive ? 'bg-blue-50' : 'hover:bg-ig-secondary'
-            }`}
-          >
-            <input {...getInputProps()} />
+          <label className="flex flex-col items-center justify-center h-[360px] cursor-pointer hover:bg-ig-secondary">
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/*,video/*,.heic,.heif,.mov,.mp4,.webm,.m4v"
+              multiple
+              className="sr-only"
+              onChange={(event) => {
+                void queueFiles(Array.from(event.target.files ?? []));
+              }}
+            />
             <ImagePlus size={48} strokeWidth={1} className="text-ig-text-secondary mb-4" />
             <p className="text-xl font-light mb-2 text-center px-6">사진 또는 동영상을 선택하세요</p>
-            <p className="text-xs text-ig-text-secondary mb-3">JPG, PNG, MP4, MOV · 여러 개 선택 가능</p>
-            <Button variant="primary" size="md">컴퓨터에서 선택</Button>
-          </div>
+            <p className="text-xs text-ig-text-secondary mb-3">휴대폰 앨범에서 여러 장 선택 가능</p>
+            <Button type="button" variant="primary" size="md">
+              사진/동영상 선택
+            </Button>
+          </label>
+          {error && <p className="px-4 pb-4 text-sm text-ig-red text-center">{error}</p>}
         </div>
       ) : (
-        <StoryEditor
-          mediaUrl={current.preview}
-          mediaType={current.mediaType}
-          overlays={overlays}
-          onOverlaysChange={setOverlays}
-          onShare={handleShare}
-          onBack={reset}
-          uploading={uploading}
-          itemCount={queue.length}
-        />
+        <div>
+          {error && <p className="px-4 py-2 text-sm text-ig-red text-center border-b border-ig-border">{error}</p>}
+          <StoryEditor
+            mediaUrl={current.preview}
+            mediaType={current.mediaType}
+            overlays={overlays}
+            onOverlaysChange={setOverlays}
+            onShare={handleShare}
+            onBack={reset}
+            uploading={uploading}
+            itemCount={queue.length}
+          />
+        </div>
       )}
     </Modal>
   );

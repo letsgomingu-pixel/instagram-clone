@@ -148,9 +148,11 @@ def build_story_out(db: Session, story: Story, viewer: User, viewed_ids: set[int
         # for a DateTime(timezone=True) column; Postgres (production) hands
         # back aware ones. Normalize to UTC either way instead of assuming.
         if created.tzinfo is None:
+            # Naive DB timestamps are unreliable across SQLite/Postgres.
+            # Prefer showing a just-uploaded item over hiding it.
             created = created.replace(tzinfo=timezone.utc)
-        else:
-            created = created.astimezone(timezone.utc)
+            return now - created < timedelta(hours=48)
+        created = created.astimezone(timezone.utc)
         return now - created < cutoff
 
     live_items = [i for i in story.items if _item_is_live(i)]

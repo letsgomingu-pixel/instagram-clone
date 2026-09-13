@@ -137,6 +137,7 @@ export default function App() {
 
           <Toaster
             position="top-center"
+            containerStyle={{ zIndex: 10000 }}
             toastOptions={{
               style: {
                 background: '#0D1B2A',

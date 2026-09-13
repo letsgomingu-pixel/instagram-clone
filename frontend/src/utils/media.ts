@@ -33,7 +33,12 @@ export async function normalizeStoryFile(file: File): Promise<File> {
   if (!looksLikeImage) return file;
 
   try {
-    const bitmap = await createImageBitmap(file);
+    const bitmap = await Promise.race([
+      createImageBitmap(file),
+      new Promise<ImageBitmap>((_, reject) => {
+        window.setTimeout(() => reject(new Error('image convert timeout')), 4000);
+      }),
+    ]);
     const scale = Math.min(1, STORY_IMAGE_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
