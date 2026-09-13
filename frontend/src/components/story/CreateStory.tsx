@@ -43,6 +43,10 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
     onClose();
   };
 
+  const openFilePicker = () => {
+    inputRef.current?.click();
+  };
+
   const queueFiles = useCallback(async (files: File[]) => {
     if (!files.length) {
       setError('사진 또는 동영상을 선택해 주세요.');
@@ -116,26 +120,29 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
               ✕
             </button>
           </div>
-          <div className="relative h-[360px] hover:bg-ig-secondary">
-            <div className="flex h-full flex-col items-center justify-center pointer-events-none">
-              <ImagePlus size={48} strokeWidth={1} className="text-ig-text-secondary mb-4" />
-              <p className="text-xl font-light mb-2 text-center px-6">사진 또는 동영상을 선택하세요</p>
-              <p className="text-xs text-ig-text-secondary mb-3">휴대폰 앨범에서 여러 장 선택 가능</p>
-              <span className="inline-flex h-8 items-center rounded-xl bg-ig-primary px-4 text-sm font-semibold text-white">
-                사진/동영상 선택
-              </span>
-            </div>
+          <div className="flex h-[360px] flex-col items-center justify-center">
             <input
               ref={inputRef}
               type="file"
               accept="image/*,video/*,.heic,.heif,.mov,.mp4,.webm,.m4v"
               multiple
-              aria-label="사진 또는 동영상 선택"
-              className="absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0"
+              tabIndex={-1}
+              aria-hidden
+              className="pointer-events-none absolute h-px w-px opacity-0"
               onChange={(event) => {
                 void queueFiles(Array.from(event.target.files ?? []));
               }}
             />
+            <ImagePlus size={48} strokeWidth={1} className="text-ig-text-secondary mb-4" />
+            <p className="text-xl font-light mb-2 text-center px-6">사진 또는 동영상을 선택하세요</p>
+            <p className="text-xs text-ig-text-secondary mb-3">휴대폰 앨범에서 여러 장 선택 가능</p>
+            <button
+              type="button"
+              onClick={openFilePicker}
+              className="inline-flex h-8 items-center rounded-xl bg-ig-primary px-4 text-sm font-semibold text-white hover:bg-ig-primary-hover"
+            >
+              사진/동영상 선택
+            </button>
           </div>
           {error && <p className="px-4 pb-4 text-sm text-ig-red text-center">{error}</p>}
         </div>
