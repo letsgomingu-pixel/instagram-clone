@@ -15,6 +15,7 @@ interface StoryEditorProps {
   onShare: () => void;
   onBack: () => void;
   uploading: boolean;
+  itemCount?: number;
 }
 
 function newOverlayId() {
@@ -29,6 +30,7 @@ export function StoryEditor({
   onShare,
   onBack,
   uploading,
+  itemCount = 1,
 }: StoryEditorProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showStickers, setShowStickers] = useState(false);
@@ -83,7 +85,9 @@ export function StoryEditor({
         <button onClick={onBack} className="absolute left-3 text-sm" aria-label="뒤로">
           ←
         </button>
-        <h2 className="text-base font-semibold">스토리 편집</h2>
+        <h2 className="text-base font-semibold">
+          {itemCount > 1 ? `스토리 편집 · ${itemCount}개` : '스토리 편집'}
+        </h2>
         <button
           onClick={onShare}
           disabled={uploading}

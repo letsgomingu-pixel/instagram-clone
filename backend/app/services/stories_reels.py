@@ -183,7 +183,9 @@ def get_stories_feed(db: Session, viewer: User) -> list[StoryOut]:
 
     result: list[StoryOut] = []
     for story in stories:
-        result.append(build_story_out(db, story, viewer, viewed_ids))
+        out = build_story_out(db, story, viewer, viewed_ids)
+        if out.items:
+            result.append(out)
     return result
 
 

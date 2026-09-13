@@ -17,6 +17,46 @@ function getApiOrigin(): string {
 }
 
 const VIDEO_EXT = /\.(mp4|webm|mov|m4v)(\?|$)/i;
+const IMAGE_EXT = /\.(jpe?g|png|webp|gif|heic|heif|bmp)$/i;
+const STORY_IMAGE_MAX_EDGE = 1920;
+
+export function isVideoUpload(file: File): boolean {
+  return file.type.startsWith('video/') || VIDEO_EXT.test(file.name);
+}
+
+/** Convert phone-camera photos (HEIC, huge JPEGs) to a JPEG the API accepts. */
+export async function normalizeStoryFile(file: File): Promise<File> {
+  if (isVideoUpload(file)) return file;
+
+  const looksLikeImage =
+    file.type.startsWith('image/') || IMAGE_EXT.test(file.name) || !file.type;
+  if (!looksLikeImage) return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, STORY_IMAGE_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      bitmap.close();
+      return file;
+    }
+    ctx.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/jpeg', 0.85);
+    });
+    if (!blob) return file;
+    const base = file.name.replace(/\.[^.]+$/, '') || 'story';
+    return new File([blob], `${base}.jpg`, { type: 'image/jpeg' });
+  } catch {
+    return file;
+  }
+}
 
 export function isVideoMediaUrl(url?: string | null): boolean {
   if (!url) return false;

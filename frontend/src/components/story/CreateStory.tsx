@@ -7,6 +7,8 @@ import { StoryEditor } from '@/components/story/StoryEditor';
 import * as storiesApi from '@/api/stories';
 import { useApp } from '@/contexts/AppContext';
 import type { StoryOverlay } from '@/types';
+import { formatApiError } from '@/utils/formatApiError';
+import { isVideoUpload, normalizeStoryFile } from '@/utils/media';
 import toast from 'react-hot-toast';
 
 interface CreateStoryModalProps {
@@ -14,19 +16,23 @@ interface CreateStoryModalProps {
   onClose: () => void;
 }
 
+interface QueuedStory {
+  file: File;
+  preview: string;
+  mediaType: 'image' | 'video';
+}
+
 export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
   const { refreshStories } = useApp();
-  const [preview, setPreview] = useState<string | null>(null);
-  const [mediaFile, setMediaFile] = useState<File | null>(null);
-  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+  const [queue, setQueue] = useState<QueuedStory[]>([]);
   const [overlays, setOverlays] = useState<StoryOverlay[]>([]);
   const [uploading, setUploading] = useState(false);
 
   const reset = () => {
-    if (preview) URL.revokeObjectURL(preview);
-    setPreview(null);
-    setMediaFile(null);
-    setMediaType('image');
+    setQueue((prev) => {
+      prev.forEach((item) => URL.revokeObjectURL(item.preview));
+      return [];
+    });
     setOverlays([]);
   };
 
@@ -35,52 +41,66 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
     onClose();
   };
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
-    const isVideo = file.type.startsWith('video/');
-    setMediaFile(file);
-    setMediaType(isVideo ? 'video' : 'image');
-    setPreview(URL.createObjectURL(file));
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    if (!acceptedFiles.length) return;
+    const next: QueuedStory[] = [];
+    for (const file of acceptedFiles) {
+      const normalized = await normalizeStoryFile(file);
+      next.push({
+        file: normalized,
+        preview: URL.createObjectURL(normalized),
+        mediaType: isVideoUpload(normalized) ? 'video' : 'image',
+      });
+    }
+    setQueue((prev) => {
+      prev.forEach((item) => URL.revokeObjectURL(item.preview));
+      return next;
+    });
     setOverlays([]);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp'],
-      'video/*': ['.mp4', '.webm', '.mov'],
+    onDropRejected: () => {
+      toast.error('지원하는 사진 또는 동영상 파일을 선택해 주세요.');
     },
-    maxFiles: 1,
-    multiple: false,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.heic', '.heif'],
+      'video/*': ['.mp4', '.webm', '.mov', '.m4v'],
+    },
+    multiple: true,
   });
 
   const handleShare = async () => {
-    if (!mediaFile) {
+    if (!queue.length) {
       toast.error('미디어를 선택해주세요.');
       return;
     }
     setUploading(true);
     try {
-      const form = new FormData();
-      form.append('media', mediaFile);
-      if (overlays.length > 0) {
-        form.append('overlays', JSON.stringify(overlays));
+      for (const [index, item] of queue.entries()) {
+        const form = new FormData();
+        form.append('media', item.file);
+        if (index === 0 && overlays.length > 0) {
+          form.append('overlays', JSON.stringify(overlays));
+        }
+        await storiesApi.createStory(form);
       }
-      await storiesApi.createStory(form);
       await refreshStories();
-      toast.success('스토리가 공유되었습니다!');
+      toast.success(queue.length > 1 ? `스토리 ${queue.length}개가 공유되었습니다!` : '스토리가 공유되었습니다!');
       handleClose();
-    } catch {
-      toast.error('스토리 업로드에 실패했습니다.');
+    } catch (err) {
+      toast.error(formatApiError(err, '스토리 업로드에 실패했습니다.'));
     } finally {
       setUploading(false);
     }
   };
 
+  const current = queue[0];
+
   return (
     <Modal isOpen={isOpen} onClose={handleClose} size="md" showClose={false}>
-      {!preview ? (
+      {!current ? (
         <div className="w-[400px] max-w-[95vw]">
           <div className="flex items-center justify-center border-b border-ig-border h-[42px] relative">
             <h2 className="text-base font-semibold">스토리 만들기</h2>
@@ -97,19 +117,20 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
             <input {...getInputProps()} />
             <ImagePlus size={48} strokeWidth={1} className="text-ig-text-secondary mb-4" />
             <p className="text-xl font-light mb-2 text-center px-6">사진 또는 동영상을 선택하세요</p>
-            <p className="text-xs text-ig-text-secondary mb-3">JPG, PNG, MP4, WebM</p>
+            <p className="text-xs text-ig-text-secondary mb-3">JPG, PNG, MP4, MOV · 여러 개 선택 가능</p>
             <Button variant="primary" size="md">컴퓨터에서 선택</Button>
           </div>
         </div>
       ) : (
         <StoryEditor
-          mediaUrl={preview}
-          mediaType={mediaType}
+          mediaUrl={current.preview}
+          mediaType={current.mediaType}
           overlays={overlays}
           onOverlaysChange={setOverlays}
           onShare={handleShare}
           onBack={reset}
           uploading={uploading}
+          itemCount={queue.length}
         />
       )}
     </Modal>

@@ -18,6 +18,18 @@ export function formatApiError(err: unknown, fallback: string): string {
     return '서버 업로드 처리 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요.';
   }
   if (typeof detail === 'string' && detail.trim()) {
+    if (/unsupported media type/i.test(detail)) {
+      return '지원하지 않는 파일 형식입니다. JPG, PNG, MP4, MOV로 올려 주세요.';
+    }
+    if (/invalid image file/i.test(detail)) {
+      return '사진을 읽을 수 없습니다. JPG 또는 PNG로 다시 올려 주세요.';
+    }
+    if (/heic|heif/i.test(detail)) {
+      return 'HEIC 사진은 JPG로 변환한 뒤 올려 주세요.';
+    }
+    if (/file exceeds/i.test(detail)) {
+      return '사진 용량이 너무 큽니다. 더 작은 파일로 올려 주세요.';
+    }
     return detail;
   }
   if (Array.isArray(detail)) {

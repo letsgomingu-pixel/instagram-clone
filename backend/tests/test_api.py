@@ -580,6 +580,34 @@ def test_create_story_video(auth_headers):
     assert item["image_url"].endswith((".mp4", ".webm", ".mov"))
 
 
+def test_create_story_accepts_generic_content_type(auth_headers):
+    image = client.post(
+        "/api/v1/stories",
+        headers=auth_headers,
+        files={"media": ("story.jpg", _make_image_bytes(), "application/octet-stream")},
+    )
+    assert image.status_code == 201, image.text
+    assert image.json()["items"][-1]["media_type"] == "image"
+
+    video = client.post(
+        "/api/v1/stories",
+        headers=auth_headers,
+        files={"media": ("story.mp4", _make_video_bytes(), "application/octet-stream")},
+    )
+    assert video.status_code == 201, video.text
+    assert video.json()["items"][-1]["media_type"] == "video"
+
+
+def test_create_story_accepts_empty_content_type(auth_headers):
+    r = client.post(
+        "/api/v1/stories",
+        headers=auth_headers,
+        files={"media": ("phone-photo.jpg", _make_image_bytes(), "")},
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["items"][-1]["media_type"] == "image"
+
+
 def test_reels_feed(auth_headers):
     r = client.get("/api/v1/reels/feed", headers=auth_headers)
     assert r.status_code == 200

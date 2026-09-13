@@ -12,6 +12,9 @@ from app.config import settings
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
 ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime"}
 ALLOWED_TYPES = ALLOWED_IMAGE_TYPES | ALLOWED_VIDEO_TYPES
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".heic", ".heif"}
+VIDEO_EXTENSIONS = {".mp4", ".m4v", ".webm", ".mov"}
+HEIC_BRANDS = {b"heic", b"heix", b"heif", b"mif1", b"msf1"}
 MAX_IMAGE_BYTES = settings.max_upload_size_mb * 1024 * 1024
 MAX_VIDEO_BYTES = settings.max_video_upload_size_mb * 1024 * 1024
 
@@ -68,6 +71,9 @@ def save_image(upload: UploadFile, subdir: str) -> str:
     if len(data) < 32:
         raise HTTPException(status_code=400, detail="Invalid image file")
 
+    if len(data) >= 12 and data[4:8] == b"ftyp" and data[8:12] in HEIC_BRANDS:
+        raise HTTPException(status_code=400, detail="HEIC photos are not supported")
+
     try:
         with Image.open(BytesIO(data)) as img:
             img = img.convert("RGB")
@@ -120,13 +126,50 @@ def save_video(upload: UploadFile, subdir: str) -> str:
     return _store_bytes(data, subdir, filename, content_type)
 
 
-def save_story_media(upload: UploadFile, subdir: str = "stories") -> tuple[str, str]:
-    content_type = upload.content_type or ""
-    if content_type.startswith("video/"):
-        return save_video(upload, subdir), "video"
-    if content_type.startswith("image/"):
-        return save_image(upload, subdir), "image"
+def _file_suffix(filename: str | None) -> str:
+    return Path(filename or "").suffix.lower()
+
+
+def detect_media_kind(header: bytes, content_type: str | None, filename: str | None) -> str:
+    """Classify an upload from MIME, filename, or magic bytes.
+
+    Mobile browsers (especially iOS) often send an empty or generic
+    Content-Type. Relying on `image/*` / `video/*` prefixes alone dropped
+    those files with 400 before they could be saved.
+    """
+    mime = (content_type or "").split(";")[0].strip().lower()
+    suffix = _file_suffix(filename)
+
+    if mime.startswith("video/") or suffix in VIDEO_EXTENSIONS:
+        return "video"
+    if mime.startswith("image/") or suffix in IMAGE_EXTENSIONS:
+        return "image"
+
+    if len(header) >= 12:
+        if header[:3] == b"\xff\xd8\xff" or header[:8] == b"\x89PNG\r\n\x1a\n":
+            return "image"
+        if header[:4] == b"RIFF" and header[8:12] == b"WEBP":
+            return "image"
+        if header[4:8] == b"ftyp":
+            return "image" if header[8:12] in HEIC_BRANDS else "video"
+        if header[:4] == b"\x1aE\xdf\xa3":
+            return "video"
+
+    if mime in {"", "application/octet-stream", "binary/octet-stream"}:
+        raise HTTPException(status_code=400, detail="Unsupported media type")
     raise HTTPException(status_code=400, detail="Unsupported media type")
+
+
+def save_story_media(upload: UploadFile, subdir: str = "stories") -> tuple[str, str]:
+    header = upload.file.read(64)
+    try:
+        upload.file.seek(0)
+    except OSError:
+        pass
+    kind = detect_media_kind(header, upload.content_type, upload.filename)
+    if kind == "video":
+        return save_video(upload, subdir), "video"
+    return save_image(upload, subdir), "image"
 
 
 def save_post_media(upload: UploadFile, subdir: str = "posts") -> tuple[str, str]:
