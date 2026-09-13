@@ -85,6 +85,8 @@ interface AppContextValue {
 
   refreshStories: () => Promise<void>;
 
+  upsertStory: (story: Story) => void;
+
   refreshReels: () => Promise<void>;
 
   refreshSuggestedUsers: (limit?: number) => Promise<void>;
@@ -442,6 +444,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setStories(data);
 
   }, [isAuthenticated]);
+
+  const upsertStory = useCallback((story: Story) => {
+    setStories((prev) => {
+      const index = prev.findIndex(
+        (item) => item.id === story.id || item.user.id === story.user.id,
+      );
+      if (index < 0) return [story, ...prev];
+      const next = [...prev];
+      next[index] = story;
+      return next;
+    });
+  }, []);
 
 
 
@@ -979,6 +993,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       refreshStories,
 
+      upsertStory,
+
       refreshReels,
 
       refreshSuggestedUsers,
@@ -1090,6 +1106,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       loadMoreExplore,
 
       refreshStories,
+
+      upsertStory,
 
       refreshReels,
 

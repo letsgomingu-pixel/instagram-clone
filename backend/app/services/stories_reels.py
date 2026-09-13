@@ -140,16 +140,20 @@ def build_story_out(db: Session, story: Story, viewer: User, viewed_ids: set[int
     now = datetime.now(timezone.utc)
     cutoff = timedelta(hours=STORY_TTL_HOURS)
 
-    def _item_age(item: StoryItem) -> timedelta:
+    def _item_is_live(item: StoryItem) -> bool:
         created = item.created_at
+        if created is None:
+            return True
         # SQLite (used in local/dev setups) hands datetimes back naive even
         # for a DateTime(timezone=True) column; Postgres (production) hands
         # back aware ones. Normalize to UTC either way instead of assuming.
         if created.tzinfo is None:
             created = created.replace(tzinfo=timezone.utc)
-        return now - created
+        else:
+            created = created.astimezone(timezone.utc)
+        return now - created < cutoff
 
-    live_items = [i for i in story.items if _item_age(i) < cutoff]
+    live_items = [i for i in story.items if _item_is_live(i)]
     items = sorted(live_items, key=lambda i: i.created_at)
     liked_ids = _liked_story_item_ids(db, viewer.id, [i.id for i in items])
     return StoryOut(
@@ -161,13 +165,12 @@ def build_story_out(db: Session, story: Story, viewer: User, viewed_ids: set[int
 
 
 def get_stories_feed(db: Session, viewer: User) -> list[StoryOut]:
-    now = datetime.now(timezone.utc)
     following_ids = get_following_ids(db, viewer.id)
     following_ids.add(viewer.id)
 
     stories = db.scalars(
         select(Story)
-        .where(Story.user_id.in_(following_ids), Story.expires_at > now)
+        .where(Story.user_id.in_(following_ids))
         .options(joinedload(Story.items))
         .order_by(Story.created_at.desc())
     ).unique().all()
@@ -199,11 +202,18 @@ def create_story(
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(hours=STORY_TTL_HOURS)
 
-    story = db.scalar(
+    story = db.scalars(
         select(Story)
-        .where(Story.user_id == user.id, Story.expires_at > now)
+        .where(Story.user_id == user.id)
         .options(joinedload(Story.items))
-    )
+        .order_by(Story.created_at.desc())
+    ).first()
+    if story is not None:
+        expires_at_value = story.expires_at
+        if expires_at_value is not None and expires_at_value.tzinfo is None:
+            expires_at_value = expires_at_value.replace(tzinfo=timezone.utc)
+        if expires_at_value is None or expires_at_value <= now:
+            story = None
 
     if story is None:
         story = Story(user_id=user.id, expires_at=expires_at, created_at=now)
@@ -222,7 +232,7 @@ def create_story(
         )
     )
     db.commit()
-    db.refresh(story)
+    db.expire_all()
     story = db.scalar(
         select(Story).where(Story.id == story.id).options(joinedload(Story.items))
     )

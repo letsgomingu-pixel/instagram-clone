@@ -88,7 +88,9 @@ export function ProfileHeader({
   // own profile. Match against the same `stories` list the story tray uses.
   const { stories, setActiveStoryIndex } = useApp();
 
-  const storyIndex = stories.findIndex((story) => story.user.username === user.username);
+  const storyIndex = stories.findIndex(
+    (story) => story.user.id === user.id || story.user.username === user.username,
+  );
 
   const hasActiveStory = storyIndex >= 0;
 

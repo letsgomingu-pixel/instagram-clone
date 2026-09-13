@@ -10,7 +10,7 @@ export function StoryBar() {
   const { requireAuth } = useRequireAuth();
 
   const ownStoryIndex = user
-    ? stories.findIndex((story) => story.user.username === user.username)
+    ? stories.findIndex((story) => story.user.id === user.id || story.user.username === user.username)
     : -1;
 
   const handleViewOwnStory = () => {
@@ -25,7 +25,9 @@ export function StoryBar() {
     requireAuth(() => setCreateStoryOpen(true));
   };
 
-  const otherStories = stories.filter((story) => story.user.username !== user?.username);
+  const otherStories = stories.filter(
+    (story) => story.user.id !== user?.id && story.user.username !== user?.username,
+  );
 
   return (
     <div className="feed-card mb-3">

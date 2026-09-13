@@ -23,7 +23,7 @@ interface QueuedStory {
 }
 
 export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
-  const { refreshStories } = useApp();
+  const { refreshStories, upsertStory } = useApp();
   const [queue, setQueue] = useState<QueuedStory[]>([]);
   const [overlays, setOverlays] = useState<StoryOverlay[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -78,15 +78,26 @@ export function CreateStoryModal({ isOpen, onClose }: CreateStoryModalProps) {
     }
     setUploading(true);
     try {
+      let lastCreated = null;
       for (const [index, item] of queue.entries()) {
         const form = new FormData();
-        form.append('media', item.file);
+        form.append(
+          'media',
+          item.file,
+          item.file.name || (item.mediaType === 'video' ? 'story.mp4' : 'story.jpg'),
+        );
         if (index === 0 && overlays.length > 0) {
           form.append('overlays', JSON.stringify(overlays));
         }
-        await storiesApi.createStory(form);
+        lastCreated = await storiesApi.createStory(form);
+        upsertStory(lastCreated);
       }
-      await refreshStories();
+      try {
+        await refreshStories();
+      } catch {
+        // Keep the story we just saved even if the feed refresh fails.
+      }
+      if (lastCreated) upsertStory(lastCreated);
       toast.success(queue.length > 1 ? `스토리 ${queue.length}개가 공유되었습니다!` : '스토리가 공유되었습니다!');
       handleClose();
     } catch (err) {

@@ -20,8 +20,10 @@ export function prepareMultipartRequest(config: InternalAxiosRequestConfig) {
 
   const headers = config.headers;
   if (headers && typeof headers.set === 'function') {
+    // Axios treats `false` as "let the browser set the multipart boundary".
+    // Deleting the header afterwards falls back to the instance default
+    // `application/json`, so FastAPI never sees the uploaded file.
     headers.set('Content-Type', false as unknown as string);
-    headers.delete('content-type');
   } else if (headers) {
     delete headers['Content-Type'];
     delete headers['content-type'];

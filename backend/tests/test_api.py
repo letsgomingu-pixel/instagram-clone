@@ -598,6 +598,21 @@ def test_create_story_accepts_generic_content_type(auth_headers):
     assert video.json()["items"][-1]["media_type"] == "video"
 
 
+def test_created_story_appears_in_feed(auth_headers):
+    created = client.post(
+        "/api/v1/stories",
+        headers=auth_headers,
+        files={"media": ("story.jpg", _make_image_bytes(), "image/jpeg")},
+    )
+    assert created.status_code == 201, created.text
+    new_item_id = created.json()["items"][-1]["id"]
+
+    feed = client.get("/api/v1/stories/feed", headers=auth_headers)
+    assert feed.status_code == 200, feed.text
+    own = next(story for story in feed.json() if story["user"]["username"] == "letsgomingu")
+    assert any(item["id"] == new_item_id for item in own["items"])
+
+
 def test_create_story_accepts_empty_content_type(auth_headers):
     r = client.post(
         "/api/v1/stories",
