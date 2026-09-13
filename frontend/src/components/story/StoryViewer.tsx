@@ -126,54 +126,21 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
   }, [storyIndex, itemIndex, item?.id]);
 
   useEffect(() => {
-    if (!item || isVideo || paused) return;
-
-    const startedAt = Date.now();
-    let advanced = false;
-    const interval = window.setInterval(() => {
-      const next = Math.min(100, ((Date.now() - startedAt) / IMAGE_STORY_DURATION) * 100);
-      setProgress(next);
-      if (next >= 100 && !advanced) {
-        advanced = true;
-        goNextRef.current();
-      }
-    }, 50);
-
-    return () => window.clearInterval(interval);
-  }, [item?.id, isVideo, paused]);
-
-  useEffect(() => {
     const video = videoRef.current;
     if (!item || !isVideo || !video) return;
 
-    const handleLoaded = () => {
-      video.currentTime = 0;
+    const play = () => {
       void video.play().catch(() => setVideoFailed(true));
     };
 
-    const handleTimeUpdate = () => {
-      if (!video.duration) return;
-      setProgress((video.currentTime / video.duration) * 100);
-    };
+    const handleError = () => setVideoFailed(true);
 
-    const handleEnded = () => {
-      goNextRef.current();
-    };
-
-    const handleError = () => {
-      setVideoFailed(true);
-    };
-
-    video.addEventListener('loadedmetadata', handleLoaded);
-    video.addEventListener('timeupdate', handleTimeUpdate);
-    video.addEventListener('ended', handleEnded);
+    video.addEventListener('loadedmetadata', play);
     video.addEventListener('error', handleError);
-    if (video.readyState >= 1) handleLoaded();
+    if (video.readyState >= 1) play();
 
     return () => {
-      video.removeEventListener('loadedmetadata', handleLoaded);
-      video.removeEventListener('timeupdate', handleTimeUpdate);
-      video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('loadedmetadata', play);
       video.removeEventListener('error', handleError);
     };
   }, [item?.id, isVideo]);
@@ -187,6 +154,54 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
       void video.play().catch(() => setVideoFailed(true));
     }
   }, [paused, isVideo]);
+
+  // Always auto-advance. Do not wait for video events — iOS often never
+  // fires them if autoplay is blocked, which left users stuck on a black slide.
+  useEffect(() => {
+    if (!item || paused) return;
+
+    const startedAt = Date.now();
+    let durationMs = IMAGE_STORY_DURATION;
+    let advanced = false;
+    let timeoutId = 0;
+
+    const advance = () => {
+      if (advanced) return;
+      advanced = true;
+      goNextRef.current();
+    };
+
+    const armTimeout = (ms: number) => {
+      window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(advance, Math.max(0, ms));
+    };
+
+    const syncProgress = () => {
+      setProgress(Math.min(100, ((Date.now() - startedAt) / durationMs) * 100));
+    };
+
+    const useVideoDuration = () => {
+      const video = videoRef.current;
+      if (!video || !Number.isFinite(video.duration) || video.duration < 0.4) return;
+      durationMs = video.duration * 1000;
+      armTimeout(durationMs - (Date.now() - startedAt));
+      syncProgress();
+    };
+
+    armTimeout(durationMs);
+    const intervalId = window.setInterval(syncProgress, 50);
+    const video = videoRef.current;
+    video?.addEventListener('loadedmetadata', useVideoDuration);
+    video?.addEventListener('ended', advance);
+    if (video && video.readyState >= 1) useVideoDuration();
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.clearInterval(intervalId);
+      video?.removeEventListener('loadedmetadata', useVideoDuration);
+      video?.removeEventListener('ended', advance);
+    };
+  }, [item?.id, paused, storyIndex, itemIndex]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -210,6 +225,7 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
   if (!story || !item) return null;
 
   const altText = `${story.user.username}의 스토리`;
+  const mediaUrl = resolveMediaUrl(item.image_url);
   const handleDeleteStory = async () => {
     if (!window.confirm('스토리를 삭제할까요?')) return;
     try {
@@ -263,7 +279,11 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
       ) : null}
 
       <div className="relative w-full max-w-[400px] h-full max-h-[100dvh] md:max-h-[90vh] md:rounded-xl overflow-hidden bg-black">
-        <div className="absolute top-2 left-2 right-2 z-10 flex gap-1" data-testid="story-progress">
+        <div
+          className="absolute top-2 left-2 right-2 z-10 flex gap-1"
+          data-testid="story-progress"
+          data-story-auto-advance="5s"
+        >
           {story.items.map((_, i) => (
             <div
               key={i}
@@ -288,25 +308,35 @@ export function StoryViewer({ initialIndex, onClose }: StoryViewerProps) {
           </div>
         </div>
 
-        {isVideo ? (
-          <video
-            ref={videoRef}
-            src={resolveMediaUrl(item.image_url)}
-            className={mediaClassName}
-            muted
-            playsInline
-            preload="auto"
-            aria-label={altText}
-            onError={() => setVideoFailed(true)}
-          />
-        ) : (
-          <MediaImage
-            src={item.image_url}
-            alt={altText}
-            className={mediaClassName}
-            draggable={false}
-          />
-        )}
+        <div
+          className="absolute inset-0 z-0 bg-black bg-center bg-cover"
+          style={
+            mediaUrl
+              ? { backgroundImage: `url("${mediaUrl.replace(/"/g, '')}")` }
+              : undefined
+          }
+        >
+          {isVideo ? (
+            <video
+              ref={videoRef}
+              src={mediaUrl}
+              className={mediaClassName}
+              muted
+              playsInline
+              autoPlay
+              preload="auto"
+              aria-label={altText}
+              onError={() => setVideoFailed(true)}
+            />
+          ) : (
+            <MediaImage
+              src={item.image_url}
+              alt={altText}
+              className={mediaClassName}
+              draggable={false}
+            />
+          )}
+        </div>
 
         <StoryOverlayLayer overlays={item.overlays ?? []} />
 
