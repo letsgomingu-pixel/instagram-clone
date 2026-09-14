@@ -5,7 +5,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import HTTPException, UploadFile
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 from app.config import settings
 
@@ -64,6 +64,18 @@ def _store_bytes(data: bytes, subdir: str, filename: str, content_type: str) -> 
     return f"/media/{subdir}/{filename}"
 
 
+def _flatten_to_rgb(img: Image.Image) -> Image.Image:
+    """JPEG has no alpha. Explorer shows transparent PNGs on white, so flatten
+    onto white rather than Pillow's default black — otherwise a white-looking
+    logo becomes a black circle and looks like the avatar never changed."""
+    img = ImageOps.exif_transpose(img) or img
+    if img.mode in {"RGBA", "LA"} or (img.mode == "P" and "transparency" in img.info):
+        rgba = img.convert("RGBA")
+        background = Image.new("RGBA", rgba.size, (255, 255, 255, 255))
+        return Image.alpha_composite(background, rgba).convert("RGB")
+    return img.convert("RGB")
+
+
 def save_image(upload: UploadFile, subdir: str) -> str:
     data = upload.file.read()
     if len(data) > MAX_IMAGE_BYTES:
@@ -76,7 +88,7 @@ def save_image(upload: UploadFile, subdir: str) -> str:
 
     try:
         with Image.open(BytesIO(data)) as img:
-            img = img.convert("RGB")
+            img = _flatten_to_rgb(img)
             buffer = BytesIO()
             img.save(buffer, format="JPEG", quality=85)
     except Exception as exc:

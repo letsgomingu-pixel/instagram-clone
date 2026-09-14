@@ -18,28 +18,65 @@ function getApiOrigin(): string {
 
 const VIDEO_EXT = /\.(mp4|webm|mov|m4v)(\?|$)/i;
 const IMAGE_EXT = /\.(jpe?g|png|webp|gif|heic|heif|bmp)$/i;
+const HEIC_EXT = /\.(heic|heif)$/i;
 const STORY_IMAGE_MAX_EDGE = 1920;
+export const AVATAR_IMAGE_MAX_EDGE = 1080;
 
 export function isVideoUpload(file: File): boolean {
   return file.type.startsWith('video/') || VIDEO_EXT.test(file.name);
 }
 
-/** Convert phone-camera photos (HEIC, huge JPEGs) to a JPEG the API accepts. */
-export async function normalizeStoryFile(file: File): Promise<File> {
-  if (isVideoUpload(file)) return file;
+export function isServerReadyImage(file: File): boolean {
+  const type = (file.type || '').split(';')[0].trim().toLowerCase();
+  if (type === 'image/png' || type === 'image/jpeg' || type === 'image/webp') return true;
+  return /\.(png|jpe?g|webp)$/i.test(file.name);
+}
 
-  const looksLikeImage =
-    file.type.startsWith('image/') || IMAGE_EXT.test(file.name) || !file.type;
-  if (!looksLikeImage) return file;
+function looksLikeImageFile(file: File): boolean {
+  if (!file.type || file.type === 'application/octet-stream' || file.type === 'binary/octet-stream') {
+    return true;
+  }
+  return file.type.startsWith('image/') || IMAGE_EXT.test(file.name) || HEIC_EXT.test(file.name);
+}
 
+function decodeWithHtmlImage(file: File): Promise<ImageBitmap> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      createImageBitmap(image)
+        .then(resolve)
+        .catch(reject)
+        .finally(() => URL.revokeObjectURL(url));
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('image decode failed'));
+    };
+    image.src = url;
+  });
+}
+
+async function decodeImageFile(file: File): Promise<ImageBitmap> {
   try {
-    const bitmap = await Promise.race([
+    return await Promise.race([
       createImageBitmap(file),
       new Promise<ImageBitmap>((_, reject) => {
         window.setTimeout(() => reject(new Error('image convert timeout')), 4000);
       }),
     ]);
-    const scale = Math.min(1, STORY_IMAGE_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+  } catch {
+    return decodeWithHtmlImage(file);
+  }
+}
+
+/** Convert phone-camera photos (HEIC, huge JPEGs) to a JPEG the API accepts. */
+export async function normalizeImageFile(file: File, maxEdge = STORY_IMAGE_MAX_EDGE): Promise<File> {
+  if (!looksLikeImageFile(file)) return file;
+
+  try {
+    const bitmap = await decodeImageFile(file);
+    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
     const canvas = document.createElement('canvas');
@@ -50,17 +87,24 @@ export async function normalizeStoryFile(file: File): Promise<File> {
       bitmap.close();
       return file;
     }
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
     ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close();
     const blob = await new Promise<Blob | null>((resolve) => {
       canvas.toBlob(resolve, 'image/jpeg', 0.85);
     });
     if (!blob) return file;
-    const base = file.name.replace(/\.[^.]+$/, '') || 'story';
+    const base = file.name.replace(/\.[^.]+$/, '') || 'photo';
     return new File([blob], `${base}.jpg`, { type: 'image/jpeg' });
   } catch {
     return file;
   }
+}
+
+export async function normalizeStoryFile(file: File): Promise<File> {
+  if (isVideoUpload(file)) return file;
+  return normalizeImageFile(file);
 }
 
 export function isVideoMediaUrl(url?: string | null): boolean {

@@ -27,9 +27,9 @@ export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
   webServer: [
     {
-      command: `"${python}" -m uvicorn app.main:app --port 8000`,
+      command: `"${python}" -m uvicorn app.main:app --port 8001`,
       cwd: path.join(root, 'backend'),
-      url: 'http://localhost:8000/api/v1/health',
+      url: 'http://localhost:8001/api/v1/health',
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },

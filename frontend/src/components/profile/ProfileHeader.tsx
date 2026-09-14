@@ -136,6 +136,24 @@ export function ProfileHeader({
 
               </button>
 
+            ) : isOwn ? (
+
+              <Link to="/settings/edit" aria-label="프로필 사진 바꾸기">
+
+                <Avatar
+
+                  src={user.avatar_url}
+
+                  alt={user.username}
+
+                  size="xl"
+
+                  className="h-[77px] w-[77px] md:h-[150px] md:w-[150px]"
+
+                />
+
+              </Link>
+
             ) : (
 
               <Avatar

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { User } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import { resolveMediaUrl } from '@/utils/media';
 
@@ -19,26 +20,34 @@ const sizeMap = {
   xl: 'h-[150px] w-[150px]',
 };
 
-function fallbackAvatar(alt: string) {
-  return `https://i.pravatar.cc/150?u=${encodeURIComponent(alt)}`;
-}
-
 export function Avatar({ src, alt, size = 'md', hasStory, viewed, className }: AvatarProps) {
   const [failed, setFailed] = useState(false);
   const resolved = resolveMediaUrl(src);
-  const imageSrc = !failed && resolved ? resolved : fallbackAvatar(alt);
+  const showImage = Boolean(resolved) && !failed;
 
   useEffect(() => {
     setFailed(false);
   }, [src]);
 
-  const img = (
+  const img = showImage ? (
     <img
-      src={imageSrc}
+      src={resolved}
       alt={alt}
       onError={() => setFailed(true)}
-      className={cn('rounded-full object-cover bg-ig-secondary', sizeMap[size], className)}
+      className={cn('rounded-full object-cover bg-white', sizeMap[size], className)}
     />
+  ) : (
+    <div
+      role="img"
+      aria-label={alt}
+      className={cn(
+        'rounded-full bg-ig-secondary flex items-center justify-center text-ig-text-secondary',
+        sizeMap[size],
+        className,
+      )}
+    >
+      <User className="w-1/2 h-1/2" />
+    </div>
   );
 
   if (!hasStory) return img;

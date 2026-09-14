@@ -35,6 +35,14 @@ def _make_image_bytes() -> bytes:
     return buf.getvalue()
 
 
+def _make_transparent_png_bytes() -> bytes:
+    buf = io.BytesIO()
+    img = Image.new("RGBA", (40, 40), (0, 0, 0, 0))
+    img.putpixel((20, 20), (0, 120, 255, 255))
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
 def _make_video_bytes() -> bytes:
     fixture = Path(__file__).resolve().parents[2] / "e2e" / "fixtures" / "test-video.mp4"
     if fixture.exists():
@@ -256,6 +264,21 @@ def test_upload_avatar_octet_stream(auth_headers):
     )
     assert r.status_code == 200, r.text
     assert r.json()["avatar_url"].startswith("/media/avatars/")
+
+
+def test_upload_avatar_transparent_png_uses_white_background(auth_headers):
+    r = client.post(
+        "/api/v1/users/me/avatar",
+        headers=auth_headers,
+        files={"avatar": ("logo.png", _make_transparent_png_bytes(), "image/png")},
+    )
+    assert r.status_code == 200, r.text
+    url = r.json()["avatar_url"]
+    assert url.startswith("/media/avatars/")
+    media = client.get(url)
+    assert media.status_code == 200, media.text
+    saved = Image.open(io.BytesIO(media.content)).convert("RGB")
+    assert saved.getpixel((0, 0)) == (255, 255, 255)
 
 
 def test_follow_creates_notification():
