@@ -1,4 +1,5 @@
 import { useDaumPostcode } from '@/hooks/useDaumPostcode';
+import { formatPhoneInput } from '@/utils/validateForm';
 
 interface AddressFieldsProps {
   phone: string;
@@ -70,10 +71,12 @@ export function AddressFields({
           id="address-phone"
           type="tel"
           placeholder="010-1234-5678"
-          value={phone}
-          onChange={(e) => onPhoneChange(e.target.value)}
+          value={formatPhoneInput(phone)}
+          onChange={(e) => onPhoneChange(formatPhoneInput(e.target.value))}
+          maxLength={13}
           className={inputClassName}
           autoComplete="tel"
+          inputMode="numeric"
         />
       </div>
 

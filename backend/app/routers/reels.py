@@ -11,7 +11,7 @@ from app.schemas.reel import ReelCommentOut, ReelLikeResponse, ReelOut, ReelRepo
 from app.services.stories_reels import build_reels_out, create_reel, get_reels_feed
 from app.services.users import build_user_out
 from app.utils.datetime_fmt import to_iso
-from app.utils.media import save_image, save_reel_placeholder_thumbnail, save_video
+from app.utils.media import save_reel_video
 from app.utils.pagination import PaginatedResponse, paginate, pagination_params
 
 from fastapi import File, Form, UploadFile
@@ -45,11 +45,7 @@ async def post_reel(
     caption: str | None = Form(None),
     audio_name: str | None = Form(None),
 ):
-    video_url = save_video(video, "reels")
-    if thumbnail is not None:
-        thumbnail_url = save_image(thumbnail, "reels")
-    else:
-        thumbnail_url = save_reel_placeholder_thumbnail("reels")
+    video_url, thumbnail_url = save_reel_video(video, thumbnail, "reels")
 
     return create_reel(
         db,
@@ -197,7 +193,7 @@ def delete_reel(reel_id: int, current_user: CurrentUser, db: DbSession):
     reel = db.get(Reel, reel_id)
     if not reel:
         raise HTTPException(status_code=404, detail="Reel not found")
-    if reel.user_id != current_user.id:
+    if reel.user_id != current_user.id and not current_user.is_admin:
         raise HTTPException(status_code=403, detail="Not allowed to delete this reel")
     db.delete(reel)
     db.commit()

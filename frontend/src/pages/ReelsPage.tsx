@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Music2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -15,6 +15,7 @@ import { MediaImage } from '@/components/common/MediaImage';
 import { CreateReelModal } from '@/components/reels/CreateReel';
 import { ReelCommentsPanel } from '@/components/reels/ReelCommentsModal';
 import { ReelOptionsMenu } from '@/components/reels/ReelOptionsMenu';
+import { ReelVideo } from '@/components/reels/ReelVideo';
 import * as reelsApi from '@/api/reels';
 import { reelShareUrl, shareUrl } from '@/utils/share';
 import { useApp } from '@/contexts/AppContext';
@@ -22,8 +23,25 @@ import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { formatCount } from '@/utils/formatDate';
 import { cn } from '@/utils/cn';
-import { resolveMediaUrl } from '@/utils/media';
 import type { Reel } from '@/types';
+
+const MD_UP = '(min-width: 768px)';
+
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(MD_UP).matches : false,
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia(MD_UP);
+    const update = () => setIsDesktop(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  return isDesktop;
+}
 
 interface ReelItemProps {
   reel: Reel;
@@ -32,24 +50,14 @@ interface ReelItemProps {
 
 function ReelMedia({ reel, isActive }: { reel: Reel; isActive: boolean }) {
   if (reel.video_url) {
-    return (
-      <video
-        src={resolveMediaUrl(reel.video_url)}
-        poster={resolveMediaUrl(reel.thumbnail_url)}
-        className={`w-full h-full object-contain transition-opacity ${isActive ? 'opacity-100' : 'opacity-90'}`}
-        muted
-        playsInline
-        loop
-        autoPlay={isActive}
-      />
-    );
+    return <ReelVideo src={reel.video_url} poster={reel.thumbnail_url} isActive={isActive} />;
   }
 
   return (
     <MediaImage
       src={reel.thumbnail_url}
       alt={reel.caption || '릴스'}
-      className={`w-full h-full object-cover transition-opacity ${isActive ? 'opacity-100' : 'opacity-90'}`}
+      className="absolute inset-0 h-full w-full object-cover"
     />
   );
 }
@@ -58,6 +66,8 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
   const { toggleReelLike, followUser, refreshReels } = useApp();
   const { user: currentUser } = useAuth();
   const { requireAuth } = useRequireAuth();
+  const isDesktop = useIsDesktop();
+  const navigate = useNavigate();
   const [showHeart, setShowHeart] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -86,17 +96,13 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
   };
 
   const handleDeleteReel = async () => {
-    if (!window.confirm('릴스를 삭제할까요?')) return;
-    try {
-      await reelsApi.deleteReel(reel.id);
-      toast.success('릴스가 삭제되었습니다.');
-      await refreshReels();
-    } catch {
-      toast.error('삭제에 실패했습니다.');
-    }
+    await reelsApi.deleteReel(reel.id);
+    toast.success('릴스가 삭제되었습니다.');
+    setMenuOpen(false);
+    await refreshReels();
   };
 
-  const actionButtons = (tone: 'reels' | 'default') => (
+  const actionButtons = (tone: 'reels' | 'default', showMenu: boolean) => (
     <>
       <button
         onClick={() => requireAuth(() => toggleReelLike(reel.id))}
@@ -135,11 +141,17 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
         >
           <PostMoreIcon size={REEL_ACTION_ICON_SIZE} tone={tone} />
         </button>
-        {menuOpen && (
+        {menuOpen && showMenu && (
           <ReelOptionsMenu
             reelId={reel.id}
-            isOwnReel={isOwnReel}
-            onDelete={() => void handleDeleteReel()}
+            isOwnReel={isOwnReel || Boolean(currentUser?.is_admin)}
+            onDelete={async () => {
+              try {
+                await handleDeleteReel();
+              } catch {
+                toast.error('삭제에 실패했습니다.');
+              }
+            }}
             onReport={!isOwnReel ? (reason) => reelsApi.reportReel(reel.id, reason) : undefined}
             onClose={() => setMenuOpen(false)}
           />
@@ -150,12 +162,24 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
 
   const captionBlock = (lightText: boolean) => (
     <>
-      <Link
-        to={`/profile/${reel.user.username}`}
-        className={cn('flex items-center gap-3 mb-3', lightText ? 'text-white' : 'text-ig-text')}
+      <div
+        className={cn(
+          'flex items-center gap-3 mb-3',
+          lightText ? 'text-white' : 'text-ig-text',
+          menuOpen && 'pointer-events-none',
+        )}
       >
-        <Avatar src={reel.user.avatar_url} alt={reel.user.username} size="sm" />
-        <span className="text-[14px] font-semibold hover:underline">{reel.user.username}</span>
+        <button
+          type="button"
+          className="flex items-center gap-3"
+          onClick={() => {
+            if (menuOpen) return;
+            navigate(`/profile/${reel.user.username}`);
+          }}
+        >
+          <Avatar src={reel.user.avatar_url} alt={reel.user.username} size="sm" />
+          <span className="text-[14px] font-semibold hover:underline">{reel.user.username}</span>
+        </button>
         {showFollow && (
           <button
             type="button"
@@ -170,7 +194,7 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
             팔로우
           </button>
         )}
-      </Link>
+      </div>
       {reel.caption && (
         <p className={cn('text-[14px] mb-2 line-clamp-2', lightText ? 'text-white' : 'text-ig-text')}>
           {reel.caption}
@@ -197,15 +221,15 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
         className="md:hidden relative w-full max-w-[420px] h-full overflow-hidden"
         onDoubleClick={handleDoubleClick}
       >
-        <ReelMedia reel={reel} isActive={isActive} />
+        <ReelMedia reel={reel} isActive={isActive && !isDesktop} />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60 pointer-events-none" />
         {showHeart && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <DoubleTapHeartIcon tone="reels" className="animate-heart-pop drop-shadow-lg" />
           </div>
         )}
-        <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5 z-10">
-          {actionButtons('reels')}
+        <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5 z-[50]">
+          {actionButtons('reels', !isDesktop)}
         </div>
         <div className="absolute bottom-0 left-0 right-14 p-4 z-10">{captionBlock(true)}</div>
       </div>
@@ -216,7 +240,7 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
           className="relative w-[360px] h-[640px] max-h-[85vh] rounded-lg overflow-hidden bg-black shrink-0"
           onDoubleClick={handleDoubleClick}
         >
-          <ReelMedia reel={reel} isActive={isActive} />
+          <ReelMedia reel={reel} isActive={isActive && isDesktop} />
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60 pointer-events-none" />
           {showHeart && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -225,7 +249,7 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
           )}
           <div className="absolute bottom-0 left-0 right-0 p-4 z-10">{captionBlock(true)}</div>
         </div>
-        <div className="flex flex-col items-center gap-6 self-end pb-24 shrink-0">{actionButtons('default')}</div>
+        <div className="hidden md:flex flex-col items-center gap-6 self-end pb-24 shrink-0 relative z-[50]">{actionButtons('default', isDesktop)}</div>
         {commentsOpen && (
           <div className="h-[640px] max-h-[85vh] w-[400px] rounded-xl border border-ig-border shadow-sm shrink-0 overflow-hidden">
             <ReelCommentsPanel reel={reel} isOpen onClose={() => setCommentsOpen(false)} />

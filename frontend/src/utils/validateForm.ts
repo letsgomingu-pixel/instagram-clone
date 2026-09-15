@@ -24,6 +24,20 @@ export function validatePassword(password: string): ValidationResult {
   return { valid: true };
 }
 
+/** Format Korean mobile numbers as 010-1234-5678 while typing. */
+export function formatPhoneInput(raw: string): string {
+  const digits = raw.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) return digits;
+  // 010 numbers are 11 digits (3-4-4). Others may be 10 (3-3-4) or 11 (3-4-4).
+  const useFourDigitMid = digits.startsWith('010') || digits.length > 10;
+  if (useFourDigitMid) {
+    if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
 export function validatePhone(phone: string): ValidationResult {
   const normalized = phone.trim();
   if (!normalized) return { valid: false, message: '휴대폰 번호를 입력해주세요.' };

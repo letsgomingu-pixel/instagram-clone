@@ -744,6 +744,30 @@ def test_create_reel_octet_stream_mime(auth_headers):
     assert r.json()["video_url"].endswith(".mp4")
 
 
+def test_faststart_mp4_moves_moov_before_mdat():
+    from app.utils.media import faststart_mp4
+
+    def atom(kind: bytes, payload: bytes) -> bytes:
+        return (8 + len(payload)).to_bytes(4, "big") + kind + payload
+
+    ftyp = atom(b"ftyp", b"isomiso2mp41")
+    mdat = atom(b"mdat", b"\x00" * 32)
+    moov = atom(b"moov", b"\x00" * 16)
+    original = ftyp + mdat + moov
+    assert original[4:8] == b"ftyp"
+    fixed = faststart_mp4(original)
+    kinds = []
+    pos = 0
+    while pos + 8 <= len(fixed):
+        size = int.from_bytes(fixed[pos : pos + 4], "big")
+        kinds.append(fixed[pos + 4 : pos + 8])
+        pos += size
+    assert kinds == [b"ftyp", b"moov", b"mdat"]
+    assert faststart_mp4(fixed) == fixed
+    garbage = b"\x00" * 2048
+    assert faststart_mp4(garbage) == garbage
+
+
 def test_security_login_sessions(auth_headers):
     r = client.get("/api/v1/users/me/security", headers=auth_headers)
     assert r.status_code == 200, r.text

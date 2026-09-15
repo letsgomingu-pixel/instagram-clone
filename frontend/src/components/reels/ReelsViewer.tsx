@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 import {
@@ -24,7 +24,7 @@ import {
 import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
 import { ReelCommentsPanel } from '@/components/reels/ReelCommentsModal';
-import { resolveMediaUrl } from '@/utils/media';
+import { ReelVideo } from '@/components/reels/ReelVideo';
 import { reelShareUrl, shareUrl } from '@/utils/share';
 import * as reelsApi from '@/api/reels';
 
@@ -59,6 +59,7 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
   const { user: currentUser } = useAuth();
 
   const { requireAuth } = useRequireAuth();
+  const navigate = useNavigate();
 
   const [index, setIndex] = useState(initialIndex);
 
@@ -180,25 +181,10 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
 
   const handleDeleteReel = async () => {
-
-    if (!window.confirm('릴스를 삭제할까요?')) return;
-
-    try {
-
-      await reelsApi.deleteReel(reel.id);
-
-      toast.success('릴스가 삭제되었습니다.');
-
-      await refreshReels();
-
-      onClose();
-
-    } catch {
-
-      toast.error('삭제에 실패했습니다.');
-
-    }
-
+    await reelsApi.deleteReel(reel.id);
+    toast.success('릴스가 삭제되었습니다.');
+    await refreshReels();
+    onClose();
   };
 
 
@@ -275,37 +261,13 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
         >
 
           {reel.video_url ? (
-
-            <video
-
-              src={resolveMediaUrl(reel.video_url)}
-
-              poster={resolveMediaUrl(reel.thumbnail_url)}
-
-              className="w-full h-full object-contain"
-
-              muted
-
-              playsInline
-
-              loop
-
-              autoPlay
-
-            />
-
+            <ReelVideo src={reel.video_url} poster={reel.thumbnail_url} isActive />
           ) : (
-
             <MediaImage
-
               src={reel.thumbnail_url}
-
               alt={reel.caption || '릴스'}
-
-              className="w-full h-full object-contain"
-
+              className="absolute inset-0 h-full w-full object-cover"
             />
-
           )}
 
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60 pointer-events-none" />
@@ -326,7 +288,7 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
 
 
-        <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5 z-10">
+        <div className="absolute right-3 bottom-24 z-[50] flex flex-col items-center gap-5">
 
           <button
 
@@ -385,8 +347,14 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
             {menuOpen && (
               <ReelOptionsMenu
                 reelId={reel.id}
-                isOwnReel={isOwnReel}
-                onDelete={() => void handleDeleteReel()}
+                isOwnReel={isOwnReel || Boolean(currentUser?.is_admin)}
+                onDelete={async () => {
+                  try {
+                    await handleDeleteReel();
+                  } catch {
+                    toast.error('삭제에 실패했습니다.');
+                  }
+                }}
                 onReport={
                   !isOwnReel
                     ? (reason) => reelsApi.reportReel(reel.id, reason)
@@ -402,33 +370,30 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
 
 
-        <div className="absolute bottom-0 left-0 right-14 p-4 z-10 text-white">
+        <div className={`absolute bottom-0 left-0 right-14 z-10 p-4 text-white${menuOpen ? ' pointer-events-none' : ''}`}>
 
-          <Link to={`/profile/${reel.user.username}`} className="flex items-center gap-3 mb-3">
-
-            <Avatar src={reel.user.avatar_url} alt={reel.user.username} size="sm" />
-
-            <span className="text-[14px] font-semibold hover:underline">{reel.user.username}</span>
-
+          <div className="mb-3 flex items-center gap-3">
+            <button
+              type="button"
+              className="flex items-center gap-3"
+              onClick={() => {
+                if (menuOpen) return;
+                navigate(`/profile/${reel.user.username}`);
+              }}
+            >
+              <Avatar src={reel.user.avatar_url} alt={reel.user.username} size="sm" />
+              <span className="text-[14px] font-semibold hover:underline">{reel.user.username}</span>
+            </button>
             {showFollow && (
-
               <button
-
                 type="button"
-
                 onClick={handleFollow}
-
-                className="ml-1 text-[14px] font-semibold border border-white rounded-lg px-3 py-1 hover:bg-white/10"
-
+                className="ml-1 rounded-lg border border-white px-3 py-1 text-[14px] font-semibold hover:bg-white/10"
               >
-
                 팔로우
-
               </button>
-
             )}
-
-          </Link>
+          </div>
 
 
 

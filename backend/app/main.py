@@ -9,10 +9,11 @@ from app.config import settings
 from app.db_init import init_db
 from app.routers import admin, auth, calls, cart, collections, hashtags, health, orders, payments, posts, reels, search, social, stories, users
 from app.services.admin_bootstrap import ensure_admin_user, remove_legacy_seed_test_user
-from app.utils.media import ensure_media_dirs
+from app.utils.media import ensure_media_dirs, start_local_mp4_repair
 
 init_db()
 ensure_media_dirs()
+start_local_mp4_repair()
 ensure_admin_user()
 if not settings.seed_demo_users:
     remove_legacy_seed_test_user()

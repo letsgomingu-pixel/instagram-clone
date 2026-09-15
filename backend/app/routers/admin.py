@@ -36,7 +36,7 @@ from app.services.posts import build_post_out
 from app.services.orders import build_admin_order_out, cancel_order_for_admin, list_admin_orders, update_admin_order
 from app.services.products import build_product_out, create_product_listing, update_product
 from app.utils.hashtags import extract_hashtags
-from app.utils.media import save_post_media
+from app.utils.media import repair_local_mp4_faststart, save_post_media
 from app.utils.pagination import PaginatedResponse, paginate, pagination_params
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -201,6 +201,12 @@ def admin_delete_reel(reel_id: int, _admin: AdminUser, db: DbSession):
     db.delete(reel)
     db.commit()
     return AdminMessageOut(message="Reel deleted")
+
+
+@router.post("/reels/repair-media", response_model=AdminMessageOut)
+def admin_repair_reel_media(_admin: AdminUser):
+    repair_local_mp4_faststart()
+    return AdminMessageOut(message="Reel videos repaired")
 
 
 @router.get("/orders", response_model=PaginatedResponse)

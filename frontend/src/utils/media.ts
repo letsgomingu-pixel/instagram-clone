@@ -107,6 +107,61 @@ export async function normalizeStoryFile(file: File): Promise<File> {
   return normalizeImageFile(file);
 }
 
+/** Grab a JPEG still from a video so Reels don't show a blank/black poster. */
+export async function captureVideoThumbnail(file: File): Promise<File | null> {
+  const url = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = 'auto';
+  video.src = url;
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const timer = window.setTimeout(() => reject(new Error('thumbnail timeout')), 8000);
+      const done = () => {
+        window.clearTimeout(timer);
+        resolve();
+      };
+      video.onloadeddata = done;
+      video.onerror = () => {
+        window.clearTimeout(timer);
+        reject(new Error('video load failed'));
+      };
+    });
+
+    if (!video.videoWidth || !video.videoHeight) return null;
+
+    const seekTo = Number.isFinite(video.duration) && video.duration > 0
+      ? Math.min(0.25, video.duration * 0.1)
+      : 0;
+    if (seekTo > 0) {
+      await new Promise<void>((resolve) => {
+        video.onseeked = () => resolve();
+        video.currentTime = seekTo;
+      });
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.drawImage(video, 0, 0);
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/jpeg', 0.85);
+    });
+    if (!blob) return null;
+    return new File([blob], 'thumbnail.jpg', { type: 'image/jpeg' });
+  } catch {
+    return null;
+  } finally {
+    video.removeAttribute('src');
+    video.load();
+    URL.revokeObjectURL(url);
+  }
+}
+
 export function isVideoMediaUrl(url?: string | null): boolean {
   if (!url) return false;
   return VIDEO_EXT.test(url);
