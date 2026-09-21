@@ -51,7 +51,7 @@ import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { InfoPage } from '@/pages/InfoPage';
 import { AdminReportsPage } from '@/pages/admin/AdminReportsPage';
 import { SeoProvider } from '@/seo';
-import { PwaProvider } from '@/pwa';
+import { PwaInstallBanner, PwaProvider } from '@/pwa';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,6 +69,7 @@ export default function App() {
           <BrowserRouter>
             <PwaProvider>
             <SeoProvider>
+            <PwaInstallBanner />
             <Routes>
               <Route element={<GuestRoute />}>
                 <Route path="/login" element={<LoginPage />} />

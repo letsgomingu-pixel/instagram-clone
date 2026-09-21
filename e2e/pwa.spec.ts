@@ -51,7 +51,7 @@ test.describe('PWA', () => {
       Object.defineProperty(navigator, 'maxTouchPoints', { configurable: true, value: 5 });
     });
     await page.goto('/');
-    await expect(page.locator('#pwa-static-hint')).toBeVisible();
+    await expect(page.getByTestId('pwa-install-card')).toBeVisible();
     await expect(page.getByText('앱처럼 사용하기').first()).toBeVisible();
   });
 });

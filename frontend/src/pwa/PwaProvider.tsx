@@ -78,41 +78,7 @@ export function PwaProvider({ children }: { children: ReactNode }) {
   const dismissHint = useCallback(() => {
     dismissInstallPrompt();
     setDismissed(true);
-    const box = document.getElementById('pwa-static-hint');
-    if (box) box.hidden = true;
   }, []);
-
-  useEffect(() => {
-    const box = document.getElementById('pwa-static-hint');
-    if (!box) return;
-    box.hidden = isStandalone || dismissed;
-  }, [isStandalone, dismissed]);
-
-  useEffect(() => {
-    const btn = document.getElementById('pwa-static-install');
-    if (!btn) return;
-    if (!deferred || isStandalone || dismissed) {
-      btn.hidden = true;
-      return;
-    }
-    btn.hidden = false;
-    const onClick = () => {
-      void (async () => {
-        await deferred.prompt();
-        const choice = await deferred.userChoice;
-        clearDeferredPrompt();
-        setDeferred(null);
-        if (choice.outcome === 'accepted') {
-          dismissInstallPrompt();
-          setDismissed(true);
-          const box = document.getElementById('pwa-static-hint');
-          if (box) box.hidden = true;
-        }
-      })();
-    };
-    btn.addEventListener('click', onClick);
-    return () => btn.removeEventListener('click', onClick);
-  }, [deferred, isStandalone, dismissed]);
 
   const canInstall = Boolean(deferred) && !isStandalone;
   const showInstallHint = !isStandalone && !dismissed;

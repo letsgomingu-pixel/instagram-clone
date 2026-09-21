@@ -8,6 +8,7 @@ import { PostCard } from '@/components/post/PostCard';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { PwaInstallCard } from '@/pwa';
 import type { FeedTab } from '@/types';
 
 const emptyMessages: Record<
@@ -49,6 +50,7 @@ export function HomePage() {
   if (loading) {
     return (
       <>
+        <PwaInstallCard />
         <div className="feed-card mb-3 animate-pulse">
           <div className="flex gap-4 px-4 py-4 overflow-hidden">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -74,6 +76,7 @@ export function HomePage() {
 
   return (
     <>
+      <PwaInstallCard />
       <StoryBar />
       <FeedTabs activeTab={feedTab} onChange={setFeedTab} />
 

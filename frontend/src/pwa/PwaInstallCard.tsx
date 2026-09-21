@@ -15,7 +15,7 @@ export function PwaInstallCard() {
   };
 
   return (
-    <div className="feed-card mb-3 px-4 py-3 flex items-start gap-3" data-testid="pwa-install-card">
+    <div className="feed-card mb-3 px-4 py-3 flex items-start gap-3 md:hidden" data-testid="pwa-install-card">
       <img src="/icon-192.png" alt="" className="h-11 w-11 rounded-xl shrink-0" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold">앱처럼 사용하기</p>
