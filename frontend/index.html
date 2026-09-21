@@ -2,14 +2,14 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- Open Graph (first — KakaoTalk / Facebook scrapers read early meta tags) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="i am not a fishmonger" />
     <meta property="og:url" content="https://www.iamnotafishmonger.com/" />
-    <meta property="og:title" content="i am not a fishmonger" />
-    <meta property="og:description" content="i am not a fishmonger - share photos and videos" />
+    <meta property="og:title" content="i am not a fishmonger | 수산물 도매·소매와 후기" />
+    <meta property="og:description" content="i am not a fishmonger에서 신선한 수산물을 도매·소매로 만나고 구매 후기를 공유하세요. 오징어, 꽃게, 조개, 새우, 회 등 제철 해산물을 한곳에서 주문할 수 있습니다." />
     <meta property="og:image" content="https://www.iamnotafishmonger.com/og-white.jpg" />
     <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:width" content="800" />
@@ -17,9 +17,20 @@
     <meta property="og:image:alt" content="i am not a fishmonger" />
     <meta property="og:locale" content="ko_KR" />
 
-    <meta name="description" content="i am not a fishmonger - share photos and videos" />
+    <meta name="description" content="i am not a fishmonger에서 신선한 수산물을 도매·소매로 만나고 구매 후기를 공유하세요. 오징어, 꽃게, 조개, 새우, 회 등 제철 해산물을 한곳에서 주문할 수 있습니다." />
+    <meta name="keywords" content="수산물, 해산물, 오징어, 꽃게, 조개, 새우, 회, 생선, 고등어, 갈치, 전복, 홍합, 굴, 낙지, 문어, 주꾸미, 대게, 수산물도매, 수산물소매, 제철수산물, 수산물후기, 해산물택배, 산지수산물" />
+    <meta name="author" content="i am not a fishmonger" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="theme-color" content="#fafafa" />
-    <title>i am not a fishmonger</title>
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="fishmonger" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="application-name" content="fishmonger" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-TileColor" content="#fafafa" />
+    <meta name="msapplication-TileImage" content="/icon-192.png" />
+    <title>i am not a fishmonger | 수산물 도매·소매와 후기</title>
     <link rel="canonical" href="https://www.iamnotafishmonger.com/" />
     <link rel="image_src" href="https://www.iamnotafishmonger.com/og-white.jpg" />
 
@@ -33,10 +44,39 @@
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="i am not a fishmonger" />
-    <meta name="twitter:description" content="i am not a fishmonger - share photos and videos" />
+    <meta name="twitter:title" content="i am not a fishmonger | 수산물 도매·소매와 후기" />
+    <meta name="twitter:description" content="i am not a fishmonger에서 신선한 수산물을 도매·소매로 만나고 구매 후기를 공유하세요. 오징어, 꽃게, 조개, 새우, 회 등 제철 해산물을 한곳에서 주문할 수 있습니다." />
     <meta name="twitter:image" content="https://www.iamnotafishmonger.com/og-white.jpg" />
     <meta name="twitter:image:alt" content="i am not a fishmonger" />
+
+    <link rel="alternate" hreflang="ko" href="https://www.iamnotafishmonger.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://www.iamnotafishmonger.com/" />
+
+    <script type="application/ld+json" id="seo-jsonld">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "name": "i am not a fishmonger",
+            "url": "https://www.iamnotafishmonger.com/",
+            "logo": "https://www.iamnotafishmonger.com/og-white.jpg",
+            "description": "i am not a fishmonger에서 신선한 수산물을 도매·소매로 만나고 구매 후기를 공유하세요."
+          },
+          {
+            "@type": "WebSite",
+            "name": "i am not a fishmonger",
+            "url": "https://www.iamnotafishmonger.com/",
+            "inLanguage": "ko-KR",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://www.iamnotafishmonger.com/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -63,6 +103,86 @@
     </noscript>
   </head>
   <body>
+    <div id="pwa-static-hint" role="region" aria-label="앱 설치">
+      <img src="/icon-192.png" width="40" height="40" alt="" />
+      <div class="pwa-static-hint__text">
+        <strong>앱처럼 사용하기</strong>
+        <span id="pwa-static-copy">브라우저 메뉴(⋮)에서 ‘홈 화면에 추가’ 또는 ‘앱 설치’를 선택하세요. 아이폰은 공유 → 홈 화면에 추가입니다.</span>
+      </div>
+      <button id="pwa-static-install" type="button" hidden>설치</button>
+      <button id="pwa-static-close" type="button" aria-label="닫기">닫기</button>
+    </div>
+    <style>
+      #pwa-static-hint {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px;
+        padding-top: calc(12px + env(safe-area-inset-top, 0px));
+        background: #0095f6;
+        color: #fff;
+        font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        z-index: 2147483647;
+      }
+      #pwa-static-hint[hidden] { display: none !important; }
+      #pwa-static-hint img { border-radius: 10px; flex-shrink: 0; background: #fff; }
+      .pwa-static-hint__text { min-width: 0; flex: 1; }
+      .pwa-static-hint__text strong { display: block; font-size: 15px; font-weight: 700; }
+      .pwa-static-hint__text span { display: block; margin-top: 2px; font-size: 12px; line-height: 1.4; color: rgba(255,255,255,0.92); }
+      #pwa-static-install {
+        flex-shrink: 0;
+        height: 32px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 10px;
+        background: #fff;
+        color: #0095f6;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      #pwa-static-close {
+        flex-shrink: 0;
+        border: 0;
+        background: transparent;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px;
+      }
+    </style>
+    <script>
+      (function () {
+        var box = document.getElementById('pwa-static-hint');
+        var copy = document.getElementById('pwa-static-copy');
+        var closeBtn = document.getElementById('pwa-static-close');
+        if (!box) return;
+        var standalone =
+          window.matchMedia('(display-mode: standalone)').matches ||
+          (window.navigator.standalone === true);
+        var dismissed = false;
+        try {
+          dismissed =
+            localStorage.getItem('pwa-install-dismissed-v3') === '1';
+        } catch (e) {}
+        if (standalone || dismissed) {
+          box.hidden = true;
+          return;
+        }
+        var ua = navigator.userAgent || '';
+        if (/KAKAOTALK|NAVER|FBAN|FBAV|Instagram|Line\//i.test(ua)) {
+          copy.textContent = '카카오톡 등 앱 안에서는 설치할 수 없습니다. Chrome 또는 Safari로 연 뒤 홈 화면에 추가하세요.';
+        } else if (/iphone|ipod|ipad/i.test(ua)) {
+          copy.textContent = '하단 공유 버튼을 누른 다음 ‘홈 화면에 추가’를 선택하세요.';
+        }
+        closeBtn.addEventListener('click', function () {
+          try { localStorage.setItem('pwa-install-dismissed-v3', '1'); } catch (e) {}
+          box.hidden = true;
+        });
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

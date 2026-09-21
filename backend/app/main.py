@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.db_init import init_db
-from app.routers import admin, auth, calls, cart, collections, hashtags, health, orders, payments, posts, reels, search, social, stories, users
+from app.routers import admin, auth, calls, cart, collections, hashtags, health, orders, payments, posts, reels, search, seo, social, stories, users
 from app.services.admin_bootstrap import ensure_admin_user, remove_legacy_seed_test_user
 from app.utils.media import ensure_media_dirs, start_local_mp4_repair
 
@@ -47,6 +47,7 @@ app.mount("/media", StaticFiles(directory=str(media_path)), name="media")
 
 prefix = "/api/v1"
 app.include_router(health.router, prefix=prefix, tags=["health"])
+app.include_router(seo.router, prefix=prefix, tags=["seo"])
 app.include_router(auth.router, prefix=prefix)
 app.include_router(users.router, prefix=prefix)
 app.include_router(posts.router, prefix=prefix)

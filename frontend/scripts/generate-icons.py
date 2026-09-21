@@ -94,6 +94,19 @@ def _load_bold_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
+def render_maskable(master: Image.Image, size: int) -> Image.Image:
+    """Adaptive-icon safe zone: keep the mark inside the inner ~72%."""
+    canvas = Image.new("RGBA", (size, size), BRAND_WHITE)
+    inner = int(size * 0.72)
+    ratio = min(inner / master.width, inner / master.height)
+    new_size = (max(1, int(master.width * ratio)), max(1, int(master.height * ratio)))
+    resized = master.resize(new_size, Image.Resampling.LANCZOS)
+    x = (size - new_size[0]) // 2
+    y = (size - new_size[1]) // 2
+    canvas.paste(resized, (x, y), resized)
+    return canvas
+
+
 def render_favicon_mark(size: int) -> Image.Image:
     img = Image.new("RGBA", (size, size), BRAND_WHITE)
     draw = ImageDraw.Draw(img)
@@ -151,6 +164,9 @@ def main() -> None:
     }
     for size, name in pwa_sizes.items():
         save_png(PUBLIC / name, master.resize((size, size), Image.Resampling.LANCZOS))
+
+    save_png(PUBLIC / "icon-maskable-192.png", render_maskable(master, 192))
+    save_png(PUBLIC / "icon-maskable-512.png", render_maskable(master, 512))
 
     landscape = render_og_landscape(master)
     square = render_og_square(master)

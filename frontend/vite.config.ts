@@ -11,8 +11,7 @@ export default defineConfig({
     },
   },
   server: {
-    // Listen on IPv6; Windows dual-stack also accepts IPv4 localhost connections.
-    host: '::',
+    host: true,
     port: 5173,
     open: false,
     proxy: {

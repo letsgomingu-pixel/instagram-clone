@@ -61,6 +61,10 @@ if [[ -f "$DEPLOY_PATH/deploy/patch-nginx-upload-limits.sh" ]]; then
   echo "==> nginx: patch upload limits (200M, certbot-safe)..."
   DEPLOY_PATH="$DEPLOY_PATH" bash "$DEPLOY_PATH/deploy/patch-nginx-upload-limits.sh"
 fi
+if [[ -f "$DEPLOY_PATH/deploy/patch-nginx-pwa.sh" ]]; then
+  echo "==> nginx: patch PWA/SEO static locations (certbot-safe)..."
+  DEPLOY_PATH="$DEPLOY_PATH" bash "$DEPLOY_PATH/deploy/patch-nginx-pwa.sh"
+fi
 
 systemctl restart nginx
 

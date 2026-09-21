@@ -6,6 +6,7 @@ import { GridCommentIcon, GridLikeIcon } from '@/components/post/PostActionIcons
 import { useApp } from '@/contexts/AppContext';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import * as hashtagsApi from '@/api/hashtags';
+import { DEFAULT_KEYWORDS, useSeo } from '@/seo';
 import type { Post } from '@/types';
 import { formatCount } from '@/utils/formatDate';
 
@@ -18,6 +19,11 @@ export function HashtagPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  useSeo({
+    title: `#${tag} 수산물`,
+    description: `#${tag} 태그가 달린 수산물·해산물 게시물 ${postCount.toLocaleString()}개를 확인하세요. 오징어, 꽃게, 조개, 새우, 회 등 제철 해산물을 찾아보세요.`,
+    keywords: `${tag}, ${DEFAULT_KEYWORDS}`,
+  });
 
   useEffect(() => {
     let cancelled = false;

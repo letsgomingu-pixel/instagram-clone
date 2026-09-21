@@ -1,11 +1,23 @@
 {
+  "id": "/",
   "name": "i am not a fishmonger",
   "short_name": "fishmonger",
-  "description": "i am not a fishmonger — 사진과 동영상을 공유하세요",
+  "description": "신선한 수산물 도매·소매와 구매 후기를 한곳에서",
+  "lang": "ko",
+  "dir": "ltr",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#fafafa",
   "theme_color": "#fafafa",
+  "categories": ["shopping", "social", "food"],
+  "prefer_related_applications": false,
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
   "icons": [
     {
       "src": "/icon-192.png",
@@ -20,10 +32,62 @@
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "홈",
+      "short_name": "홈",
+      "description": "수산물 상품과 후기 피드",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "검색",
+      "short_name": "검색",
+      "description": "오징어, 꽃게, 조개, 새우 등 수산물 검색",
+      "url": "/search",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "릴스",
+      "short_name": "릴스",
+      "description": "수산물 숏폼 영상",
+      "url": "/reels",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "장바구니",
+      "short_name": "장바구니",
+      "description": "담아 둔 수산물 상품",
+      "url": "/cart",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-image.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "i am not a fishmonger"
+    },
+    {
+      "src": "/og-white.jpg",
+      "sizes": "800x800",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "i am not a fishmonger"
     }
   ]
 }

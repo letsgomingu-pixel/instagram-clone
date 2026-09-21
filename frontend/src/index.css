@@ -24,10 +24,49 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
 html,
-body,
-#root {
+body {
   height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+#root {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior: none;
+  }
+}
+
+.pwa-standalone body {
+  overscroll-behavior: none;
+}
+
+.pwa-install-banner {
+  max-width: calc(100vw - 24px);
+}
+
+@media (min-width: 768px) {
+  .pwa-install-banner {
+    left: auto !important;
+    right: 16px !important;
+    top: auto !important;
+    bottom: 16px !important;
+    width: 360px;
+  }
 }
 
 body {

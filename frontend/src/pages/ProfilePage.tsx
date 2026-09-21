@@ -9,6 +9,7 @@ import { ProfileTaggedGrid } from '@/components/profile/ProfileTaggedGrid';
 import { FollowListModal } from '@/components/profile/FollowListModal';
 import * as usersApi from '@/api/users';
 import * as postsApi from '@/api/posts';
+import { DEFAULT_KEYWORDS, truncateSeo, useSeo } from '@/seo';
 import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/contexts/AppContext';
 import { useProfileMenu } from '@/contexts/ProfileMenuContext';
@@ -41,6 +42,22 @@ export function ProfilePage() {
   const [taggedHasMore, setTaggedHasMore] = useState(false);
   const [blockedByMe, setBlockedByMe] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useSeo(
+    !loading && !profileUser
+      ? { title: '프로필을 찾을 수 없습니다', noindex: true }
+      : profileUser
+        ? {
+            title: `${profileUser.full_name} (@${profileUser.username})`,
+            description:
+              truncateSeo(profileUser.bio || '') ||
+              `${profileUser.full_name}님의 수산물 상품과 구매 후기를 확인하세요.`,
+            keywords: `${profileUser.username}, ${profileUser.full_name}, ${DEFAULT_KEYWORDS}`,
+            image: profileUser.avatar_url || undefined,
+            noindex: !!profileUser.is_private,
+          }
+        : {},
+  );
 
   useEffect(() => {
     const tab = searchParams.get('tab');

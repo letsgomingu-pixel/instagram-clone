@@ -50,6 +50,8 @@ import { FindAccountPage } from '@/pages/FindAccountPage';
 import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { InfoPage } from '@/pages/InfoPage';
 import { AdminReportsPage } from '@/pages/admin/AdminReportsPage';
+import { SeoProvider } from '@/seo';
+import { PwaProvider } from '@/pwa';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +67,8 @@ export default function App() {
         <AppProvider>
           <ProfileMenuProvider>
           <BrowserRouter>
+            <PwaProvider>
+            <SeoProvider>
             <Routes>
               <Route element={<GuestRoute />}>
                 <Route path="/login" element={<LoginPage />} />
@@ -131,6 +135,8 @@ export default function App() {
 
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
+            </SeoProvider>
+            </PwaProvider>
           </BrowserRouter>
           </ProfileMenuProvider>
           <CallOverlay />

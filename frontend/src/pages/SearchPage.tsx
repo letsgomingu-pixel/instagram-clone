@@ -7,6 +7,7 @@ import { TabBar } from '@/components/post/FeedTabs';
 import { formatPrice } from '@/components/post/ProductInfo';
 import { useDebounce } from '@/hooks/useDebounce';
 import * as searchApi from '@/api/search';
+import { DEFAULT_KEYWORDS, useSeo } from '@/seo';
 import type { Product } from '@/types';
 import type { ProductSearchOut } from '@/types/search';
 
@@ -71,6 +72,17 @@ export function SearchPage() {
 
   const hasSearchInput =
     debouncedQuery.length >= 1 || storageFilter || availabilityFilter;
+
+  useSeo(
+    debouncedQuery.length >= 1
+      ? {
+          title: `${debouncedQuery} 수산물 검색`,
+          description: `${debouncedQuery} 관련 수산물·해산물 상품을 검색합니다. 오징어, 꽃게, 조개, 새우, 회 등 제철 해산물을 찾아보세요.`,
+          keywords: `${debouncedQuery}, ${DEFAULT_KEYWORDS}`,
+          noindex: true,
+        }
+      : {},
+  );
 
   useEffect(() => {
     if (!hasSearchInput) {

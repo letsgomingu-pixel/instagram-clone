@@ -17,6 +17,7 @@ import { ReelCommentsPanel } from '@/components/reels/ReelCommentsModal';
 import { ReelOptionsMenu } from '@/components/reels/ReelOptionsMenu';
 import { ReelVideo } from '@/components/reels/ReelVideo';
 import * as reelsApi from '@/api/reels';
+import { truncateSeo, useSeo } from '@/seo';
 import { reelShareUrl, shareUrl } from '@/utils/share';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -303,6 +304,20 @@ export function ReelsPage() {
     const reel = reels[activeIndex];
     if (reel) markReelViewed(reel.id);
   }, [activeIndex, reels, markReelViewed]);
+
+  const reel =
+    (reelId ? reels.find((item) => item.id === Number(reelId)) : undefined) ?? reels[activeIndex];
+  useSeo(
+    reel
+      ? {
+          title: truncateSeo(reel.caption || '', 50) || `${reel.user.username}님의 수산물 릴스`,
+          description:
+            truncateSeo(reel.caption || '') ||
+            `${reel.user.username}님의 수산물·해산물 릴스입니다. 제철 오징어, 꽃게, 조개, 새우, 회 소식을 영상으로 만나보세요.`,
+          image: reel.thumbnail_url || undefined,
+        }
+      : {},
+  );
 
   return (
     <>

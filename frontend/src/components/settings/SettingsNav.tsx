@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Download } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { cn } from '@/utils/cn';
+import { usePwa } from '@/pwa';
 
 const settingsNavItems = [
   { to: '/settings/edit', label: '프로필 편집' },
@@ -19,6 +21,9 @@ interface SettingsNavProps {
 }
 
 export function SettingsNav({ className }: SettingsNavProps) {
+  const { canInstall, isStandalone, isIos, isAndroid, showInstallHint, install } = usePwa();
+  const showInstall = showInstallHint;
+
   return (
     <nav
       className={cn(
@@ -45,6 +50,40 @@ export function SettingsNav({ className }: SettingsNavProps) {
             </NavLink>
           </li>
         ))}
+        {showInstall && (
+          <li>
+            <button
+              type="button"
+              onClick={() => {
+                if (canInstall) {
+                  void install();
+                  return;
+                }
+                if (isIos) {
+                  toast('공유 버튼에서 ‘홈 화면에 추가’를 선택하세요.');
+                  return;
+                }
+                if (isAndroid) {
+                  toast('브라우저 메뉴(⋮)에서 ‘홈 화면에 추가’ 또는 ‘앱 설치’를 선택하세요.');
+                  return;
+                }
+                toast('브라우저 메뉴에서 홈 화면에 추가할 수 있습니다.');
+              }}
+              className="flex w-full items-center justify-between px-4 md:px-6 py-4 md:py-3 text-[16px] border-l-2 border-transparent text-ig-text hover:bg-ig-hover"
+            >
+              <span className="flex items-center gap-2">
+                <Download size={16} />
+                앱 설치
+              </span>
+              <ChevronRight size={16} className="md:hidden text-ig-text-secondary" />
+            </button>
+          </li>
+        )}
+        {isStandalone && (
+          <li className="px-4 md:px-6 py-4 md:py-3 text-[13px] text-ig-text-secondary">
+            홈 화면 앱으로 실행 중입니다.
+          </li>
+        )}
       </ul>
     </nav>
   );

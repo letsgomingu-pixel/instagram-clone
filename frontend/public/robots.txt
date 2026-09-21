@@ -1,0 +1,44 @@
+# i am not a fishmonger
+# https://www.iamnotafishmonger.com
+
+User-agent: *
+Allow: /
+Allow: /explore
+Allow: /explore/tags/
+Allow: /reels
+Allow: /info/
+Allow: /p/
+Allow: /profile/
+Allow: /search
+Allow: /login
+Allow: /signup
+
+# Private / authenticated surfaces (personal data)
+Disallow: /admin
+Disallow: /admin/
+Disallow: /messages
+Disallow: /messages/
+Disallow: /settings
+Disallow: /settings/
+Disallow: /checkout
+Disallow: /checkout/
+Disallow: /cart
+Disallow: /orders
+Disallow: /orders/
+Disallow: /archive
+Disallow: /notifications
+Disallow: /profile/edit
+Disallow: /collections
+Disallow: /collections/
+Disallow: /reset-password
+Disallow: /find-account
+Disallow: /forgot-password
+
+# Search result queries, API, and admin docs
+Disallow: /search?
+Disallow: /api/
+Disallow: /docs
+Disallow: /redoc
+Disallow: /openapi.json
+
+Sitemap: https://www.iamnotafishmonger.com/sitemap.xml
