@@ -1,4 +1,4 @@
-const DISMISS_KEY = 'pwa-install-dismissed-v3';
+const DISMISS_KEY = 'pwa-install-dismissed-v4';
 
 export interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;

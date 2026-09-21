@@ -14,6 +14,7 @@ import { LeftSlidePanel } from '@/components/layout/LeftSlidePanel';
 import { NotificationsContent } from '@/components/notifications/NotificationsContent';
 import { useApp } from '@/contexts/AppContext';
 import { useMobileChrome } from '@/hooks/useMobileChrome';
+import { PwaInstallBanner, usePwa } from '@/pwa';
 import { cn } from '@/utils/cn';
 
 interface MainLayoutProps {
@@ -23,6 +24,7 @@ interface MainLayoutProps {
 export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
   const location = useLocation();
   const chrome = useMobileChrome(location.pathname);
+  const { showInstallHint } = usePwa();
 
   const isHome = location.pathname === '/';
   const isSuggested = location.pathname === '/suggested';
@@ -68,6 +70,11 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
     <div className="min-h-full bg-ig-bg flex flex-col">
       <Sidebar />
       {chrome.showHeader && <MobileHeader config={chrome} />}
+      {chrome.showHeader && showInstallHint && (
+        <div className="md:hidden px-3 pt-2 pb-1 bg-ig-bg shrink-0">
+          <PwaInstallBanner inline />
+        </div>
+      )}
 
       <div
         className={cn(

@@ -65,13 +65,21 @@ body,
 }
 
 @media (max-width: 767px) {
-  .pwa-install-banner {
-    right: 12px;
-    left: 12px;
-    width: auto;
-    max-width: none;
-    bottom: calc(16px + 49px + env(safe-area-inset-bottom, 0px));
+  .pwa-install-banner:not(.pwa-install-banner--inline) {
+    display: none !important;
   }
+}
+
+.pwa-install-banner--inline {
+  position: relative;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  width: auto;
+  max-width: none;
+  z-index: 1;
+  margin: 0;
 }
 
 .pwa-install-banner img {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ianafm-shell-v2';
+const CACHE_NAME = 'ianafm-shell-v3';
 const PRECACHE_URLS = [
   '/offline.html',
   '/site.webmanifest',

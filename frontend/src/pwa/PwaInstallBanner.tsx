@@ -4,8 +4,9 @@ import { Download, X } from 'lucide-react';
 import { Button } from '@/components/common/Button';
 import { pwaInstallDescription } from './copy';
 import { usePwa } from './PwaProvider';
+import { cn } from '@/utils/cn';
 
-export function PwaInstallBanner() {
+export function PwaInstallBanner({ inline = false }: { inline?: boolean }) {
   const { showInstallHint, canInstall, isIos, isInApp, install, dismissHint } = usePwa();
   const { pathname } = useLocation();
 
@@ -18,11 +19,11 @@ export function PwaInstallBanner() {
     if (accepted) dismissHint();
   };
 
-  return createPortal(
+  const node = (
     <div
       role="dialog"
       aria-label="앱 설치"
-      className="pwa-install-banner"
+      className={cn('pwa-install-banner', inline && 'pwa-install-banner--inline')}
     >
       <img src="/icon-192.png" alt="" width={44} height={44} />
       <div className="pwa-install-banner__body">
@@ -45,7 +46,9 @@ export function PwaInstallBanner() {
       >
         <X size={16} />
       </button>
-    </div>,
-    document.body,
+    </div>
   );
+
+  if (inline) return node;
+  return createPortal(node, document.body);
 }

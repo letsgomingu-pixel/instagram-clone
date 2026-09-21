@@ -43,6 +43,7 @@ test.describe('PWA', () => {
       localStorage.removeItem('pwa-install-dismissed');
       localStorage.removeItem('pwa-install-dismissed-v2');
       localStorage.removeItem('pwa-install-dismissed-v3');
+      localStorage.removeItem('pwa-install-dismissed-v4');
       Object.defineProperty(navigator, 'userAgent', {
         configurable: true,
         value:
