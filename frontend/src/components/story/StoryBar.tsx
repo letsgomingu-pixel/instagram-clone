@@ -29,9 +29,13 @@ export function StoryBar() {
     (story) => story.user.id !== user?.id && story.user.username !== user?.username,
   );
 
+  if (!isAuthenticated && otherStories.length === 0) {
+    return null;
+  }
+
   return (
-    <div className="feed-card mb-3">
-      <div className="flex gap-3 md:gap-4 px-4 py-[14px] overflow-x-auto hide-scrollbar">
+    <div className="feed-card mb-3 sticky top-[var(--mobile-header-stack,44px)] z-20 bg-ig-surface md:static md:top-auto">
+      <div className="flex min-h-[88px] gap-3 md:gap-4 px-4 py-[14px] overflow-x-auto hide-scrollbar">
         {isAuthenticated && user && (
           <div className="flex flex-col items-center gap-1 shrink-0 w-[66px]">
             <div className="relative">
