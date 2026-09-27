@@ -29,7 +29,7 @@ export const DEFAULT_KEYWORDS = [
 ].join(', ');
 
 export const DEFAULT_DESCRIPTION =
-  'i am not a fishmonger에서 신선한 수산물을 도매·소매로 만나고 구매 후기를 공유하세요. 오징어, 꽃게, 조개, 새우, 회 등 제철 해산물을 한곳에서 주문할 수 있습니다.';
+  '신선한 수산물 도매·소매 쇼핑몰입니다. 오징어, 꽃게, 조개, 새우, 회 등 제철 해산물을 주문하세요.';
 
 export const DEFAULT_TITLE = `${SITE_NAME} | 수산물 도매·소매와 후기`;
 
