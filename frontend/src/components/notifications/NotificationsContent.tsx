@@ -27,7 +27,7 @@ interface NotificationsContentProps {
 
 export function NotificationsContent({ variant = 'page', onClose }: NotificationsContentProps) {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { setSelectedPost, followUser, unfollowUser, suggestedUsers } = useApp();
   const [filter, setFilter] = useState<NotificationFilter>('all');
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -129,6 +129,11 @@ export function NotificationsContent({ variant = 'page', onClose }: Notification
       prev.map((n) => (n.order_id === orderId ? { ...n, is_read: true } : n)),
     );
     onClose?.();
+    const note = notifications.find((n) => n.order_id === orderId);
+    if (user?.is_admin && note?.type === 'order_new') {
+      navigate(`/admin/orders?order=${orderId}`);
+      return;
+    }
     navigate(`/orders/${orderId}`);
   };
 

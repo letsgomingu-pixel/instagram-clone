@@ -266,10 +266,11 @@ def create_order(db: Session, user: User, body: OrderCreate) -> OrderCreateRespo
 
 
 def get_order_for_user(db: Session, order_id: int, user: User) -> Order:
+    query = select(Order).where(Order.id == order_id)
+    if not user.is_admin:
+        query = query.where(Order.user_id == user.id)
     order = db.scalars(
-        select(Order)
-        .where(Order.id == order_id, Order.user_id == user.id)
-        .options(
+        query.options(
             joinedload(Order.product),
             joinedload(Order.payment),
             joinedload(Order.items).joinedload(OrderItem.product),

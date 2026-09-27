@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   cancelAdminOrder,
@@ -35,6 +36,8 @@ const NEXT_STATUS: Record<string, { status: 'preparing' | 'shipped' | 'delivered
 };
 
 export function AdminOrdersPage() {
+  const [searchParams] = useSearchParams();
+  const highlightedOrderId = Number(searchParams.get('order') || 0);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -175,7 +178,12 @@ export function AdminOrdersPage() {
                   orders.map((order) => {
                     const next = NEXT_STATUS[order.status];
                     return (
-                      <tr key={order.id} className="border-t border-ig-border align-top">
+                      <tr
+                        key={order.id}
+                        className={`border-t border-ig-border align-top ${
+                          highlightedOrderId === order.id ? 'bg-blue-50' : ''
+                        }`}
+                      >
                         <td className="px-4 py-3 whitespace-nowrap">
                           <p className="font-medium">#{order.id}</p>
                           <p className="text-xs text-ig-text-secondary mt-1">
