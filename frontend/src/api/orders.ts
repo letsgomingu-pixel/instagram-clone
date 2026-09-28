@@ -46,6 +46,7 @@ export interface Order {
   fulfillment_type?: FulfillmentType;
   pickup_ready_minutes?: number | null;
   pickup_ready_at?: string | null;
+  packaged_at?: string | null;
   payment_id?: string | null;
   created_at: string;
   paid_at?: string | null;

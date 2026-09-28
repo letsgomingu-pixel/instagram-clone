@@ -226,12 +226,14 @@ def notify_buyer_order_status(
     )
     messages = {
         "preparing": preparing,
+        "ready": f"{product_name} 포장이 완료되었습니다. 가게에서 픽업해 주세요.",
         "shipped": f"{product_name} 상품이 배송 시작되었습니다."
         + (f" (송장: {tracking_number})" if tracking_number else ""),
         "delivered": delivered,
     }
     ntypes = {
         "preparing": "order_preparing",
+        "ready": "order_ready",
         "shipped": "order_shipped",
         "delivered": "order_delivered",
     }

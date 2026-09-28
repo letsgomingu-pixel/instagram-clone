@@ -12,6 +12,7 @@ const STATUS_LABELS: Record<string, string> = {
   pending: '결제 대기',
   paid: '결제 완료',
   preparing: '상품 준비 중',
+  ready: '포장 완료',
   shipped: '배송 중',
   delivered: '배송 완료',
   cancelled: '주문 취소',
@@ -21,6 +22,7 @@ const STATUS_LABELS: Record<string, string> = {
 function statusLabel(status: string, fulfillment?: string) {
   if (fulfillment === 'pickup') {
     if (status === 'preparing') return '포장 중';
+    if (status === 'ready') return '포장 완료';
     if (status === 'delivered') return '픽업 완료';
   }
   return STATUS_LABELS[status] || status;

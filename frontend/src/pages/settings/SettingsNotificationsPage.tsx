@@ -18,7 +18,7 @@ const OPTIONS = [
 
   { key: 'notify_mentions' as const, label: '멘션', desc: '회원님이 멘션된 경우' },
 
-  { key: 'notify_orders' as const, label: '주문·배송', desc: '주문 접수, 배송 시작, 배송 완료 알림' },
+  { key: 'notify_orders' as const, label: '주문·배송', desc: '주문 접수, 포장 완료, 배송 시작, 배송 완료 알림' },
 
   { key: 'notify_orders_email' as const, label: '주문·배송 이메일', desc: '주문/배송 상태를 이메일로 받기' },
 

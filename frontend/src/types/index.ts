@@ -199,6 +199,7 @@ export type NotificationType =
   | 'follow_request'
   | 'order_new'
   | 'order_preparing'
+  | 'order_ready'
   | 'order_shipped'
   | 'order_delivered';
 

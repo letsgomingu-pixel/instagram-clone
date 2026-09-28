@@ -11,6 +11,7 @@ const DELIVERY_STEPS = [
 const PICKUP_STEPS = [
   { key: 'paid', label: '결제 완료' },
   { key: 'preparing', label: '포장 중' },
+  { key: 'ready', label: '포장 완료' },
   { key: 'delivered', label: '픽업 완료' },
 ] as const;
 
@@ -21,7 +22,8 @@ function stepIndex(status: string, pickup: boolean): number {
   if (pickup) {
     if (status === 'paid') return 0;
     if (status === 'preparing') return 1;
-    if (status === 'delivered') return 2;
+    if (status === 'ready') return 2;
+    if (status === 'delivered') return 3;
     return -1;
   }
   const idx = STATUS_ORDER.indexOf(status);
@@ -30,9 +32,10 @@ function stepIndex(status: string, pickup: boolean): number {
 
 function timestampForStep(order: Order, stepKey: string): string | null {
   if (stepKey === 'paid') return order.paid_at ?? null;
+  if (stepKey === 'ready') return order.packaged_at ?? null;
   if (stepKey === 'shipped') return order.shipped_at ?? null;
   if (stepKey === 'delivered') return order.delivered_at ?? null;
-  if (stepKey === 'preparing' && order.paid_at && ['preparing', 'shipped', 'delivered'].includes(order.status)) {
+  if (stepKey === 'preparing' && order.paid_at && ['preparing', 'ready', 'shipped', 'delivered'].includes(order.status)) {
     return order.paid_at;
   }
   return null;

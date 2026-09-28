@@ -180,6 +180,7 @@ def build_order_out(
         fulfillment_type=order.fulfillment_type,
         pickup_ready_minutes=order.pickup_ready_minutes,
         pickup_ready_at=to_iso(order.pickup_ready_at) if order.pickup_ready_at else None,
+        packaged_at=to_iso(order.packaged_at) if order.packaged_at else None,
         payment_id=payment_id,
         created_at=to_iso(order.created_at),
         paid_at=to_iso(order.paid_at) if order.paid_at else None,
@@ -548,8 +549,8 @@ def list_admin_orders(
 
 
 BUYER_CANCELLABLE = ("pending", "paid")
-ADMIN_CANCELLABLE = ("pending", "paid", "preparing")
-STOCK_RESTORE_STATUSES = ("paid", "preparing")
+ADMIN_CANCELLABLE = ("pending", "paid", "preparing", "ready")
+STOCK_RESTORE_STATUSES = ("paid", "preparing", "ready")
 
 
 def cancel_order(db: Session, order: Order, *, by_admin: bool = False) -> Order:
@@ -597,32 +598,35 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
     now = datetime.now(timezone.utc)
 
     if body.status is not None:
-        if body.status == "delivered" and order.fulfillment_type == "pickup":
-            if order.status != "preparing":
+        if order.fulfillment_type == "pickup":
+            pickup_from = {"preparing": "paid", "ready": "preparing", "delivered": "ready"}
+            if body.status not in pickup_from:
+                raise HTTPException(status_code=400, detail="Pickup orders cannot use that status")
+            if order.status != pickup_from[body.status]:
                 raise HTTPException(
                     status_code=400,
                     detail=f"Cannot change status from {order.status} to {body.status}",
                 )
+            if body.status == "preparing" and body.pickup_ready_minutes is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="pickup_ready_minutes is required when accepting a pickup order",
+                )
         else:
+            if body.status == "ready":
+                raise HTTPException(status_code=400, detail="Only pickup orders can be marked ready")
             required_from = ADMIN_STATUS_FROM[body.status]
             if order.status != required_from:
                 raise HTTPException(
                     status_code=400,
                     detail=f"Cannot change status from {order.status} to {body.status}",
                 )
-        if (
-            body.status == "preparing"
-            and order.fulfillment_type == "pickup"
-            and body.pickup_ready_minutes is None
-        ):
-            raise HTTPException(
-                status_code=400,
-                detail="pickup_ready_minutes is required when accepting a pickup order",
-            )
         order.status = body.status
         status_changed = body.status
         if body.status == "shipped":
             order.shipped_at = now
+        elif body.status == "ready":
+            order.packaged_at = now
         elif body.status == "delivered":
             order.delivered_at = now
 
@@ -674,11 +678,18 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
             else:
                 status_labels = {
                     "preparing": "상품 준비 중",
+                    "ready": "포장 완료",
                     "shipped": "배송 시작",
                     "delivered": "픽업 완료" if order.fulfillment_type == "pickup" else "배송 완료",
                 }
                 label = status_labels.get(notify_status, notify_status)
-                email_body = f"{product_name} 주문 #{order.id} — {label}"
+                if notify_status == "ready":
+                    email_body = (
+                        f"{product_name} 주문 #{order.id} 포장이 완료되었습니다. "
+                        "가게에서 픽업해 주세요."
+                    )
+                else:
+                    email_body = f"{product_name} 주문 #{order.id} — {label}"
             try:
                 send_order_email_to_user(
                     db,

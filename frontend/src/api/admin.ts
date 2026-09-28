@@ -125,6 +125,7 @@ export interface AdminOrder {
   fulfillment_type?: 'delivery' | 'pickup';
   pickup_ready_minutes?: number | null;
   pickup_ready_at?: string | null;
+  packaged_at?: string | null;
   created_at: string;
   paid_at?: string | null;
   shipped_at?: string | null;
@@ -145,7 +146,7 @@ export async function getAdminOrders(
 export async function updateAdminOrder(
   orderId: number,
   payload: {
-    status?: 'preparing' | 'shipped' | 'delivered';
+    status?: 'preparing' | 'ready' | 'shipped' | 'delivered';
     tracking_number?: string;
     pickup_ready_minutes?: number;
   },

@@ -1429,6 +1429,28 @@ def test_pickup_order_ready_time(auth_headers):
     assert detail.json()["pickup_ready_minutes"] == 20
     assert detail.json()["pickup_ready_at"]
 
+    too_soon = client.patch(
+        f"/api/v1/admin/orders/{order['id']}",
+        headers=admin_headers,
+        json={"status": "delivered"},
+    )
+    assert too_soon.status_code == 400, too_soon.text
+
+    packed = client.patch(
+        f"/api/v1/admin/orders/{order['id']}",
+        headers=admin_headers,
+        json={"status": "ready"},
+    )
+    assert packed.status_code == 200, packed.text
+    assert packed.json()["status"] == "ready"
+    assert packed.json()["packaged_at"]
+
+    notes = client.get("/api/v1/notifications?tab=you", headers=auth_headers).json()
+    ready_note = next(
+        note for note in notes if note["order_id"] == order["id"] and note["type"] == "order_ready"
+    )
+    assert "포장이 완료되었습니다" in ready_note["comment_preview"]
+
     picked_up = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
         headers=admin_headers,

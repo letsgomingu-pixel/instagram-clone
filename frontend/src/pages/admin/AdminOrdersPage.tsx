@@ -15,6 +15,7 @@ const STATUS_LABELS: Record<string, string> = {
   pending: '결제 대기',
   paid: '결제 완료',
   preparing: '상품 준비 중',
+  ready: '포장 완료',
   shipped: '배송 중',
   delivered: '배송 완료',
   cancelled: '주문 취소',
@@ -25,11 +26,12 @@ const STATUS_FILTERS = [
   { value: '', label: '전체' },
   { value: 'paid', label: '결제 완료' },
   { value: 'preparing', label: '준비 중' },
+  { value: 'ready', label: '포장 완료' },
   { value: 'shipped', label: '배송 중' },
   { value: 'delivered', label: '배송 완료' },
 ];
 
-const NEXT_STATUS: Record<string, { status: 'preparing' | 'shipped' | 'delivered'; label: string }> = {
+const NEXT_STATUS: Record<string, { status: 'preparing' | 'ready' | 'shipped' | 'delivered'; label: string }> = {
   paid: { status: 'preparing', label: '준비 시작' },
   preparing: { status: 'shipped', label: '배송 시작' },
   shipped: { status: 'delivered', label: '배송 완료' },
@@ -37,10 +39,11 @@ const NEXT_STATUS: Record<string, { status: 'preparing' | 'shipped' | 'delivered
 
 const PICKUP_MINUTES = [10, 15, 20, 30, 40, 60];
 
-function nextAction(order: AdminOrder): { status: 'preparing' | 'shipped' | 'delivered'; label: string } | null {
+function nextAction(order: AdminOrder): { status: 'preparing' | 'ready' | 'shipped' | 'delivered'; label: string } | null {
   if (order.fulfillment_type === 'pickup') {
     if (order.status === 'paid') return { status: 'preparing', label: '주문 접수' };
-    if (order.status === 'preparing') return { status: 'delivered', label: '픽업 완료' };
+    if (order.status === 'preparing') return { status: 'ready', label: '포장 완료' };
+    if (order.status === 'ready') return { status: 'delivered', label: '픽업 완료' };
     return null;
   }
   return NEXT_STATUS[order.status] ?? null;
@@ -49,6 +52,7 @@ function nextAction(order: AdminOrder): { status: 'preparing' | 'shipped' | 'del
 function statusLabel(order: AdminOrder) {
   if (order.fulfillment_type === 'pickup') {
     if (order.status === 'preparing') return '포장 중';
+    if (order.status === 'ready') return '포장 완료';
     if (order.status === 'delivered') return '픽업 완료';
   }
   return STATUS_LABELS[order.status] || order.status;
@@ -110,7 +114,7 @@ export function AdminOrdersPage() {
     const next = nextAction(order);
     if (!next) return;
     const payload: {
-      status: 'preparing' | 'shipped' | 'delivered';
+      status: 'preparing' | 'ready' | 'shipped' | 'delivered';
       tracking_number?: string;
       pickup_ready_minutes?: number;
     } = { status: next.status };
@@ -129,7 +133,11 @@ export function AdminOrdersPage() {
     setUpdatingId(order.id);
     try {
       await updateAdminOrder(order.id, payload);
-      toast.success('주문 상태가 업데이트되었습니다.');
+      toast.success(
+        next.status === 'ready'
+          ? '포장 완료 알림을 고객에게 보냈습니다.'
+          : '주문 상태가 업데이트되었습니다.',
+      );
       load();
     } catch {
       toast.error('상태 변경에 실패했습니다.');
@@ -358,7 +366,7 @@ export function AdminOrdersPage() {
                               {next.label}
                             </Button>
                           ) : null}
-                          {['pending', 'paid', 'preparing'].includes(order.status) && (
+                          {['pending', 'paid', 'preparing', 'ready'].includes(order.status) && (
                             <Button
                               variant="secondary"
                               size="sm"
@@ -368,7 +376,7 @@ export function AdminOrdersPage() {
                               취소/환불
                             </Button>
                           )}
-                          {!next && !['pending', 'paid', 'preparing'].includes(order.status) && (
+                          {!next && !['pending', 'paid', 'preparing', 'ready'].includes(order.status) && (
                             <span className="text-xs text-ig-text-secondary">-</span>
                           )}
                         </td>

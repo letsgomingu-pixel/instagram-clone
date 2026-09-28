@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
-ORDER_STATUSES = ("pending", "paid", "preparing", "shipped", "delivered", "cancelled", "failed")
+ORDER_STATUSES = ("pending", "paid", "preparing", "ready", "shipped", "delivered", "cancelled", "failed")
 PAYMENT_STATUSES = ("pending", "paid", "failed", "cancelled")
 
 
@@ -30,6 +30,7 @@ class Order(Base):
     fulfillment_type: Mapped[str] = mapped_column(String(20), nullable=False, default="delivery", server_default="delivery")
     pickup_ready_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     pickup_ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    packaged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     shipped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

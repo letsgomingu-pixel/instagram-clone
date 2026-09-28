@@ -83,6 +83,7 @@ class OrderOut(BaseModel):
     fulfillment_type: str = "delivery"
     pickup_ready_minutes: int | None = None
     pickup_ready_at: str | None = None
+    packaged_at: str | None = None
     payment_id: str | None = None
     created_at: str
     paid_at: str | None = None
@@ -100,7 +101,7 @@ class OrderCreateResponse(BaseModel):
 
 
 class AdminOrderUpdate(BaseModel):
-    status: Literal["preparing", "shipped", "delivered"] | None = None
+    status: Literal["preparing", "ready", "shipped", "delivered"] | None = None
     tracking_number: str | None = Field(None, max_length=100)
     pickup_ready_minutes: int | None = Field(None, ge=5, le=180)
 
