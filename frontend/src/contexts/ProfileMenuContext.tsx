@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { User } from '@/types';
 
 export interface ProfileMenuActions {
@@ -20,16 +20,16 @@ export function ProfileMenuProvider({ children }: { children: ReactNode }) {
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [actions, setActions] = useState<ProfileMenuActions | null>(null);
 
+  // Stable identity: ProfilePage's effect lists this in its deps. Recreating it
+  // whenever the menu updates retriggers that effect and blocks route transitions.
+  const setProfileMenu = useCallback((user: User | null, next: ProfileMenuActions | null) => {
+    setProfileUser(user);
+    setActions(next);
+  }, []);
+
   const value = useMemo(
-    () => ({
-      profileUser,
-      actions,
-      setProfileMenu: (user: User | null, next: ProfileMenuActions | null) => {
-        setProfileUser(user);
-        setActions(next);
-      },
-    }),
-    [profileUser, actions],
+    () => ({ profileUser, actions, setProfileMenu }),
+    [profileUser, actions, setProfileMenu],
   );
 
   return <ProfileMenuContext.Provider value={value}>{children}</ProfileMenuContext.Provider>;
