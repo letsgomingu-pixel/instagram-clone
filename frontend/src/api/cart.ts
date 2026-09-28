@@ -21,9 +21,10 @@ export interface Cart {
 export interface CartCheckoutPayload {
   shipping_name: string;
   phone: string;
-  postcode: string;
-  address_line1: string;
-  address_line2: string;
+  postcode?: string;
+  address_line1?: string;
+  address_line2?: string;
+  fulfillment_type?: 'delivery' | 'pickup';
 }
 
 export async function getCart(): Promise<Cart> {

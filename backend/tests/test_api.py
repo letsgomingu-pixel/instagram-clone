@@ -1372,6 +1372,72 @@ def test_admin_order_management(auth_headers):
     assert detail.json()["review_post_id"] is None
 
 
+def test_pickup_order_ready_time(auth_headers):
+    admin_headers = _admin_login()
+    product_post = _create_admin_product(admin_headers, name="포장테스트", price=12000)
+    product_id = product_post["product"]["id"]
+
+    quote = client.post(
+        "/api/v1/orders/quote",
+        headers=auth_headers,
+        json={"product_id": product_id, "quantity": 1, "fulfillment_type": "pickup"},
+    )
+    assert quote.status_code == 200, quote.text
+    assert quote.json()["shipping_fee"] == 0
+    assert quote.json()["total_amount"] == 12000
+
+    order_res = client.post(
+        "/api/v1/orders",
+        headers=auth_headers,
+        json={
+            "product_id": product_id,
+            "quantity": 1,
+            "shipping_name": "포장 고객",
+            "phone": "010-1111-2222",
+            "fulfillment_type": "pickup",
+        },
+    )
+    assert order_res.status_code == 201, order_res.text
+    order = order_res.json()["order"]
+    assert order["fulfillment_type"] == "pickup"
+    assert order["shipping_fee"] == 0
+    assert order["total_amount"] == 12000
+
+    confirm = client.post(f"/api/v1/payments/mock/{order['id']}/confirm", headers=auth_headers)
+    assert confirm.status_code == 200, confirm.text
+
+    missing = client.patch(
+        f"/api/v1/admin/orders/{order['id']}",
+        headers=admin_headers,
+        json={"status": "preparing"},
+    )
+    assert missing.status_code == 400, missing.text
+
+    accepted = client.patch(
+        f"/api/v1/admin/orders/{order['id']}",
+        headers=admin_headers,
+        json={"status": "preparing", "pickup_ready_minutes": 20},
+    )
+    assert accepted.status_code == 200, accepted.text
+    body = accepted.json()
+    assert body["status"] == "preparing"
+    assert body["pickup_ready_minutes"] == 20
+    assert body["pickup_ready_at"]
+
+    detail = client.get(f"/api/v1/orders/{order['id']}", headers=auth_headers)
+    assert detail.status_code == 200
+    assert detail.json()["pickup_ready_minutes"] == 20
+    assert detail.json()["pickup_ready_at"]
+
+    picked_up = client.patch(
+        f"/api/v1/admin/orders/{order['id']}",
+        headers=admin_headers,
+        json={"status": "delivered"},
+    )
+    assert picked_up.status_code == 200, picked_up.text
+    assert picked_up.json()["status"] == "delivered"
+
+
 def test_get_users_me(auth_headers):
     r = client.get("/api/v1/users/me", headers=auth_headers)
     assert r.status_code == 200, r.text

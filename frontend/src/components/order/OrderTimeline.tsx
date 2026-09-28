@@ -1,17 +1,29 @@
 import toast from 'react-hot-toast';
 import type { Order } from '@/api/orders';
 
-const STEPS = [
+const DELIVERY_STEPS = [
   { key: 'paid', label: '결제 완료' },
   { key: 'preparing', label: '상품 준비' },
   { key: 'shipped', label: '배송 중' },
   { key: 'delivered', label: '배송 완료' },
 ] as const;
 
+const PICKUP_STEPS = [
+  { key: 'paid', label: '결제 완료' },
+  { key: 'preparing', label: '포장 중' },
+  { key: 'delivered', label: '픽업 완료' },
+] as const;
+
 const STATUS_ORDER = ['pending', 'paid', 'preparing', 'shipped', 'delivered'];
 
-function stepIndex(status: string): number {
+function stepIndex(status: string, pickup: boolean): number {
   if (status === 'pending' || status === 'failed' || status === 'cancelled') return -1;
+  if (pickup) {
+    if (status === 'paid') return 0;
+    if (status === 'preparing') return 1;
+    if (status === 'delivered') return 2;
+    return -1;
+  }
   const idx = STATUS_ORDER.indexOf(status);
   return idx >= 1 ? idx - 1 : -1;
 }
@@ -35,7 +47,9 @@ interface OrderTimelineProps {
 }
 
 export function OrderTimeline({ order }: OrderTimelineProps) {
-  const current = stepIndex(order.status);
+  const pickup = order.fulfillment_type === 'pickup';
+  const steps = pickup ? PICKUP_STEPS : DELIVERY_STEPS;
+  const current = stepIndex(order.status, pickup);
 
   if (current < 0) {
     return (
@@ -58,7 +72,7 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
   return (
     <div className="space-y-4">
       <ol className="space-y-0">
-        {STEPS.map((step, index) => {
+        {steps.map((step, index) => {
           const done = index <= current;
           const active = index === current;
           const ts = timestampForStep(order, step.key);
@@ -70,7 +84,7 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
                     done ? 'bg-ig-primary' : 'bg-ig-border'
                   } ${active ? 'ring-2 ring-ig-primary/30' : ''}`}
                 />
-                {index < STEPS.length - 1 && (
+                {index < steps.length - 1 && (
                   <span className={`w-0.5 flex-1 min-h-[28px] ${index < current ? 'bg-ig-primary' : 'bg-ig-border'}`} />
                 )}
               </div>
@@ -87,7 +101,7 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
         })}
       </ol>
 
-      {order.tracking_number && (
+      {!pickup && order.tracking_number && (
         <div className="rounded-lg border border-ig-border p-3 text-sm space-y-2">
           <p className="font-semibold">송장번호</p>
           <p className="font-mono text-ig-text break-all">{order.tracking_number}</p>

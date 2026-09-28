@@ -1,14 +1,15 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.schemas.product import ProductOut
-from app.schemas.shipping import ShippingFields
+from app.schemas.shipping import ShippingFields, fill_pickup_address
 
 
 class OrderQuoteRequest(BaseModel):
     product_id: int
     quantity: int = Field(ge=1, le=99)
+    fulfillment_type: Literal["delivery", "pickup"] = "delivery"
 
 
 class OrderQuoteOut(BaseModel):
@@ -35,6 +36,12 @@ class OrderCreate(ShippingFields):
     quantity: int | None = Field(default=None, ge=1, le=99)
     items: list[OrderItemCreate] | None = None
     shipping_name: str = Field(min_length=1, max_length=100)
+    fulfillment_type: Literal["delivery", "pickup"] = "delivery"
+
+    @model_validator(mode="before")
+    @classmethod
+    def pickup_skips_address(cls, data: object) -> object:
+        return fill_pickup_address(data)
 
 
 class PaymentPrepareOut(BaseModel):
@@ -73,6 +80,9 @@ class OrderOut(BaseModel):
     address_line1: str
     address_line2: str
     tracking_number: str | None = None
+    fulfillment_type: str = "delivery"
+    pickup_ready_minutes: int | None = None
+    pickup_ready_at: str | None = None
     payment_id: str | None = None
     created_at: str
     paid_at: str | None = None
@@ -92,6 +102,7 @@ class OrderCreateResponse(BaseModel):
 class AdminOrderUpdate(BaseModel):
     status: Literal["preparing", "shipped", "delivered"] | None = None
     tracking_number: str | None = Field(None, max_length=100)
+    pickup_ready_minutes: int | None = Field(None, ge=5, le=180)
 
 
 class AdminOrderOut(OrderOut):

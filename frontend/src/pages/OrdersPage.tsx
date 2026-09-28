@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { OrderTimeline } from '@/components/order/OrderTimeline';
+import { PickupReadyCard } from '@/components/order/PickupReadyCard';
 import { ProductInfo, formatPrice } from '@/components/post/ProductInfo';
 import { Button } from '@/components/common/Button';
 import { Spinner } from '@/components/common/Spinner';
@@ -17,10 +18,18 @@ const STATUS_LABELS: Record<string, string> = {
   failed: '결제 실패',
 };
 
-function OrderStatusBadge({ status }: { status: string }) {
+function statusLabel(status: string, fulfillment?: string) {
+  if (fulfillment === 'pickup') {
+    if (status === 'preparing') return '포장 중';
+    if (status === 'delivered') return '픽업 완료';
+  }
+  return STATUS_LABELS[status] || status;
+}
+
+function OrderStatusBadge({ status, fulfillment }: { status: string; fulfillment?: string }) {
   return (
     <span className="text-xs font-semibold px-2 py-1 rounded bg-ig-secondary text-ig-text">
-      {STATUS_LABELS[status] || status}
+      {statusLabel(status, fulfillment)}
     </span>
   );
 }
@@ -68,8 +77,11 @@ export function OrdersPage() {
                         {order.quantity}개 · {formatPrice(order.total_amount)}
                       </p>
                       <p className="text-xs text-ig-text-secondary mt-1">{order.created_at.slice(0, 10)}</p>
+                      {order.fulfillment_type === 'pickup' && order.pickup_ready_minutes && (
+                        <p className="text-xs text-ig-primary mt-1">포장 {order.pickup_ready_minutes}분</p>
+                      )}
                     </div>
-                    <OrderStatusBadge status={order.status} />
+                    <OrderStatusBadge status={order.status} fulfillment={order.fulfillment_type} />
                   </div>
                 </Link>
               </li>
@@ -144,7 +156,7 @@ export function OrderDetailPage() {
       <div className="feed-card p-6">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold">주문 #{order.id}</h1>
-          <OrderStatusBadge status={order.status} />
+          <OrderStatusBadge status={order.status} fulfillment={order.fulfillment_type} />
         </div>
 
         {(order.items && order.items.length > 0 ? order.items : order.product ? [{ product: order.product, quantity: order.quantity, subtotal: order.subtotal }] : []).map((item, index) => (
@@ -162,7 +174,7 @@ export function OrderDetailPage() {
             <span>{formatPrice(order.subtotal)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-ig-text-secondary">배송비</span>
+            <span className="text-ig-text-secondary">{order.fulfillment_type === 'pickup' ? '포장비' : '배송비'}</span>
             <span>{formatPrice(order.shipping_fee)}</span>
           </div>
           <div className="flex justify-between font-bold pt-2 border-t border-ig-border">
@@ -172,18 +184,30 @@ export function OrderDetailPage() {
         </div>
       </div>
 
+      {order.fulfillment_type === 'pickup' && (
+        <div className="feed-card p-6">
+          <PickupReadyCard order={order} />
+        </div>
+      )}
+
       <div className="feed-card p-6">
-        <h2 className="font-semibold mb-4 text-sm">배송 현황</h2>
+        <h2 className="font-semibold mb-4 text-sm">
+          {order.fulfillment_type === 'pickup' ? '포장 현황' : '배송 현황'}
+        </h2>
         <OrderTimeline order={order} />
       </div>
 
       <div className="feed-card p-6 text-sm space-y-2">
-        <h2 className="font-semibold mb-2">배송지</h2>
+        <h2 className="font-semibold mb-2">{order.fulfillment_type === 'pickup' ? '수령 안내' : '배송지'}</h2>
         <p>{order.shipping_name}</p>
         <p>{order.phone}</p>
-        <p>
-          [{order.postcode}] {order.address_line1} {order.address_line2}
-        </p>
+        {order.fulfillment_type === 'pickup' ? (
+          <p>가게에서 직접 받아가는 주문입니다.</p>
+        ) : (
+          <p>
+            [{order.postcode}] {order.address_line1} {order.address_line2}
+          </p>
+        )}
       </div>
 
       {canCancel && (

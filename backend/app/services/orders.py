@@ -1,6 +1,7 @@
 import json
+import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import httpx
 from fastapi import HTTPException
@@ -22,7 +23,9 @@ from app.schemas.order import (
 from app.schemas.shipping import ShippingFields
 from app.services.products import build_product_out, _is_in_season
 from app.services.shipping import calculate_order_amounts, calculate_shipping_fee
-from app.utils.datetime_fmt import to_iso
+from app.utils.datetime_fmt import format_pickup_clock, to_iso
+
+logger = logging.getLogger(__name__)
 
 
 def _ensure_product_available(product: Product, quantity: int) -> None:
@@ -45,10 +48,18 @@ def get_product_for_order(db: Session, product_id: int) -> Product:
     return product
 
 
-def build_order_quote(db: Session, product_id: int, quantity: int) -> OrderQuoteOut:
+def build_order_quote(
+    db: Session,
+    product_id: int,
+    quantity: int,
+    fulfillment_type: str = "delivery",
+) -> OrderQuoteOut:
     product = get_product_for_order(db, product_id)
     _ensure_product_available(product, quantity)
     subtotal, shipping_fee, total = calculate_order_amounts(product.price, quantity)
+    if fulfillment_type == "pickup":
+        shipping_fee = 0
+        total = subtotal
     image_url = product.post.image_url if product.post else None
     return OrderQuoteOut(
         product_id=product.id,
@@ -166,6 +177,9 @@ def build_order_out(
         address_line1=order.address_line1,
         address_line2=order.address_line2,
         tracking_number=order.tracking_number,
+        fulfillment_type=order.fulfillment_type,
+        pickup_ready_minutes=order.pickup_ready_minutes,
+        pickup_ready_at=to_iso(order.pickup_ready_at) if order.pickup_ready_at else None,
         payment_id=payment_id,
         created_at=to_iso(order.created_at),
         paid_at=to_iso(order.paid_at) if order.paid_at else None,
@@ -209,7 +223,7 @@ def _order_name_from_lines(lines: list[tuple[Product, int]]) -> str:
 def create_order(db: Session, user: User, body: OrderCreate) -> OrderCreateResponse:
     lines = _resolve_order_lines(db, body)
     subtotal = sum(product.price * quantity for product, quantity in lines)
-    shipping_fee = calculate_shipping_fee(subtotal)
+    shipping_fee = 0 if body.fulfillment_type == "pickup" else calculate_shipping_fee(subtotal)
     total = subtotal + shipping_fee
     first_product, first_quantity = lines[0]
 
@@ -222,6 +236,7 @@ def create_order(db: Session, user: User, body: OrderCreate) -> OrderCreateRespo
         shipping_fee=shipping_fee,
         total_amount=total,
         status="pending",
+        fulfillment_type=body.fulfillment_type,
         shipping_name=body.shipping_name.strip(),
         phone=body.phone,
         postcode=body.postcode,
@@ -564,20 +579,46 @@ def cancel_order_for_admin(db: Session, order_id: int) -> Order:
     return cancel_order(db, order, by_admin=True)
 
 
+def _apply_pickup_ready(order: Order, minutes: int, now: datetime) -> None:
+    order.pickup_ready_minutes = minutes
+    order.pickup_ready_at = now + timedelta(minutes=minutes)
+
+
 def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin: User) -> Order:
     order = get_order_for_admin(db, order_id)
-    if body.status is None and body.tracking_number is None:
+    if body.status is None and body.tracking_number is None and body.pickup_ready_minutes is None:
         raise HTTPException(status_code=400, detail="No fields to update")
 
+    if body.status == "shipped" and order.fulfillment_type == "pickup":
+        raise HTTPException(status_code=400, detail="Pickup orders are not shipped")
+
     status_changed: str | None = None
+    ready_time_set = False
+    now = datetime.now(timezone.utc)
+
     if body.status is not None:
-        required_from = ADMIN_STATUS_FROM[body.status]
-        if order.status != required_from:
+        if body.status == "delivered" and order.fulfillment_type == "pickup":
+            if order.status != "preparing":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Cannot change status from {order.status} to {body.status}",
+                )
+        else:
+            required_from = ADMIN_STATUS_FROM[body.status]
+            if order.status != required_from:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Cannot change status from {order.status} to {body.status}",
+                )
+        if (
+            body.status == "preparing"
+            and order.fulfillment_type == "pickup"
+            and body.pickup_ready_minutes is None
+        ):
             raise HTTPException(
                 status_code=400,
-                detail=f"Cannot change status from {order.status} to {body.status}",
+                detail="pickup_ready_minutes is required when accepting a pickup order",
             )
-        now = datetime.now(timezone.utc)
         order.status = body.status
         status_changed = body.status
         if body.status == "shipped":
@@ -585,24 +626,36 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
         elif body.status == "delivered":
             order.delivered_at = now
 
+    if body.pickup_ready_minutes is not None:
+        if order.fulfillment_type != "pickup":
+            raise HTTPException(status_code=400, detail="Pickup time applies only to pickup orders")
+        if order.status != "preparing":
+            raise HTTPException(status_code=400, detail="Pickup time can be set only while preparing")
+        _apply_pickup_ready(order, body.pickup_ready_minutes, now)
+        ready_time_set = True
+
     if body.tracking_number is not None:
         order.tracking_number = body.tracking_number.strip() or None
 
     db.commit()
     order = get_order_for_admin(db, order_id)
 
-    if status_changed:
+    if status_changed or ready_time_set:
         from app.services.notifications import notify_buyer_order_status
 
         product_name = order.product.name if order.product else "상품"
+        notify_status = status_changed or "preparing"
         notify_buyer_order_status(
             db,
             buyer_id=order.user_id,
             actor_id=admin.id,
             order_id=order.id,
-            status=status_changed,
+            status=notify_status,
             product_name=product_name,
             tracking_number=order.tracking_number,
+            fulfillment_type=order.fulfillment_type,
+            pickup_ready_minutes=order.pickup_ready_minutes,
+            pickup_ready_at=order.pickup_ready_at,
         )
         db.commit()
 
@@ -611,17 +664,29 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
 
         buyer = db.get(UserModel, order.user_id)
         if buyer:
-            status_labels = {
-                "preparing": "상품 준비 중",
-                "shipped": "배송 시작",
-                "delivered": "배송 완료",
-            }
-            label = status_labels.get(status_changed, status_changed)
-            send_order_email_to_user(
-                db,
-                user=buyer,
-                subject=f"[{label}] 주문 #{order.id}",
-                body=f"{product_name} 주문 #{order.id} — {label}",
-            )
+            if order.fulfillment_type == "pickup" and order.pickup_ready_at and ready_time_set:
+                clock = format_pickup_clock(order.pickup_ready_at)
+                label = f"포장 완료 예정 {order.pickup_ready_minutes}분 ({clock})"
+                email_body = (
+                    f"{product_name} 주문 #{order.id} — "
+                    f"{order.pickup_ready_minutes}분 후({clock})에 포장이 완료됩니다."
+                )
+            else:
+                status_labels = {
+                    "preparing": "상품 준비 중",
+                    "shipped": "배송 시작",
+                    "delivered": "픽업 완료" if order.fulfillment_type == "pickup" else "배송 완료",
+                }
+                label = status_labels.get(notify_status, notify_status)
+                email_body = f"{product_name} 주문 #{order.id} — {label}"
+            try:
+                send_order_email_to_user(
+                    db,
+                    user=buyer,
+                    subject=f"[{label}] 주문 #{order.id}",
+                    body=email_body,
+                )
+            except Exception:
+                logger.exception("Failed to email buyer about order %s", order.id)
 
     return order

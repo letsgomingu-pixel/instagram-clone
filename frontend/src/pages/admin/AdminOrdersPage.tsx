@@ -35,6 +35,25 @@ const NEXT_STATUS: Record<string, { status: 'preparing' | 'shipped' | 'delivered
   shipped: { status: 'delivered', label: '배송 완료' },
 };
 
+const PICKUP_MINUTES = [10, 15, 20, 30, 40, 60];
+
+function nextAction(order: AdminOrder): { status: 'preparing' | 'shipped' | 'delivered'; label: string } | null {
+  if (order.fulfillment_type === 'pickup') {
+    if (order.status === 'paid') return { status: 'preparing', label: '주문 접수' };
+    if (order.status === 'preparing') return { status: 'delivered', label: '픽업 완료' };
+    return null;
+  }
+  return NEXT_STATUS[order.status] ?? null;
+}
+
+function statusLabel(order: AdminOrder) {
+  if (order.fulfillment_type === 'pickup') {
+    if (order.status === 'preparing') return '포장 중';
+    if (order.status === 'delivered') return '픽업 완료';
+  }
+  return STATUS_LABELS[order.status] || order.status;
+}
+
 export function AdminOrdersPage() {
   const [searchParams] = useSearchParams();
   const highlightedOrderId = Number(searchParams.get('order') || 0);
@@ -44,6 +63,7 @@ export function AdminOrdersPage() {
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState('');
   const [trackingDrafts, setTrackingDrafts] = useState<Record<number, string>>({});
+  const [readyDrafts, setReadyDrafts] = useState<Record<number, string>>({});
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const limit = 20;
 
@@ -62,6 +82,15 @@ export function AdminOrdersPage() {
           }
           return next;
         });
+        setReadyDrafts((prev) => {
+          const next = { ...prev };
+          for (const order of data.items) {
+            if (next[order.id] === undefined) {
+              next[order.id] = String(order.pickup_ready_minutes || 20);
+            }
+          }
+          return next;
+        });
       })
       .catch(() => toast.error('주문 목록을 불러오지 못했습니다.'))
       .finally(() => setLoading(false));
@@ -71,18 +100,34 @@ export function AdminOrdersPage() {
     load();
   }, [page, statusFilter]);
 
+  const pickupMinutes = (order: AdminOrder) => {
+    const minutes = Number(readyDrafts[order.id] ?? 20);
+    if (!Number.isInteger(minutes) || minutes < 5 || minutes > 180) return null;
+    return minutes;
+  };
+
   const handleAdvance = async (order: AdminOrder) => {
-    const next = NEXT_STATUS[order.status];
+    const next = nextAction(order);
     if (!next) return;
+    const payload: {
+      status: 'preparing' | 'shipped' | 'delivered';
+      tracking_number?: string;
+      pickup_ready_minutes?: number;
+    } = { status: next.status };
+    if (order.fulfillment_type === 'pickup' && next.status === 'preparing') {
+      const minutes = pickupMinutes(order);
+      if (minutes == null) {
+        toast.error('포장 완료 시간은 5분에서 180분 사이로 입력해 주세요.');
+        return;
+      }
+      payload.pickup_ready_minutes = minutes;
+    }
+    if (next.status === 'shipped') {
+      const tracking = trackingDrafts[order.id]?.trim();
+      if (tracking) payload.tracking_number = tracking;
+    }
     setUpdatingId(order.id);
     try {
-      const payload: { status: 'preparing' | 'shipped' | 'delivered'; tracking_number?: string } = {
-        status: next.status,
-      };
-      if (next.status === 'shipped') {
-        const tracking = trackingDrafts[order.id]?.trim();
-        if (tracking) payload.tracking_number = tracking;
-      }
       await updateAdminOrder(order.id, payload);
       toast.success('주문 상태가 업데이트되었습니다.');
       load();
@@ -102,6 +147,24 @@ export function AdminOrdersPage() {
       load();
     } catch {
       toast.error('주문 취소에 실패했습니다.');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleSaveReady = async (order: AdminOrder) => {
+    const minutes = pickupMinutes(order);
+    if (minutes == null) {
+      toast.error('포장 완료 시간은 5분에서 180분 사이로 입력해 주세요.');
+      return;
+    }
+    setUpdatingId(order.id);
+    try {
+      await updateAdminOrder(order.id, { pickup_ready_minutes: minutes });
+      toast.success(`포장 완료 시간을 ${minutes}분으로 저장했습니다.`);
+      load();
+    } catch {
+      toast.error('포장 시간 저장에 실패했습니다.');
     } finally {
       setUpdatingId(null);
     }
@@ -176,7 +239,8 @@ export function AdminOrdersPage() {
                   </tr>
                 ) : (
                   orders.map((order) => {
-                    const next = NEXT_STATUS[order.status];
+                    const next = nextAction(order);
+                    const isPickup = order.fulfillment_type === 'pickup';
                     return (
                       <tr
                         key={order.id}
@@ -197,16 +261,23 @@ export function AdminOrdersPage() {
                         </td>
                         <td className="px-4 py-3">
                           <p>{order.product?.name || `상품 #${order.product_id}`}</p>
-                          <p className="text-xs text-ig-text-secondary mt-1">{order.quantity}개</p>
+                          <p className="text-xs text-ig-text-secondary mt-1">
+                            {order.quantity}개{isPickup ? ' · 포장' : ' · 배송'}
+                          </p>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">{formatPrice(order.total_amount)}</td>
                         <td className="px-4 py-3">
                           <span className="text-xs font-semibold px-2 py-1 rounded bg-ig-secondary">
-                            {STATUS_LABELS[order.status] || order.status}
+                            {statusLabel(order)}
                           </span>
+                          {isPickup && order.pickup_ready_minutes ? (
+                            <p className="text-xs text-ig-primary mt-1">포장 {order.pickup_ready_minutes}분</p>
+                          ) : null}
                         </td>
                         <td className="px-4 py-3 min-w-[180px]">
-                          {['preparing', 'shipped', 'delivered'].includes(order.status) ? (
+                          {isPickup ? (
+                            <span className="text-xs text-ig-text-secondary">포장 수령</span>
+                          ) : ['preparing', 'shipped', 'delivered'].includes(order.status) ? (
                             <div className="flex gap-2">
                               <input
                                 type="text"
@@ -233,7 +304,51 @@ export function AdminOrdersPage() {
                             <span className="text-xs text-ig-text-secondary">-</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 space-y-2">
+                        <td className="px-4 py-3 space-y-2 min-w-[200px]">
+                          {isPickup && (order.status === 'paid' || order.status === 'preparing') ? (
+                            <div className="space-y-2">
+                              <p className="text-xs font-semibold">포장 완료까지</p>
+                              <div className="flex flex-wrap gap-1">
+                                {PICKUP_MINUTES.map((minutes) => (
+                                  <button
+                                    key={minutes}
+                                    type="button"
+                                    onClick={() =>
+                                      setReadyDrafts((prev) => ({ ...prev, [order.id]: String(minutes) }))
+                                    }
+                                    className={`px-2 py-1 rounded text-xs border ${
+                                      Number(readyDrafts[order.id]) === minutes
+                                        ? 'bg-ig-primary text-white border-ig-primary'
+                                        : 'border-ig-border'
+                                    }`}
+                                  >
+                                    {minutes}분
+                                  </button>
+                                ))}
+                              </div>
+                              <input
+                                type="number"
+                                min={5}
+                                max={180}
+                                value={readyDrafts[order.id] ?? '20'}
+                                onChange={(e) =>
+                                  setReadyDrafts((prev) => ({ ...prev, [order.id]: e.target.value }))
+                                }
+                                className="w-24 border border-ig-border rounded px-2 py-1 text-xs"
+                                aria-label="포장 완료까지 분"
+                              />
+                              {order.status === 'preparing' ? (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  disabled={updatingId === order.id}
+                                  onClick={() => handleSaveReady(order)}
+                                >
+                                  시간 변경
+                                </Button>
+                              ) : null}
+                            </div>
+                          ) : null}
                           {next ? (
                             <Button
                               size="sm"

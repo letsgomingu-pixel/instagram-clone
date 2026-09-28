@@ -15,6 +15,8 @@ export interface OrderQuote {
   image_url?: string | null;
 }
 
+export type FulfillmentType = 'delivery' | 'pickup';
+
 export interface OrderItem {
   id: number;
   product_id: number;
@@ -41,6 +43,9 @@ export interface Order {
   address_line1: string;
   address_line2: string;
   tracking_number?: string | null;
+  fulfillment_type?: FulfillmentType;
+  pickup_ready_minutes?: number | null;
+  pickup_ready_at?: string | null;
   payment_id?: string | null;
   created_at: string;
   paid_at?: string | null;
@@ -65,13 +70,22 @@ export interface OrderCreatePayload {
   quantity: number;
   shipping_name: string;
   phone: string;
-  postcode: string;
-  address_line1: string;
-  address_line2: string;
+  postcode?: string;
+  address_line1?: string;
+  address_line2?: string;
+  fulfillment_type?: FulfillmentType;
 }
 
-export async function quoteOrder(productId: number, quantity: number): Promise<OrderQuote> {
-  const { data } = await api.post<OrderQuote>('/orders/quote', { product_id: productId, quantity });
+export async function quoteOrder(
+  productId: number,
+  quantity: number,
+  fulfillmentType: FulfillmentType = 'delivery',
+): Promise<OrderQuote> {
+  const { data } = await api.post<OrderQuote>('/orders/quote', {
+    product_id: productId,
+    quantity,
+    fulfillment_type: fulfillmentType,
+  });
   return data;
 }
 

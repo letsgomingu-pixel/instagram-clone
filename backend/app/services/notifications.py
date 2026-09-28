@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -204,12 +206,29 @@ def notify_buyer_order_status(
     status: str,
     product_name: str,
     tracking_number: str | None = None,
+    fulfillment_type: str = "delivery",
+    pickup_ready_minutes: int | None = None,
+    pickup_ready_at: datetime | None = None,
 ) -> None:
+    preparing = f"{product_name} 주문을 준비하고 있습니다."
+    if fulfillment_type == "pickup" and pickup_ready_minutes and pickup_ready_at is not None:
+        from app.utils.datetime_fmt import format_pickup_clock
+
+        clock = format_pickup_clock(pickup_ready_at)
+        preparing = (
+            f"{product_name} 포장이 {pickup_ready_minutes}분 후({clock})에 완료됩니다. "
+            "그 시간에 가게에서 픽업해 주세요."
+        )
+    delivered = (
+        f"{product_name} 포장을 픽업했습니다. 리뷰를 남겨주세요!"
+        if fulfillment_type == "pickup"
+        else f"{product_name} 배송이 완료되었습니다. 리뷰를 남겨주세요!"
+    )
     messages = {
-        "preparing": f"{product_name} 주문을 준비하고 있습니다.",
+        "preparing": preparing,
         "shipped": f"{product_name} 상품이 배송 시작되었습니다."
         + (f" (송장: {tracking_number})" if tracking_number else ""),
-        "delivered": f"{product_name} 배송이 완료되었습니다. 리뷰를 남겨주세요!",
+        "delivered": delivered,
     }
     ntypes = {
         "preparing": "order_preparing",

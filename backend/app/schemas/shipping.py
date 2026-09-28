@@ -7,6 +7,20 @@ _PHONE_RE = re.compile(r"^01[0-9]-?\d{3,4}-?\d{4}$")
 _POSTCODE_RE = re.compile(r"^\d{5}$")
 
 
+def fill_pickup_address(data: object) -> object:
+    """Pickup orders have no delivery address. Fill placeholders before validation."""
+    if not isinstance(data, dict) or data.get("fulfillment_type") != "pickup":
+        return data
+    filled = dict(data)
+    if not str(filled.get("postcode") or "").strip():
+        filled["postcode"] = "00000"
+    if not str(filled.get("address_line1") or "").strip():
+        filled["address_line1"] = "매장 포장 수령"
+    if not str(filled.get("address_line2") or "").strip():
+        filled["address_line2"] = "-"
+    return filled
+
+
 class ShippingFields(BaseModel):
     phone: str = Field(min_length=1, max_length=20)
     postcode: str = Field(min_length=5, max_length=10)

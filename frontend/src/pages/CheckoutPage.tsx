@@ -3,6 +3,7 @@ import { isAxiosError } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { AddressFields } from '@/components/address/AddressFields';
+import { FulfillmentToggle, type FulfillmentType } from '@/components/order/FulfillmentToggle';
 import { Button } from '@/components/common/Button';
 import { PostCoverMedia } from '@/components/post/PostCoverMedia';
 import { Spinner } from '@/components/common/Spinner';
@@ -71,6 +72,7 @@ export function CheckoutPage() {
   const [confirming, setConfirming] = useState(false);
   const [paymentsMock, setPaymentsMock] = useState(false);
 
+  const [fulfillment, setFulfillment] = useState<FulfillmentType>('delivery');
   const [shippingName, setShippingName] = useState('');
   const [phone, setPhone] = useState('');
   const [postcode, setPostcode] = useState('');
@@ -98,18 +100,27 @@ export function CheckoutPage() {
 
   useEffect(() => {
     if (!pid || !isAuthenticated) return;
-    setLoading(true);
+    let cancelled = false;
+    if (!quote) setLoading(true);
     ordersApi
-      .quoteOrder(pid, quantity)
-      .then(setQuote)
+      .quoteOrder(pid, quantity, fulfillment)
+      .then((next) => {
+        if (!cancelled) setQuote(next);
+      })
       .catch((error) => {
+        if (cancelled) return;
         const message = isAxiosError(error) && typeof error.response?.data?.detail === 'string'
           ? error.response.data.detail
           : '상품 정보를 불러오지 못했습니다.';
         toast.error(message);
       })
-      .finally(() => setLoading(false));
-  }, [pid, quantity, isAuthenticated]);
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pid, quantity, isAuthenticated, fulfillment]);
 
   const maxQuantity = quote ? Math.min(quote.stock, 99) : 99;
 
@@ -124,13 +135,15 @@ export function CheckoutPage() {
 
     const phoneVal = validatePhone(phone);
     if (!phoneVal.valid) return toast.error(phoneVal.message!);
-    const postcodeVal = validatePostcode(postcode);
-    if (!postcodeVal.valid) return toast.error(postcodeVal.message!);
-    const address1Val = validateAddressLine1(addressLine1);
-    if (!address1Val.valid) return toast.error(address1Val.message!);
-    const address2Val = validateAddressLine2(addressLine2);
-    if (!address2Val.valid) return toast.error(address2Val.message!);
-    if (!shippingName.trim()) return toast.error('받는 분 이름을 입력해주세요.');
+    if (!shippingName.trim()) return toast.error(fulfillment === 'pickup' ? '주문자 이름을 입력해주세요.' : '받는 분 이름을 입력해주세요.');
+    if (fulfillment === 'delivery') {
+      const postcodeVal = validatePostcode(postcode);
+      if (!postcodeVal.valid) return toast.error(postcodeVal.message!);
+      const address1Val = validateAddressLine1(addressLine1);
+      if (!address1Val.valid) return toast.error(address1Val.message!);
+      const address2Val = validateAddressLine2(addressLine2);
+      if (!address2Val.valid) return toast.error(address2Val.message!);
+    }
 
     setPaying(true);
     try {
@@ -139,9 +152,10 @@ export function CheckoutPage() {
         quantity,
         shipping_name: shippingName.trim(),
         phone: phone.trim(),
-        postcode: postcode.trim(),
-        address_line1: addressLine1.trim(),
-        address_line2: addressLine2.trim(),
+        postcode: fulfillment === 'pickup' ? undefined : postcode.trim(),
+        address_line1: fulfillment === 'pickup' ? undefined : addressLine1.trim(),
+        address_line2: fulfillment === 'pickup' ? undefined : addressLine2.trim(),
+        fulfillment_type: fulfillment,
       });
 
       if (payment.mock) {
@@ -235,6 +249,16 @@ export function CheckoutPage() {
           </div>
         </div>
 
+        <div>
+          <h2 className="text-sm font-semibold mb-3">수령 방법</h2>
+          <FulfillmentToggle value={fulfillment} onChange={setFulfillment} />
+          {fulfillment === 'pickup' && (
+            <p className="text-xs text-ig-text-secondary mt-2">
+              결제 후 판매자가 포장 완료 시간을 정하면, 그 시간에 가게에서 받아가실 수 있습니다.
+            </p>
+          )}
+        </div>
+
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">수량</span>
           <div className="flex items-center gap-3">
@@ -264,7 +288,7 @@ export function CheckoutPage() {
             <span>{formatPrice(quote.subtotal)}</span>
           </div>
           <div className="flex justify-between">
-            <span>배송비</span>
+            <span>{fulfillment === 'pickup' ? '포장비' : '배송비'}</span>
             <span>{formatPrice(quote.shipping_fee)}</span>
           </div>
           <div className="flex justify-between font-bold text-base pt-2 border-t border-ig-border">
@@ -274,11 +298,13 @@ export function CheckoutPage() {
         </div>
 
         <div>
-          <h2 className="text-sm font-semibold mb-3">배송지 <span className="text-ig-red">*</span></h2>
+          <h2 className="text-sm font-semibold mb-3">
+            {fulfillment === 'pickup' ? '주문자' : '배송지'} <span className="text-ig-red">*</span>
+          </h2>
           <div className="space-y-3">
             <div>
               <label htmlFor="shipping-name" className="block text-xs font-semibold text-ig-text mb-1.5">
-                받는 분 <span className="text-ig-red">*</span>
+                {fulfillment === 'pickup' ? '이름' : '받는 분'} <span className="text-ig-red">*</span>
               </label>
               <input
                 id="shipping-name"
@@ -290,16 +316,33 @@ export function CheckoutPage() {
                 autoComplete="name"
               />
             </div>
-            <AddressFields
-              phone={phone}
-              postcode={postcode}
-              addressLine1={addressLine1}
-              addressLine2={addressLine2}
-              onPhoneChange={setPhone}
-              onPostcodeChange={setPostcode}
-              onAddressLine1Change={setAddressLine1}
-              onAddressLine2Change={setAddressLine2}
-            />
+            {fulfillment === 'pickup' ? (
+              <div>
+                <label htmlFor="pickup-phone" className="block text-xs font-semibold text-ig-text mb-1.5">
+                  연락처 <span className="text-ig-red">*</span>
+                </label>
+                <input
+                  id="pickup-phone"
+                  type="tel"
+                  placeholder="010-0000-0000"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
+                  autoComplete="tel"
+                />
+              </div>
+            ) : (
+              <AddressFields
+                phone={phone}
+                postcode={postcode}
+                addressLine1={addressLine1}
+                addressLine2={addressLine2}
+                onPhoneChange={setPhone}
+                onPostcodeChange={setPostcode}
+                onAddressLine1Change={setAddressLine1}
+                onAddressLine2Change={setAddressLine2}
+              />
+            )}
           </div>
         </div>
 

@@ -122,6 +122,9 @@ export interface AdminOrder {
   address_line1: string;
   address_line2: string;
   tracking_number?: string | null;
+  fulfillment_type?: 'delivery' | 'pickup';
+  pickup_ready_minutes?: number | null;
+  pickup_ready_at?: string | null;
   created_at: string;
   paid_at?: string | null;
   shipped_at?: string | null;
@@ -141,7 +144,11 @@ export async function getAdminOrders(
 
 export async function updateAdminOrder(
   orderId: number,
-  payload: { status?: 'preparing' | 'shipped' | 'delivered'; tracking_number?: string },
+  payload: {
+    status?: 'preparing' | 'shipped' | 'delivered';
+    tracking_number?: string;
+    pickup_ready_minutes?: number;
+  },
 ): Promise<AdminOrder> {
   const { data } = await api.patch<AdminOrder>(`/admin/orders/${orderId}`, payload);
   return data;

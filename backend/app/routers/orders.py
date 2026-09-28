@@ -18,7 +18,7 @@ router = APIRouter(prefix="/orders", tags=["orders"])
 
 @router.post("/quote", response_model=OrderQuoteOut)
 def order_quote(body: OrderQuoteRequest, current_user: CurrentUser, db: DbSession):
-    return build_order_quote(db, body.product_id, body.quantity)
+    return build_order_quote(db, body.product_id, body.quantity, body.fulfillment_type)
 
 
 @router.post("", response_model=OrderCreateResponse, status_code=201)
