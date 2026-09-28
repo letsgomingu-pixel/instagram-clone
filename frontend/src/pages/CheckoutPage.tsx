@@ -12,6 +12,7 @@ import * as ordersApi from '@/api/orders';
 import { useAuth } from '@/hooks/useAuth';
 import { getCheckoutShippingFields } from '@/utils/shipping';
 import {
+  formatPhoneInput,
   validatePhone,
   validatePostcode,
   validateAddressLine1,
@@ -325,8 +326,10 @@ export function CheckoutPage() {
                   id="pickup-phone"
                   type="tel"
                   placeholder="010-0000-0000"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  value={formatPhoneInput(phone)}
+                  onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+                  maxLength={13}
+                  inputMode="numeric"
                   className="w-full px-3 py-2.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
                   autoComplete="tel"
                 />

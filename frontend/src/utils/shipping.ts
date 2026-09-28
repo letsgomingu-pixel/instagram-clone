@@ -1,4 +1,5 @@
 import type { User } from '@/types';
+import { formatPhoneInput } from '@/utils/validateForm';
 
 const PLACEHOLDER_PHONES = new Set(['010-0000-0000', '010-1234-5678']);
 const PLACEHOLDER_POSTCODES = new Set(['00000']);
@@ -23,7 +24,7 @@ const EMPTY_SHIPPING: CheckoutShippingFields = {
 export function getCheckoutShippingFields(user: User | null | undefined): CheckoutShippingFields {
   if (!user) return EMPTY_SHIPPING;
 
-  const phone = user.phone && !PLACEHOLDER_PHONES.has(user.phone) ? user.phone : '';
+  const phone = user.phone && !PLACEHOLDER_PHONES.has(user.phone) ? formatPhoneInput(user.phone) : '';
   const postcode = user.postcode && !PLACEHOLDER_POSTCODES.has(user.postcode) ? user.postcode : '';
 
   return {
