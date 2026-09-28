@@ -660,6 +660,8 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
             fulfillment_type=order.fulfillment_type,
             pickup_ready_minutes=order.pickup_ready_minutes,
             pickup_ready_at=order.pickup_ready_at,
+            phone=order.phone,
+            send_sms=order.fulfillment_type == "pickup" and status_changed in ("preparing", "ready"),
         )
         db.commit()
 

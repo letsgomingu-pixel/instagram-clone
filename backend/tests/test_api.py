@@ -1413,22 +1413,6 @@ def test_pickup_order_ready_time(auth_headers):
     )
     assert missing.status_code == 400, missing.text
 
-    accepted = client.patch(
-        f"/api/v1/admin/orders/{order['id']}",
-        headers=admin_headers,
-        json={"status": "preparing", "pickup_ready_minutes": 20},
-    )
-    assert accepted.status_code == 200, accepted.text
-    body = accepted.json()
-    assert body["status"] == "preparing"
-    assert body["pickup_ready_minutes"] == 20
-    assert body["pickup_ready_at"]
-
-    detail = client.get(f"/api/v1/orders/{order['id']}", headers=auth_headers)
-    assert detail.status_code == 200
-    assert detail.json()["pickup_ready_minutes"] == 20
-    assert detail.json()["pickup_ready_at"]
-
     too_soon = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
         headers=admin_headers,
@@ -1436,14 +1420,65 @@ def test_pickup_order_ready_time(auth_headers):
     )
     assert too_soon.status_code == 400, too_soon.text
 
-    packed = client.patch(
-        f"/api/v1/admin/orders/{order['id']}",
-        headers=admin_headers,
-        json={"status": "ready"},
+    key = client.get("/api/v1/notifications/push-key", headers=auth_headers)
+    assert key.status_code == 200, key.text
+    assert key.json()["public_key"]
+    subscribed = client.post(
+        "/api/v1/notifications/push-subscription",
+        headers=auth_headers,
+        json={
+            "endpoint": "https://push.example/order-ready",
+            "p256dh": "test-p256dh",
+            "auth": "test-auth",
+        },
     )
-    assert packed.status_code == 200, packed.text
-    assert packed.json()["status"] == "ready"
-    assert packed.json()["packaged_at"]
+    assert subscribed.status_code == 204, subscribed.text
+
+    from unittest.mock import patch
+
+    from app.config import settings
+
+    with (
+        patch("app.services.web_push.deliver_push") as push,
+        patch("app.services.sms.deliver_sms") as sms,
+        patch.object(settings, "solapi_api_key", "test-key"),
+        patch.object(settings, "solapi_api_secret", "test-secret"),
+        patch.object(settings, "solapi_sender", "0212345678"),
+    ):
+        accepted = client.patch(
+            f"/api/v1/admin/orders/{order['id']}",
+            headers=admin_headers,
+            json={"status": "preparing", "pickup_ready_minutes": 20},
+        )
+        assert accepted.status_code == 200, accepted.text
+        body = accepted.json()
+        assert body["status"] == "preparing"
+        assert body["pickup_ready_minutes"] == 20
+        assert body["pickup_ready_at"]
+        assert "주문을 수락했습니다" in push.call_args.kwargs["data"]
+        assert "주문 수락" in push.call_args.kwargs["data"]
+        assert sms.call_args.args[0]["to"] == "01011112222"
+        assert "주문을 수락했습니다" in sms.call_args.args[0]["text"]
+
+        detail = client.get(f"/api/v1/orders/{order['id']}", headers=auth_headers)
+        assert detail.status_code == 200
+        assert detail.json()["pickup_ready_minutes"] == 20
+        assert detail.json()["pickup_ready_at"]
+
+        push.reset_mock()
+        sms.reset_mock()
+        packed = client.patch(
+            f"/api/v1/admin/orders/{order['id']}",
+            headers=admin_headers,
+            json={"status": "ready"},
+        )
+        assert packed.status_code == 200, packed.text
+        assert packed.json()["status"] == "ready"
+        assert packed.json()["packaged_at"]
+        assert "포장이 완료되었습니다" in push.call_args.kwargs["data"]
+        assert "포장 완료" in push.call_args.kwargs["data"]
+        assert sms.call_args.args[0]["to"] == "01011112222"
+        assert "포장이 완료되었습니다" in sms.call_args.args[0]["text"]
 
     notes = client.get("/api/v1/notifications?tab=you", headers=auth_headers).json()
     ready_note = next(

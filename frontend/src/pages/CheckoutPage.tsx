@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { AddressFields } from '@/components/address/AddressFields';
 import { FulfillmentToggle, type FulfillmentType } from '@/components/order/FulfillmentToggle';
+import { PickupPhoneAlertButton } from '@/components/order/PickupPhoneAlertButton';
 import { Button } from '@/components/common/Button';
 import { PostCoverMedia } from '@/components/post/PostCoverMedia';
 import { Spinner } from '@/components/common/Spinner';
@@ -254,9 +255,12 @@ export function CheckoutPage() {
           <h2 className="text-sm font-semibold mb-3">수령 방법</h2>
           <FulfillmentToggle value={fulfillment} onChange={setFulfillment} />
           {fulfillment === 'pickup' && (
-            <p className="text-xs text-ig-text-secondary mt-2">
-              결제 후 판매자가 포장 완료 시간을 정하면, 그 시간에 가게에서 받아가실 수 있습니다.
-            </p>
+            <div className="mt-2 space-y-2">
+              <p className="text-xs text-ig-text-secondary">
+                결제 후 판매자가 주문을 수락하고 포장이 끝나면, 입력한 연락처로 문자가 갑니다.
+              </p>
+              <PickupPhoneAlertButton />
+            </div>
           )}
         </div>
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ianafm-shell-v3';
+const CACHE_NAME = 'ianafm-shell-v4';
 const PRECACHE_URLS = [
   '/offline.html',
   '/site.webmanifest',
@@ -103,4 +103,35 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(staleWhileRevalidate(request));
+});
+
+self.addEventListener('push', (event) => {
+  let payload = { title: '주문 알림', body: '', url: '/orders' };
+  try {
+    if (event.data) payload = { ...payload, ...event.data.json() };
+  } catch {
+    // Keep the default order alert if the payload is not JSON.
+  }
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { url: payload.url || '/orders' },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || '/orders', self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if ('focus' in client && client.url === target) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(target);
+      return undefined;
+    }),
+  );
 });

@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.user import UserOut
 
@@ -19,3 +19,13 @@ class NotificationOut(BaseModel):
 
 class NotificationReadUpdate(BaseModel):
     is_read: bool = True
+
+
+class PushSubscribeIn(BaseModel):
+    endpoint: str = Field(min_length=8, max_length=2000)
+    p256dh: str = Field(min_length=1, max_length=255)
+    auth: str = Field(min_length=1, max_length=255)
+
+
+class PushKeyOut(BaseModel):
+    public_key: str

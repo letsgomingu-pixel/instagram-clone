@@ -6,7 +6,7 @@ from sqlalchemy.orm import joinedload
 from app.dependencies import CurrentUser, DbSession
 from app.models import Notification
 from app.schemas.conversation import ConversationOut, GroupConversationCreate, MessageCreate, MessageOut
-from app.schemas.notification import NotificationOut, NotificationReadUpdate
+from app.schemas.notification import NotificationOut, NotificationReadUpdate, PushKeyOut, PushSubscribeIn
 from app.schemas.user import UserOut
 from app.services.conversations import (
     create_group_conversation,
@@ -131,6 +131,26 @@ def get_notifications(
     if tab not in ("you", "following"):
         raise HTTPException(status_code=400, detail="Invalid tab")
     return list_notifications(db, current_user, tab)
+
+
+@notifications_router.get("/push-key", response_model=PushKeyOut)
+def get_push_key(current_user: CurrentUser, db: DbSession):
+    from app.services.web_push import get_or_create_vapid
+
+    return PushKeyOut(public_key=get_or_create_vapid(db).public_key)
+
+
+@notifications_router.post("/push-subscription", status_code=204)
+def save_push_subscription_route(body: PushSubscribeIn, current_user: CurrentUser, db: DbSession):
+    from app.services.web_push import save_push_subscription
+
+    save_push_subscription(
+        db,
+        user_id=current_user.id,
+        endpoint=body.endpoint.strip(),
+        p256dh=body.p256dh.strip(),
+        auth=body.auth.strip(),
+    )
 
 
 @notifications_router.patch("/{notification_id}/read", response_model=NotificationOut)

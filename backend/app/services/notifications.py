@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
@@ -6,6 +7,8 @@ from sqlalchemy.orm import Session, joinedload
 from app.models import Comment, Notification, Post, User
 from app.services.settings import user_allows_notification
 from app.utils.mentions import extract_mentions
+
+logger = logging.getLogger(__name__)
 
 
 def _followers_of(db: Session, user_id: int) -> list[int]:
@@ -209,6 +212,8 @@ def notify_buyer_order_status(
     fulfillment_type: str = "delivery",
     pickup_ready_minutes: int | None = None,
     pickup_ready_at: datetime | None = None,
+    phone: str | None = None,
+    send_sms: bool = False,
 ) -> None:
     preparing = f"{product_name} 주문을 준비하고 있습니다."
     if fulfillment_type == "pickup" and pickup_ready_minutes and pickup_ready_at is not None:
@@ -216,8 +221,8 @@ def notify_buyer_order_status(
 
         clock = format_pickup_clock(pickup_ready_at)
         preparing = (
-            f"{product_name} 포장이 {pickup_ready_minutes}분 후({clock})에 완료됩니다. "
-            "그 시간에 가게에서 픽업해 주세요."
+            f"{product_name} 주문을 수락했습니다. "
+            f"포장은 {pickup_ready_minutes}분 후({clock})에 완료됩니다."
         )
     delivered = (
         f"{product_name} 포장을 픽업했습니다. 리뷰를 남겨주세요!"
@@ -247,6 +252,31 @@ def notify_buyer_order_status(
         ntype=ntypes[status],
         message=messages[status],
     )
+    titles = {
+        "preparing": "주문 수락" if fulfillment_type == "pickup" else "주문 안내",
+        "ready": "포장 완료",
+        "shipped": "배송 시작",
+        "delivered": "픽업 완료" if fulfillment_type == "pickup" else "배송 완료",
+    }
+    try:
+        from app.services.web_push import send_web_push
+
+        send_web_push(
+            db,
+            user_id=buyer_id,
+            title=titles[status],
+            body=messages[status],
+            url=f"/orders/{order_id}",
+        )
+    except Exception:
+        logging.getLogger(__name__).exception("Failed to send phone alert for order %s", order_id)
+    if send_sms and phone and fulfillment_type == "pickup" and status in ("preparing", "ready"):
+        try:
+            from app.services.sms import send_pickup_sms
+
+            send_pickup_sms(phone=phone, text=messages[status], subject=titles[status])
+        except Exception:
+            logging.getLogger(__name__).exception("Failed to text buyer about order %s", order_id)
 
 
 def create_tag_notifications(db: Session, *, actor: User, post: Post, tagged_user_ids: list[int]) -> None:

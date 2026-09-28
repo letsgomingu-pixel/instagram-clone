@@ -8,6 +8,7 @@ from app.models.hidden_post import HiddenPost
 from app.models.like import Like
 from app.models.login_session import LoginSession
 from app.models.notification import Notification
+from app.models.push_subscription import PushSubscription, VapidKey
 from app.models.cart import CartItem
 from app.models.order import Order, OrderItem, Payment
 from app.models.post import Post
@@ -71,5 +72,7 @@ __all__ = [
     "ConversationParticipant",
     "Message",
     "Notification",
+    "PushSubscription",
+    "VapidKey",
     "RecentSearch",
 ]

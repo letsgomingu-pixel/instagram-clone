@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { OrderTimeline } from '@/components/order/OrderTimeline';
@@ -7,6 +7,7 @@ import { ProductInfo, formatPrice } from '@/components/post/ProductInfo';
 import { Button } from '@/components/common/Button';
 import { Spinner } from '@/components/common/Spinner';
 import * as ordersApi from '@/api/orders';
+import { enableOrderPush, orderPushSupport } from '@/pwa/orderPush';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: '결제 대기',
@@ -102,20 +103,66 @@ export function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [pushState, setPushState] = useState<'unknown' | 'on' | 'off' | 'denied' | 'unsupported' | 'install'>('unknown');
+  const [enablingPush, setEnablingPush] = useState(false);
+  const statusRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!orderId) return;
-    setLoading(true);
-    setError(false);
-    ordersApi
-      .getOrder(Number(orderId))
-      .then(setOrder)
-      .catch(() => {
-        setError(true);
-        toast.error('주문 정보를 불러오지 못했습니다.');
-      })
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    const load = (initial: boolean) => {
+      if (initial) {
+        setLoading(true);
+        setError(false);
+      }
+      ordersApi
+        .getOrder(Number(orderId))
+        .then((next) => {
+          if (cancelled) return;
+          statusRef.current = next.status;
+          setOrder(next);
+        })
+        .catch(() => {
+          if (!initial || cancelled) return;
+          setError(true);
+          toast.error('주문 정보를 불러오지 못했습니다.');
+        })
+        .finally(() => {
+          if (initial && !cancelled) setLoading(false);
+        });
+    };
+    load(true);
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      if (['delivered', 'cancelled', 'failed'].includes(statusRef.current || '')) return;
+      load(false);
+    }, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
   }, [orderId]);
+
+  useEffect(() => {
+    if (order?.fulfillment_type !== 'pickup') return;
+    if (!['paid', 'preparing', 'ready'].includes(order.status)) return;
+    const support = orderPushSupport();
+    if (support === 'unsupported' || support === 'denied') {
+      setPushState(support);
+      return;
+    }
+    if (support !== 'granted') {
+      setPushState('off');
+      return;
+    }
+    let cancelled = false;
+    enableOrderPush().then((result) => {
+      if (!cancelled) setPushState(result === 'enabled' ? 'on' : result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [order?.fulfillment_type, order?.status]);
 
   if (loading) {
     return (
@@ -125,7 +172,28 @@ export function OrderDetailPage() {
     );
   }
 
+  const ios = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const showPhoneAlert =
+    !!order &&
+    order.fulfillment_type === 'pickup' &&
+    ['paid', 'preparing', 'ready'].includes(order.status) &&
+    pushState !== 'unknown' &&
+    (pushState !== 'unsupported' || ios);
   const canCancel = order && (order.status === 'pending' || order.status === 'paid');
+
+  const handleEnablePush = async () => {
+    setEnablingPush(true);
+    try {
+      const result = await enableOrderPush();
+      setPushState(result === 'enabled' ? 'on' : result);
+      if (result === 'enabled') toast.success('휴대폰 알림을 켰습니다.');
+      else if (result === 'denied') toast.error('브라우저에서 알림이 차단되어 있습니다.');
+      else if (result === 'install') toast.error('아이폰은 홈 화면에 추가한 뒤 알림을 켤 수 있습니다.');
+      else toast.error('이 휴대폰에서는 알림을 켤 수 없습니다.');
+    } finally {
+      setEnablingPush(false);
+    }
+  };
 
   const handleCancel = async () => {
     if (!order || !canCancel) return;
@@ -187,8 +255,30 @@ export function OrderDetailPage() {
       </div>
 
       {order.fulfillment_type === 'pickup' && (
-        <div className="feed-card p-6">
+        <div className="feed-card p-6 space-y-3">
           <PickupReadyCard order={order} />
+          {showPhoneAlert && (
+            <div className="rounded-lg border border-ig-border px-4 py-3 text-sm">
+              {pushState === 'on' ? (
+                <p>주문을 수락하거나 포장이 끝나면 이 휴대폰으로 알림이 갑니다.</p>
+              ) : pushState === 'unsupported' ? (
+                <p>아이폰은 브라우저 메뉴에서 홈 화면에 추가한 뒤, 그 앱에서 알림을 켤 수 있습니다.</p>
+              ) : (
+                <>
+                  <p>주문 수락과 포장 완료를 이 휴대폰 알림으로 알려드립니다.</p>
+                  {pushState === 'denied' ? (
+                    <p className="mt-1 text-ig-text-secondary">브라우저 설정에서 알림을 허용해 주세요.</p>
+                  ) : pushState === 'install' ? (
+                    <p className="mt-1 text-ig-text-secondary">아이폰은 홈 화면에 추가한 뒤 알림을 켤 수 있습니다.</p>
+                  ) : (
+                    <Button className="mt-3" size="sm" loading={enablingPush} onClick={handleEnablePush}>
+                      휴대폰 알림 켜기
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
         </div>
       )}
 
