@@ -22,13 +22,25 @@ const STATUS_LABELS: Record<string, string> = {
   failed: '결제 실패',
 };
 
-const STATUS_FILTERS = [
+const FULFILLMENT_TABS = [
+  { value: 'delivery' as const, label: '택배 주문' },
+  { value: 'pickup' as const, label: '포장 주문' },
+];
+
+const DELIVERY_STATUS_FILTERS = [
   { value: '', label: '전체' },
   { value: 'paid', label: '결제 완료' },
   { value: 'preparing', label: '준비 중' },
-  { value: 'ready', label: '포장 완료' },
   { value: 'shipped', label: '배송 중' },
   { value: 'delivered', label: '배송 완료' },
+];
+
+const PICKUP_STATUS_FILTERS = [
+  { value: '', label: '전체' },
+  { value: 'paid', label: '결제 완료' },
+  { value: 'preparing', label: '포장 중' },
+  { value: 'ready', label: '포장 완료' },
+  { value: 'delivered', label: '픽업 완료' },
 ];
 
 const NEXT_STATUS: Record<string, { status: 'preparing' | 'ready' | 'shipped' | 'delivered'; label: string }> = {
@@ -58,8 +70,10 @@ function statusLabel(order: AdminOrder) {
 }
 
 export function AdminOrdersPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const highlightedOrderId = Number(searchParams.get('order') || 0);
+  const fulfillment = searchParams.get('fulfillment') === 'pickup' ? 'pickup' : 'delivery';
+  const statusFilters = fulfillment === 'pickup' ? PICKUP_STATUS_FILTERS : DELIVERY_STATUS_FILTERS;
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -72,7 +86,7 @@ export function AdminOrdersPage() {
 
   const load = () => {
     setLoading(true);
-    getAdminOrders(page, limit, statusFilter || undefined)
+    getAdminOrders(page, limit, statusFilter || undefined, fulfillment)
       .then((data) => {
         setOrders(data.items);
         setTotal(data.total);
@@ -101,7 +115,15 @@ export function AdminOrdersPage() {
 
   useEffect(() => {
     load();
-  }, [page, statusFilter]);
+  }, [page, statusFilter, fulfillment]);
+
+  const selectFulfillment = (next: 'delivery' | 'pickup') => {
+    setPage(1);
+    setStatusFilter('');
+    const params = new URLSearchParams(searchParams);
+    params.set('fulfillment', next);
+    setSearchParams(params);
+  };
 
   const pickupMinutes = (order: AdminOrder) => {
     const minutes = Number(readyDrafts[order.id] ?? 20);
@@ -215,8 +237,25 @@ export function AdminOrdersPage() {
     <div>
       <h1 className="text-2xl font-semibold mb-6">주문 관리</h1>
 
+      <div className="flex gap-2 mb-4">
+        {FULFILLMENT_TABS.map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => selectFulfillment(tab.value)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold border ${
+              fulfillment === tab.value
+                ? 'bg-ig-primary text-white border-ig-primary'
+                : 'bg-white border-ig-border text-ig-text'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap gap-2 mb-4">
-        {STATUS_FILTERS.map((filter) => (
+        {statusFilters.map((filter) => (
           <button
             key={filter.value}
             type="button"
@@ -250,15 +289,17 @@ export function AdminOrdersPage() {
                   <th className="px-4 py-3 font-semibold">상품</th>
                   <th className="px-4 py-3 font-semibold">금액</th>
                   <th className="px-4 py-3 font-semibold">상태</th>
-                  <th className="px-4 py-3 font-semibold">송장번호</th>
+                  {fulfillment === 'delivery' ? (
+                    <th className="px-4 py-3 font-semibold">송장번호</th>
+                  ) : null}
                   <th className="px-4 py-3 font-semibold">관리</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-ig-text-secondary">
-                      주문이 없습니다.
+                    <td colSpan={fulfillment === 'pickup' ? 6 : 7} className="px-4 py-12 text-center text-ig-text-secondary">
+                      {fulfillment === 'pickup' ? '포장 주문이 없습니다.' : '택배 주문이 없습니다.'}
                     </td>
                   </tr>
                 ) : (
@@ -298,10 +339,9 @@ export function AdminOrdersPage() {
                             <p className="text-xs text-ig-primary mt-1">포장 {order.pickup_ready_minutes}분</p>
                           ) : null}
                         </td>
+                        {fulfillment === 'delivery' ? (
                         <td className="px-4 py-3 min-w-[180px]">
-                          {isPickup ? (
-                            <span className="text-xs text-ig-text-secondary">포장 수령</span>
-                          ) : ['preparing', 'shipped', 'delivered'].includes(order.status) ? (
+                          {['preparing', 'shipped', 'delivered'].includes(order.status) ? (
                             <div className="flex gap-2">
                               <input
                                 type="text"
@@ -328,6 +368,7 @@ export function AdminOrdersPage() {
                             <span className="text-xs text-ig-text-secondary">-</span>
                           )}
                         </td>
+                        ) : null}
                         <td className="px-4 py-3 space-y-2 min-w-[200px]">
                           {isPickup && (order.status === 'paid' || order.status === 'preparing') ? (
                             <div className="space-y-2">

@@ -553,13 +553,19 @@ def get_order_for_admin(db: Session, order_id: int) -> Order:
 
 
 def list_admin_orders(
-    db: Session, offset: int, limit: int, status: str | None = None
+    db: Session,
+    offset: int,
+    limit: int,
+    status: str | None = None,
+    fulfillment_type: str | None = None,
 ) -> tuple[list[Order], int]:
     from sqlalchemy import func
 
     base = select(Order)
     if status:
         base = base.where(Order.status == status)
+    if fulfillment_type:
+        base = base.where(Order.fulfillment_type == fulfillment_type)
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     orders = db.scalars(
         base.options(

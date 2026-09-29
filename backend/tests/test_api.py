@@ -1343,9 +1343,12 @@ def test_admin_order_management(auth_headers):
     admin_headers = _admin_login()
     order = _create_paid_order(auth_headers, admin_headers)
 
-    listed = client.get("/api/v1/admin/orders", headers=admin_headers)
+    listed = client.get("/api/v1/admin/orders", headers=admin_headers, params={"fulfillment_type": "delivery"})
     assert listed.status_code == 200
     assert any(o["id"] == order["id"] for o in listed.json()["items"])
+    pickup_list = client.get("/api/v1/admin/orders", headers=admin_headers, params={"fulfillment_type": "pickup"})
+    assert pickup_list.status_code == 200
+    assert all(o["id"] != order["id"] for o in pickup_list.json()["items"])
 
     assert order["status"] == "preparing"
 
@@ -1422,6 +1425,20 @@ def test_pickup_order_ready_time(auth_headers):
 
     confirm = client.post(f"/api/v1/payments/mock/{order['id']}/confirm", headers=auth_headers)
     assert confirm.status_code == 200, confirm.text
+
+    pickup_list = client.get(
+        "/api/v1/admin/orders",
+        headers=admin_headers,
+        params={"fulfillment_type": "pickup", "status": "paid"},
+    )
+    assert pickup_list.status_code == 200, pickup_list.text
+    assert any(o["id"] == order["id"] for o in pickup_list.json()["items"])
+    ready_list = client.get(
+        "/api/v1/admin/orders",
+        headers=admin_headers,
+        params={"fulfillment_type": "pickup", "status": "ready"},
+    )
+    assert ready_list.status_code == 200, ready_list.text
 
     missing = client.patch(
         f"/api/v1/admin/orders/{order['id']}",

@@ -136,9 +136,11 @@ export async function getAdminOrders(
   page = 1,
   limit = 20,
   status?: string,
+  fulfillmentType?: 'delivery' | 'pickup',
 ): Promise<PaginatedResponse<AdminOrder>> {
   const params: Record<string, string | number> = { page, limit };
   if (status) params.status = status;
+  if (fulfillmentType) params.fulfillment_type = fulfillmentType;
   const { data } = await api.get<PaginatedResponse<AdminOrder>>('/admin/orders', { params });
   return data;
 }

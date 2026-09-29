@@ -215,10 +215,13 @@ def admin_orders(
     db: DbSession,
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    status: str | None = Query(None, pattern="^(pending|paid|preparing|shipped|delivered|cancelled|failed)$"),
+    status: str | None = Query(None, pattern="^(pending|paid|preparing|ready|shipped|delivered|cancelled|failed)$"),
+    fulfillment_type: str | None = Query(None, pattern="^(delivery|pickup)$"),
 ):
     page, limit, offset = pagination_params(page, limit)
-    orders, total = list_admin_orders(db, offset, limit, status=status)
+    orders, total = list_admin_orders(
+        db, offset, limit, status=status, fulfillment_type=fulfillment_type
+    )
     items = [build_admin_order_out(db, o) for o in orders]
     return paginate(items, total, page, limit)
 
