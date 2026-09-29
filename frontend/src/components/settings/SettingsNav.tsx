@@ -1,7 +1,8 @@
 import { NavLink } from 'react-router-dom';
-import { ChevronRight, Download } from 'lucide-react';
+import { ChevronRight, Download, LayoutDashboard } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/utils/cn';
+import { useAuth } from '@/hooks/useAuth';
 import { usePwa } from '@/pwa';
 
 const settingsNavItems = [
@@ -21,6 +22,7 @@ interface SettingsNavProps {
 }
 
 export function SettingsNav({ className }: SettingsNavProps) {
+  const { user } = useAuth();
   const { canInstall, isStandalone, isIos, isAndroid, showInstallHint, install } = usePwa();
   const showInstall = showInstallHint;
 
@@ -32,6 +34,20 @@ export function SettingsNav({ className }: SettingsNavProps) {
       )}
     >
       <ul className="py-2 md:py-2">
+        {user?.is_admin && (
+          <li>
+            <NavLink
+              to="/admin"
+              className="flex items-center justify-between px-4 md:px-6 py-4 md:py-3 text-[16px] border-l-2 border-transparent text-ig-text hover:bg-ig-hover"
+            >
+              <span className="flex items-center gap-2">
+                <LayoutDashboard size={16} />
+                관리자 콘솔
+              </span>
+              <ChevronRight size={16} className="md:hidden text-ig-text-secondary" />
+            </NavLink>
+          </li>
+        )}
         {settingsNavItems.map(({ to, label }) => (
           <li key={to}>
             <NavLink

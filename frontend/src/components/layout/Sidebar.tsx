@@ -11,7 +11,7 @@ import {
 } from '@/components/post/PostActionIcons';
 import { ReelsIcon } from '@/components/common/ReelsIcon';
 import { NavBadge } from '@/components/common/NavBadge';
-import { Package, ShoppingCart } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/contexts/AppContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -158,14 +158,26 @@ export function Sidebar() {
         )}
 
         {isAuthenticated ? (
-          <NavLink
-            to={`/profile/${user?.username}`}
-            onClick={() => setNotificationsPanelOpen(false)}
-            className={({ isActive }) => cn(navButtonClass(isActive), 'mt-auto')}
-          >
-            <Avatar src={user?.avatar_url} alt="프로필" size="sm" />
-            <span className="text-base hidden lg:inline truncate">프로필</span>
-          </NavLink>
+          <div className="mt-auto">
+            {user?.is_admin && (
+              <NavLink
+                to="/admin"
+                onClick={() => setNotificationsPanelOpen(false)}
+                className={({ isActive }) => navButtonClass(isActive)}
+              >
+                <LayoutDashboard size={24} />
+                <span className="text-base hidden lg:inline">관리자</span>
+              </NavLink>
+            )}
+            <NavLink
+              to={`/profile/${user?.username}`}
+              onClick={() => setNotificationsPanelOpen(false)}
+              className={({ isActive }) => navButtonClass(isActive)}
+            >
+              <Avatar src={user?.avatar_url} alt="프로필" size="sm" />
+              <span className="text-base hidden lg:inline truncate">프로필</span>
+            </NavLink>
+          </div>
         ) : (
           <Link
             to="/login"

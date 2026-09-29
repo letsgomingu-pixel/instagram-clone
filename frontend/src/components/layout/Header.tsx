@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Menu, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, LayoutDashboard, Menu, MoreHorizontal } from 'lucide-react';
 import { ProfileOptionsMenu } from '@/components/profile/ProfileOptionsMenu';
 import { useProfileMenu } from '@/contexts/ProfileMenuContext';
 import { InstagramLogo } from '@/components/common/InstagramLogo';
@@ -46,6 +46,11 @@ export function MobileHeader({ config }: MobileHeaderProps) {
               <InstagramLogo className="text-[13px] leading-none truncate block max-w-[190px]" />
             </Link>
             <div className="flex items-center gap-[18px]">
+              {user?.is_admin && (
+                <Link to="/admin" className="p-0.5" aria-label="관리자 콘솔">
+                  <LayoutDashboard size={24} />
+                </Link>
+              )}
               <Link to="/notifications" className="relative p-0.5" aria-label="알림">
                 <NavNotificationsIcon />
                 <NavBadge count={notificationCount} />
