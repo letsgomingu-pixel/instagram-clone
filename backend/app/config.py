@@ -65,16 +65,6 @@ class Settings(BaseSettings):
     # (recommended) or the bucket's own S3 website/REST endpoint.
     media_cdn_base_url: str = ""
 
-    # Solapi SMS — pickup accept and packaging-complete texts.
-    # Sender must be a number registered in the Solapi console.
-    solapi_api_key: str = ""
-    solapi_api_secret: str = ""
-    solapi_sender: str = ""
-
-    @property
-    def sms_configured(self) -> bool:
-        return bool(self.solapi_api_key and self.solapi_api_secret and self.solapi_sender)
-
     @property
     def origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.allowed_origins.split(",")]

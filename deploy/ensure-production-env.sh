@@ -68,14 +68,6 @@ if all(portone_keys.values()):
 elif os.environ.get("PORTONE_MOCK", "").strip():
     updates["PORTONE_MOCK"] = os.environ["PORTONE_MOCK"].strip()
 
-solapi_keys = {
-    "SOLAPI_API_KEY": os.environ.get("SOLAPI_API_KEY", "").strip(),
-    "SOLAPI_API_SECRET": os.environ.get("SOLAPI_API_SECRET", "").strip(),
-    "SOLAPI_SENDER": os.environ.get("SOLAPI_SENDER", "").strip(),
-}
-if all(solapi_keys.values()):
-    updates.update(solapi_keys)
-
 lines = env_file.read_text(encoding="utf-8").splitlines() if env_file.exists() else []
 out: list[str] = []
 seen: set[str] = set()
@@ -106,9 +98,5 @@ if all(portone_keys.values()) and updates.get("PORTONE_MOCK", "false").lower() =
     flags.append("payments=live")
 else:
     flags.append("payments=mock")
-if all(solapi_keys.values()):
-    flags.append("sms=on")
-else:
-    flags.append("sms=off")
 print(f"[ensure-production-env] Updated {env_file} ({', '.join(flags)})")
 PY

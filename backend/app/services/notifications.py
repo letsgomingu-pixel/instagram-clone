@@ -212,10 +212,8 @@ def notify_buyer_order_status(
     fulfillment_type: str = "delivery",
     pickup_ready_minutes: int | None = None,
     pickup_ready_at: datetime | None = None,
-    phone: str | None = None,
-    send_sms: bool = False,
 ) -> None:
-    preparing = f"{product_name} 주문을 준비하고 있습니다."
+    preparing = f"{product_name} 상품 준비 중입니다."
     if fulfillment_type == "pickup" and pickup_ready_minutes and pickup_ready_at is not None:
         from app.utils.datetime_fmt import format_pickup_clock
 
@@ -232,7 +230,7 @@ def notify_buyer_order_status(
     messages = {
         "preparing": preparing,
         "ready": f"{product_name} 포장이 완료되었습니다. 가게에서 픽업해 주세요.",
-        "shipped": f"{product_name} 상품이 배송 시작되었습니다."
+        "shipped": f"{product_name} 상품이 배송 중입니다."
         + (f" (송장: {tracking_number})" if tracking_number else ""),
         "delivered": delivered,
     }
@@ -253,9 +251,9 @@ def notify_buyer_order_status(
         message=messages[status],
     )
     titles = {
-        "preparing": "주문 수락" if fulfillment_type == "pickup" else "주문 안내",
+        "preparing": "주문 수락" if fulfillment_type == "pickup" else "상품 준비 중",
         "ready": "포장 완료",
-        "shipped": "배송 시작",
+        "shipped": "배송 중",
         "delivered": "픽업 완료" if fulfillment_type == "pickup" else "배송 완료",
     }
     try:
@@ -270,13 +268,6 @@ def notify_buyer_order_status(
         )
     except Exception:
         logging.getLogger(__name__).exception("Failed to send phone alert for order %s", order_id)
-    if send_sms and phone and fulfillment_type == "pickup" and status in ("preparing", "ready"):
-        try:
-            from app.services.sms import send_pickup_sms
-
-            send_pickup_sms(phone=phone, text=messages[status], subject=titles[status])
-        except Exception:
-            logging.getLogger(__name__).exception("Failed to text buyer about order %s", order_id)
 
 
 def create_tag_notifications(db: Session, *, actor: User, post: Post, tagged_user_ids: list[int]) -> None:

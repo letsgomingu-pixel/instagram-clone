@@ -1302,11 +1302,17 @@ def test_order_quote_and_checkout(auth_headers):
 
     confirm = client.post(f"/api/v1/payments/mock/{order['id']}/confirm", headers=auth_headers)
     assert confirm.status_code == 200, confirm.text
-    assert confirm.json()["status"] == "paid"
+    assert confirm.json()["status"] == "preparing"
 
     detail = client.get(f"/api/v1/orders/{order['id']}", headers=auth_headers)
     assert detail.status_code == 200
-    assert detail.json()["status"] == "paid"
+    assert detail.json()["status"] == "preparing"
+
+    notes = client.get("/api/v1/notifications?tab=you", headers=auth_headers).json()
+    preparing_note = next(
+        note for note in notes if note["order_id"] == order["id"] and note["type"] == "order_preparing"
+    )
+    assert "상품 준비 중" in preparing_note["comment_preview"]
 
     my_orders = client.get("/api/v1/orders/me", headers=auth_headers)
     assert my_orders.status_code == 200
@@ -1330,7 +1336,7 @@ def _create_paid_order(auth_headers: dict, admin_headers: dict, *, name: str = "
     order = order_res.json()["order"]
     confirm = client.post(f"/api/v1/payments/mock/{order['id']}/confirm", headers=auth_headers)
     assert confirm.status_code == 200, confirm.text
-    return order
+    return confirm.json()
 
 
 def test_admin_order_management(auth_headers):
@@ -1341,18 +1347,19 @@ def test_admin_order_management(auth_headers):
     assert listed.status_code == 200
     assert any(o["id"] == order["id"] for o in listed.json()["items"])
 
-    prep = client.patch(
+    assert order["status"] == "preparing"
+
+    missing = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
         headers=admin_headers,
-        json={"status": "preparing"},
+        json={"status": "shipped"},
     )
-    assert prep.status_code == 200, prep.text
-    assert prep.json()["status"] == "preparing"
+    assert missing.status_code == 400, missing.text
 
     ship = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
         headers=admin_headers,
-        json={"status": "shipped", "tracking_number": "1234567890"},
+        json={"tracking_number": "1234567890"},
     )
     assert ship.status_code == 200, ship.text
     assert ship.json()["status"] == "shipped"
@@ -1365,6 +1372,16 @@ def test_admin_order_management(auth_headers):
     )
     assert deliver.status_code == 200, deliver.text
     assert deliver.json()["status"] == "delivered"
+
+    notes = client.get("/api/v1/notifications?tab=you", headers=auth_headers).json()
+    shipped_note = next(
+        note for note in notes if note["order_id"] == order["id"] and note["type"] == "order_shipped"
+    )
+    assert "배송 중" in shipped_note["comment_preview"]
+    delivered_note = next(
+        note for note in notes if note["order_id"] == order["id"] and note["type"] == "order_delivered"
+    )
+    assert "배송이 완료되었습니다" in delivered_note["comment_preview"]
 
     detail = client.get(f"/api/v1/orders/{order['id']}", headers=auth_headers)
     assert detail.status_code == 200
@@ -1436,15 +1453,7 @@ def test_pickup_order_ready_time(auth_headers):
 
     from unittest.mock import patch
 
-    from app.config import settings
-
-    with (
-        patch("app.services.web_push.deliver_push") as push,
-        patch("app.services.sms.deliver_sms") as sms,
-        patch.object(settings, "solapi_api_key", "test-key"),
-        patch.object(settings, "solapi_api_secret", "test-secret"),
-        patch.object(settings, "solapi_sender", "0212345678"),
-    ):
+    with patch("app.services.web_push.deliver_push") as push:
         accepted = client.patch(
             f"/api/v1/admin/orders/{order['id']}",
             headers=admin_headers,
@@ -1457,8 +1466,6 @@ def test_pickup_order_ready_time(auth_headers):
         assert body["pickup_ready_at"]
         assert "주문을 수락했습니다" in push.call_args.kwargs["data"]
         assert "주문 수락" in push.call_args.kwargs["data"]
-        assert sms.call_args.args[0]["to"] == "01011112222"
-        assert "주문을 수락했습니다" in sms.call_args.args[0]["text"]
 
         detail = client.get(f"/api/v1/orders/{order['id']}", headers=auth_headers)
         assert detail.status_code == 200
@@ -1466,7 +1473,6 @@ def test_pickup_order_ready_time(auth_headers):
         assert detail.json()["pickup_ready_at"]
 
         push.reset_mock()
-        sms.reset_mock()
         packed = client.patch(
             f"/api/v1/admin/orders/{order['id']}",
             headers=admin_headers,
@@ -1477,10 +1483,12 @@ def test_pickup_order_ready_time(auth_headers):
         assert packed.json()["packaged_at"]
         assert "포장이 완료되었습니다" in push.call_args.kwargs["data"]
         assert "포장 완료" in push.call_args.kwargs["data"]
-        assert sms.call_args.args[0]["to"] == "01011112222"
-        assert "포장이 완료되었습니다" in sms.call_args.args[0]["text"]
 
     notes = client.get("/api/v1/notifications?tab=you", headers=auth_headers).json()
+    preparing_note = next(
+        note for note in notes if note["order_id"] == order["id"] and note["type"] == "order_preparing"
+    )
+    assert "주문을 수락했습니다" in preparing_note["comment_preview"]
     ready_note = next(
         note for note in notes if note["order_id"] == order["id"] and note["type"] == "order_ready"
     )
@@ -1519,11 +1527,15 @@ def test_create_review_after_delivery(auth_headers):
     admin_headers = _admin_login()
     order = _create_paid_order(auth_headers, admin_headers, name="리뷰상품")
 
-    for status in ("preparing", "shipped", "delivered"):
+    assert order["status"] == "preparing"
+    for status in ("shipped", "delivered"):
+        payload: dict = {"status": status}
+        if status == "shipped":
+            payload["tracking_number"] = "1234567890"
         r = client.patch(
             f"/api/v1/admin/orders/{order['id']}",
             headers=admin_headers,
-            json={"status": status},
+            json=payload,
         )
         assert r.status_code == 200, r.text
 

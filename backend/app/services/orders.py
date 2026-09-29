@@ -86,6 +86,8 @@ ADMIN_STATUS_FROM = {
     "delivered": "shipped",
 }
 
+SETTLED_ORDER_STATUSES = ("paid", "preparing", "ready", "shipped", "delivered")
+
 
 def _review_info_for_orders(
     db: Session, orders: list[Order], viewer: User | None
@@ -350,15 +352,15 @@ def _restore_order_stock(db: Session, order: Order) -> None:
 
 
 def confirm_order_paid(db: Session, order: Order, *, portone_tx_id: str | None = None, raw_webhook: str | None = None) -> Order:
-    if order.status == "paid":
+    if order.status in SETTLED_ORDER_STATUSES:
         return order
     if order.status not in ("pending",):
         raise HTTPException(status_code=400, detail=f"Cannot pay order in status {order.status}")
 
     _decrement_order_stock(db, order)
     now = datetime.now(timezone.utc)
-    order.status = "paid"
     order.paid_at = now
+    order.status = "preparing" if order.fulfillment_type != "pickup" else "paid"
     if order.payment:
         order.payment.status = "paid"
         order.payment.paid_at = now
@@ -378,13 +380,38 @@ def confirm_order_paid(db: Session, order: Order, *, portone_tx_id: str | None =
     if buyer:
         notify_admins_new_order(db, buyer=buyer, order_id=order.id, product_name=product_name)
         db.commit()
+        if order.fulfillment_type != "pickup":
+            try:
+                from app.services.notifications import notify_buyer_order_status
+
+                actor_id = db.scalar(
+                    select(User.id).where(User.is_admin.is_(True), User.is_active.is_(True)).limit(1)
+                )
+                notify_buyer_order_status(
+                    db,
+                    buyer_id=buyer.id,
+                    actor_id=actor_id or buyer.id,
+                    order_id=order.id,
+                    status="preparing",
+                    product_name=product_name,
+                    fulfillment_type=order.fulfillment_type,
+                )
+                db.commit()
+            except Exception:
+                logger.exception("Failed to notify buyer that order %s is preparing", order.id)
         from app.services.email import send_order_email_to_admins, send_order_email_to_user
 
+        paid_body = f"{product_name} 주문(#{order.id}) 결제가 완료되었습니다.\n결제 금액: {order.total_amount:,}원"
+        if order.fulfillment_type != "pickup":
+            paid_body = (
+                f"{product_name} 주문(#{order.id}) 결제가 완료되어 상품 준비 중입니다.\n"
+                f"결제 금액: {order.total_amount:,}원"
+            )
         send_order_email_to_user(
             db,
             user=buyer,
             subject=f"[주문 완료] 주문 #{order.id}",
-            body=f"{product_name} 주문(#{order.id}) 결제가 완료되었습니다.\n결제 금액: {order.total_amount:,}원",
+            body=paid_body,
         )
         send_order_email_to_admins(
             db,
@@ -405,7 +432,7 @@ def confirm_mock_payment(db: Session, order_id: int, user: User) -> OrderOut:
 
 async def confirm_portone_payment(db: Session, order_id: int, user: User) -> OrderOut:
     order = get_order_for_user(db, order_id, user)
-    if order.status == "paid":
+    if order.status in SETTLED_ORDER_STATUSES:
         return build_order_out(db, order, user)
     if order.status != "pending":
         raise HTTPException(status_code=400, detail=f"Order is not pending (status={order.status})")
@@ -590,44 +617,58 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
     if body.status is None and body.tracking_number is None and body.pickup_ready_minutes is None:
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    if body.status == "shipped" and order.fulfillment_type == "pickup":
-        raise HTTPException(status_code=400, detail="Pickup orders are not shipped")
-
     status_changed: str | None = None
     ready_time_set = False
     now = datetime.now(timezone.utc)
+    tracking_provided = body.tracking_number is not None
+    incoming_tracking = body.tracking_number.strip() or None if tracking_provided else None
+    target_status = body.status
+    if (
+        target_status is None
+        and incoming_tracking
+        and order.fulfillment_type != "pickup"
+        and order.status == "preparing"
+    ):
+        target_status = "shipped"
 
-    if body.status is not None:
+    if target_status == "shipped" and order.fulfillment_type == "pickup":
+        raise HTTPException(status_code=400, detail="Pickup orders are not shipped")
+
+    if target_status is not None:
         if order.fulfillment_type == "pickup":
             pickup_from = {"preparing": "paid", "ready": "preparing", "delivered": "ready"}
-            if body.status not in pickup_from:
+            if target_status not in pickup_from:
                 raise HTTPException(status_code=400, detail="Pickup orders cannot use that status")
-            if order.status != pickup_from[body.status]:
+            if order.status != pickup_from[target_status]:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Cannot change status from {order.status} to {body.status}",
+                    detail=f"Cannot change status from {order.status} to {target_status}",
                 )
-            if body.status == "preparing" and body.pickup_ready_minutes is None:
+            if target_status == "preparing" and body.pickup_ready_minutes is None:
                 raise HTTPException(
                     status_code=400,
                     detail="pickup_ready_minutes is required when accepting a pickup order",
                 )
         else:
-            if body.status == "ready":
+            if target_status == "ready":
                 raise HTTPException(status_code=400, detail="Only pickup orders can be marked ready")
-            required_from = ADMIN_STATUS_FROM[body.status]
+            required_from = ADMIN_STATUS_FROM[target_status]
             if order.status != required_from:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Cannot change status from {order.status} to {body.status}",
+                    detail=f"Cannot change status from {order.status} to {target_status}",
                 )
-        order.status = body.status
-        status_changed = body.status
-        if body.status == "shipped":
+            if target_status == "shipped":
+                number = incoming_tracking if tracking_provided else order.tracking_number
+                if not number:
+                    raise HTTPException(status_code=400, detail="운송장 번호를 입력해 주세요.")
+        order.status = target_status
+        status_changed = target_status
+        if target_status == "shipped":
             order.shipped_at = now
-        elif body.status == "ready":
+        elif target_status == "ready":
             order.packaged_at = now
-        elif body.status == "delivered":
+        elif target_status == "delivered":
             order.delivered_at = now
 
     if body.pickup_ready_minutes is not None:
@@ -638,8 +679,8 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
         _apply_pickup_ready(order, body.pickup_ready_minutes, now)
         ready_time_set = True
 
-    if body.tracking_number is not None:
-        order.tracking_number = body.tracking_number.strip() or None
+    if tracking_provided:
+        order.tracking_number = incoming_tracking
 
     db.commit()
     order = get_order_for_admin(db, order_id)
@@ -660,8 +701,6 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
             fulfillment_type=order.fulfillment_type,
             pickup_ready_minutes=order.pickup_ready_minutes,
             pickup_ready_at=order.pickup_ready_at,
-            phone=order.phone,
-            send_sms=order.fulfillment_type == "pickup" and status_changed in ("preparing", "ready"),
         )
         db.commit()
 
@@ -681,7 +720,7 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
                 status_labels = {
                     "preparing": "상품 준비 중",
                     "ready": "포장 완료",
-                    "shipped": "배송 시작",
+                    "shipped": "배송 중",
                     "delivered": "픽업 완료" if order.fulfillment_type == "pickup" else "배송 완료",
                 }
                 label = status_labels.get(notify_status, notify_status)

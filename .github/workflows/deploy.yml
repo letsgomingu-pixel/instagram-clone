@@ -73,9 +73,6 @@ jobs:
             export PORTONE_API_SECRET="${{ secrets.portone_api_secret }}"
             export PORTONE_WEBHOOK_SECRET="${{ secrets.portone_webhook_secret }}"
             export PORTONE_MOCK="${{ secrets.portone_mock }}"
-            export SOLAPI_API_KEY="${{ secrets.solapi_api_key }}"
-            export SOLAPI_API_SECRET="${{ secrets.solapi_api_secret }}"
-            export SOLAPI_SENDER="${{ secrets.solapi_sender }}"
 
             if [[ -f deploy/redeploy.sh ]]; then
               log "Running deploy/redeploy.sh (systemd + frontend build)..."

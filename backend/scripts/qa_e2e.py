@@ -228,8 +228,8 @@ def run_consumer_qa(client: httpx.Client, report: QAReport, seller_ctx: dict | N
         report.ok("payment prepare mock mode")
 
     confirm = client.post(f"{BASE}/payments/mock/{order_id}/confirm", headers=consumer_h)
-    if confirm.status_code == 200 and confirm.json()["status"] == "paid":
-        report.ok("mock payment confirm")
+    if confirm.status_code == 200 and confirm.json()["status"] == "preparing":
+        report.ok("mock payment confirm moves delivery order to preparing")
     else:
         report.fail("mock payment confirm", confirm.text)
         return
@@ -260,13 +260,16 @@ def run_consumer_qa(client: httpx.Client, report: QAReport, seller_ctx: dict | N
     else:
         report.fail("can_review before delivery", detail.text)
 
-    # Admin fulfills order
-    for status in ("preparing", "shipped", "delivered"):
-        r = client.patch(f"{BASE}/admin/orders/{order_id}", headers=admin_h, json={"status": status})
+    # Admin fulfills order. Payment already moved the order to preparing.
+    for status in ("shipped", "delivered"):
+        payload = {"status": status}
+        if status == "shipped":
+            payload["tracking_number"] = "QA-TRACK-001"
+        r = client.patch(f"{BASE}/admin/orders/{order_id}", headers=admin_h, json=payload)
         if r.status_code != 200 or r.json()["status"] != status:
             report.fail(f"admin status -> {status}", r.text)
             return
-    report.ok("admin order fulfillment (preparing -> shipped -> delivered)")
+    report.ok("admin order fulfillment (shipped -> delivered)")
 
     # Tracking number
     track = client.patch(

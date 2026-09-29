@@ -66,13 +66,13 @@ export function getNotificationMessage(notification: Notification): string {
     return comment_preview || '새 주문이 접수되었습니다.';
   }
   if (type === 'order_preparing') {
-    return comment_preview || '주문 상품을 준비하고 있습니다.';
+    return comment_preview || '상품 준비 중입니다.';
   }
   if (type === 'order_ready') {
     return comment_preview || '포장이 완료되었습니다. 가게에서 픽업해 주세요.';
   }
   if (type === 'order_shipped') {
-    return comment_preview || '상품이 배송 시작되었습니다.';
+    return comment_preview || '상품이 배송 중입니다.';
   }
   if (type === 'order_delivered') {
     return comment_preview || '배송이 완료되었습니다.';

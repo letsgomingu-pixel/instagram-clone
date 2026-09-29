@@ -120,6 +120,10 @@ export async function getPaymentConfig(): Promise<{ mock: boolean; store_id?: st
   return data;
 }
 
+export function isPaymentSettled(status: string): boolean {
+  return status === 'paid' || status === 'preparing' || status === 'ready' || status === 'shipped' || status === 'delivered';
+}
+
 export async function cancelOrder(orderId: number): Promise<Order> {
   const { data } = await api.post<Order>(`/orders/${orderId}/cancel`);
   return data;

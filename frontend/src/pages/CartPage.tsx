@@ -41,12 +41,12 @@ async function pollPaymentConfirmation(orderId: number, maxAttempts = 30): Promi
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
       const order = await ordersApi.confirmPortOnePayment(orderId);
-      if (order.status === 'paid') return order;
+      if (ordersApi.isPaymentSettled(order.status)) return order;
       if (order.status === 'failed') throw new Error('결제에 실패했습니다.');
     } catch (error) {
       if (isAxiosError(error) && error.response?.status === 400) {
         const order = await ordersApi.getOrder(orderId);
-        if (order.status === 'paid') return order;
+        if (ordersApi.isPaymentSettled(order.status)) return order;
         if (order.status === 'failed') throw new Error('결제에 실패했습니다.');
       } else if (!isAxiosError(error)) {
         throw error;
@@ -288,13 +288,17 @@ export function CartPage() {
             </ul>
 
             <FulfillmentToggle value={fulfillment} onChange={setFulfillment} />
-            {fulfillment === 'pickup' && (
+            {fulfillment === 'pickup' ? (
               <div className="space-y-2">
                 <p className="text-xs text-ig-text-secondary">
-                  결제 후 판매자가 주문을 수락하고 포장이 끝나면, 입력한 연락처로 문자가 갑니다.
+                  결제 후 판매자가 주문을 수락하고 포장이 끝나면, 앱 알림으로 알려드립니다.
                 </p>
                 <PickupPhoneAlertButton />
               </div>
+            ) : (
+              <p className="text-xs text-ig-text-secondary">
+                결제되면 상품 준비 중으로 바뀌고 앱 알림이 갑니다. 운송장이 등록되면 배송 중, 택배가 도착하면 배송 완료로 바뀝니다.
+              </p>
             )}
 
             <div className="rounded-lg border border-ig-border p-4 space-y-2 text-sm">

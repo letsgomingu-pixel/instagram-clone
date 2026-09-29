@@ -33,7 +33,6 @@ const STATUS_FILTERS = [
 
 const NEXT_STATUS: Record<string, { status: 'preparing' | 'ready' | 'shipped' | 'delivered'; label: string }> = {
   paid: { status: 'preparing', label: '준비 시작' },
-  preparing: { status: 'shipped', label: '배송 시작' },
   shipped: { status: 'delivered', label: '배송 완료' },
 };
 
@@ -128,15 +127,25 @@ export function AdminOrdersPage() {
     }
     if (next.status === 'shipped') {
       const tracking = trackingDrafts[order.id]?.trim();
-      if (tracking) payload.tracking_number = tracking;
+      if (!tracking) {
+        toast.error('운송장 번호를 입력해 주세요.');
+        return;
+      }
+      payload.tracking_number = tracking;
     }
     setUpdatingId(order.id);
     try {
       await updateAdminOrder(order.id, payload);
       toast.success(
-        next.status === 'ready'
-          ? '포장 완료 알림을 고객에게 보냈습니다.'
-          : '주문 상태가 업데이트되었습니다.',
+        order.fulfillment_type === 'pickup' && next.status === 'preparing'
+          ? '주문 수락 알림을 앱으로 보냈습니다.'
+          : next.status === 'ready'
+            ? '포장 완료 알림을 앱으로 보냈습니다.'
+            : next.status === 'delivered' && order.fulfillment_type !== 'pickup'
+              ? '배송 완료로 바꾸고 알림을 보냈습니다.'
+              : next.status === 'shipped'
+                ? '배송 중으로 바꾸고 알림을 보냈습니다.'
+                : '주문 상태가 업데이트되었습니다.',
       );
       load();
     } catch {
@@ -179,12 +188,19 @@ export function AdminOrdersPage() {
   };
 
   const handleSaveTracking = async (order: AdminOrder) => {
+    const tracking = trackingDrafts[order.id]?.trim() || '';
+    if (order.fulfillment_type !== 'pickup' && order.status === 'preparing' && !tracking) {
+      toast.error('운송장 번호를 입력해 주세요.');
+      return;
+    }
     setUpdatingId(order.id);
     try {
-      await updateAdminOrder(order.id, {
-        tracking_number: trackingDrafts[order.id]?.trim() || '',
-      });
-      toast.success('송장번호가 저장되었습니다.');
+      const updated = await updateAdminOrder(order.id, { tracking_number: tracking });
+      toast.success(
+        order.status === 'preparing' && updated.status === 'shipped'
+          ? '배송 중으로 바꾸고 알림을 보냈습니다.'
+          : '송장번호가 저장되었습니다.',
+      );
       load();
     } catch {
       toast.error('송장번호 저장에 실패했습니다.');
@@ -305,7 +321,7 @@ export function AdminOrdersPage() {
                                 disabled={updatingId === order.id}
                                 onClick={() => handleSaveTracking(order)}
                               >
-                                저장
+                                {order.status === 'preparing' ? '배송 시작' : '저장'}
                               </Button>
                             </div>
                           ) : (
