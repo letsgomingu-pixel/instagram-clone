@@ -9,6 +9,39 @@ import { Button } from '@/components/common/Button';
 import { Spinner } from '@/components/common/Spinner';
 import { formatRelativeTime } from '@/utils/formatDate';
 
+function UserActions({
+  user,
+  onDeactivate,
+  onActivate,
+  onDelete,
+}: {
+  user: AdminUser;
+  onDeactivate: () => void;
+  onActivate: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {user.is_active ? (
+        !user.is_admin && (
+          <Button variant="secondary" size="sm" onClick={onDeactivate}>
+            탈퇴
+          </Button>
+        )
+      ) : (
+        <Button variant="secondary" size="sm" onClick={onActivate}>
+          복구
+        </Button>
+      )}
+      {!user.is_admin && (
+        <Button variant="secondary" size="sm" onClick={onDelete}>
+          삭제
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,7 +100,7 @@ export function AdminUsersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-6">회원 관리</h1>
+      <h1 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">회원 관리</h1>
 
       {loading ? (
         <div className="flex justify-center py-16">
@@ -75,7 +108,39 @@ export function AdminUsersPage() {
         </div>
       ) : (
         <div className="bg-white border border-ig-border rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
+          <ul className="md:hidden divide-y divide-ig-border">
+            {users.map((user) => (
+              <li key={user.id} className="px-4 py-4 space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-semibold break-keep">
+                    @{user.username}
+                    {user.is_admin ? (
+                      <span className="ml-2 text-xs text-sky-600 font-semibold">ADMIN</span>
+                    ) : null}
+                  </p>
+                  <span
+                    className={`shrink-0 text-xs font-semibold px-2 py-1 rounded-full ${
+                      user.is_active ? 'bg-emerald-50 text-emerald-800' : 'bg-neutral-100 text-neutral-500'
+                    }`}
+                  >
+                    {user.is_active ? '활성' : '탈퇴/비활성'}
+                  </span>
+                </div>
+                <p className="text-sm text-ig-text-secondary break-all">{user.email}</p>
+                <p className="text-xs text-ig-text-secondary break-keep">
+                  ID {user.id} · 게시물 {user.post_count.toLocaleString()} ·{' '}
+                  {new Date(user.created_at).toLocaleDateString('ko-KR')} ({formatRelativeTime(user.created_at)})
+                </p>
+                <UserActions
+                  user={user}
+                  onDeactivate={() => handleDeactivate(user)}
+                  onActivate={() => handleActivate(user)}
+                  onDelete={() => handleDelete(user)}
+                />
+              </li>
+            ))}
+          </ul>
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-ig-secondary text-left">
                 <tr>
@@ -118,28 +183,12 @@ export function AdminUsersPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        {user.is_active ? (
-                          !user.is_admin && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => handleDeactivate(user)}
-                            >
-                              탈퇴
-                            </Button>
-                          )
-                        ) : (
-                          <Button variant="secondary" size="sm" onClick={() => handleActivate(user)}>
-                            복구
-                          </Button>
-                        )}
-                        {!user.is_admin && (
-                          <Button variant="secondary" size="sm" onClick={() => handleDelete(user)}>
-                            삭제
-                          </Button>
-                        )}
-                      </div>
+                      <UserActions
+                        user={user}
+                        onDeactivate={() => handleDeactivate(user)}
+                        onActivate={() => handleActivate(user)}
+                        onDelete={() => handleDelete(user)}
+                      />
                     </td>
                   </tr>
                 ))}
