@@ -69,6 +69,161 @@ function statusLabel(order: AdminOrder) {
   return STATUS_LABELS[order.status] || order.status;
 }
 
+function statusTone(status: string) {
+  if (status === 'paid') return 'bg-blue-50 text-blue-700';
+  if (status === 'preparing') return 'bg-amber-50 text-amber-800';
+  if (status === 'ready' || status === 'delivered') return 'bg-emerald-50 text-emerald-800';
+  if (status === 'shipped') return 'bg-sky-50 text-sky-800';
+  if (status === 'cancelled' || status === 'failed') return 'bg-neutral-100 text-neutral-500';
+  return 'bg-ig-secondary text-ig-text';
+}
+
+function formatPhone(phone: string) {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 11) return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+  if (digits.length === 10) return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`;
+  return phone;
+}
+
+function StatusBadge({ order }: { order: AdminOrder }) {
+  return (
+    <span className={`inline-flex shrink-0 text-xs font-semibold px-2 py-1 rounded-full ${statusTone(order.status)}`}>
+      {statusLabel(order)}
+    </span>
+  );
+}
+
+function OrderManage({
+  order,
+  showTracking,
+  trackingValue,
+  readyValue,
+  updating,
+  onTrackingChange,
+  onReadyChange,
+  onAdvance,
+  onCancel,
+  onSaveReady,
+  onSaveTracking,
+}: {
+  order: AdminOrder;
+  showTracking: boolean;
+  trackingValue: string;
+  readyValue: string;
+  updating: boolean;
+  onTrackingChange: (value: string) => void;
+  onReadyChange: (value: string) => void;
+  onAdvance: () => void;
+  onCancel: () => void;
+  onSaveReady: () => void;
+  onSaveTracking: () => void;
+}) {
+  const next = nextAction(order);
+  const isPickup = order.fulfillment_type === 'pickup';
+  const canTrack = showTracking && ['preparing', 'shipped', 'delivered'].includes(order.status);
+  const canCancel = ['pending', 'paid', 'preparing', 'ready'].includes(order.status);
+  const showReady = isPickup && (order.status === 'paid' || order.status === 'preparing');
+
+  return (
+    <div className="space-y-2">
+      {canTrack ? (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={trackingValue}
+            onChange={(e) => onTrackingChange(e.target.value)}
+            placeholder="송장번호"
+            className="flex-1 min-w-0 border border-ig-border rounded-lg px-3 py-2 text-sm"
+          />
+          <Button variant="secondary" size="sm" disabled={updating} onClick={onSaveTracking}>
+            {order.status === 'preparing' ? '배송 시작' : '저장'}
+          </Button>
+        </div>
+      ) : null}
+      {showReady ? (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-ig-text-secondary">포장 완료까지</p>
+          <div className="flex flex-wrap items-center gap-1">
+            {PICKUP_MINUTES.map((minutes) => (
+              <button
+                key={minutes}
+                type="button"
+                onClick={() => onReadyChange(String(minutes))}
+                className={`px-2 py-1 rounded-full text-xs border ${
+                  Number(readyValue) === minutes
+                    ? 'bg-ig-primary text-white border-ig-primary'
+                    : 'border-ig-border bg-white'
+                }`}
+              >
+                {minutes}분
+              </button>
+            ))}
+            <input
+              type="number"
+              min={5}
+              max={180}
+              value={readyValue}
+              onChange={(e) => onReadyChange(e.target.value)}
+              className="w-16 border border-ig-border rounded-lg px-2 py-1 text-xs"
+              aria-label="포장 완료까지 분"
+            />
+          </div>
+          {order.status === 'preparing' ? (
+            <Button variant="secondary" size="sm" disabled={updating} onClick={onSaveReady}>
+              시간 변경
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {next || canCancel ? (
+        <div className="flex flex-wrap gap-2">
+          {next ? (
+            <Button size="sm" disabled={updating} onClick={onAdvance}>
+              {next.label}
+            </Button>
+          ) : null}
+          {canCancel ? (
+            <Button variant="secondary" size="sm" disabled={updating} onClick={onCancel}>
+              취소/환불
+            </Button>
+          ) : null}
+        </div>
+      ) : !canTrack && !showReady ? (
+        <span className="text-xs text-ig-text-secondary">-</span>
+      ) : null}
+    </div>
+  );
+}
+
+function OrderFacts({ order }: { order: AdminOrder }) {
+  const isPickup = order.fulfillment_type === 'pickup';
+  const address = [order.address_line1, order.address_line2].filter(Boolean).join(' ');
+  return (
+    <div className="min-w-0 space-y-1 break-keep">
+      <p className="font-medium leading-snug">{order.product?.name || `상품 #${order.product_id}`}</p>
+      <p className="text-sm text-ig-text-secondary">
+        {order.quantity}개 · {isPickup ? '포장' : '배송'}
+        {isPickup && order.pickup_ready_minutes ? ` · ${order.pickup_ready_minutes}분` : ''}
+      </p>
+      <p className="text-sm">
+        <span className="font-medium">@{order.username}</span>
+        <span className="text-ig-text-secondary"> · {order.shipping_name}</span>
+      </p>
+      {order.phone ? (
+        <a href={`tel:${order.phone.replace(/\D/g, '')}`} className="inline-block text-sm text-ig-primary">
+          {formatPhone(order.phone)}
+        </a>
+      ) : null}
+      {!isPickup && address ? (
+        <p className="text-sm text-ig-text-secondary leading-snug">
+          {order.postcode ? `(${order.postcode}) ` : ''}
+          {address}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function AdminOrdersPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const highlightedOrderId = Number(searchParams.get('order') || 0);
@@ -235,7 +390,7 @@ export function AdminOrdersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-6">주문 관리</h1>
+      <h1 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">주문 관리</h1>
 
       <div className="flex gap-2 mb-4">
         {FULFILLMENT_TABS.map((tab) => (
@@ -280,13 +435,53 @@ export function AdminOrdersPage() {
         </div>
       ) : (
         <div className="bg-white border border-ig-border rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
+          {orders.length === 0 ? (
+            <p className="px-4 py-12 text-center text-sm text-ig-text-secondary">
+              {fulfillment === 'pickup' ? '포장 주문이 없습니다.' : '택배 주문이 없습니다.'}
+            </p>
+          ) : (
+            <>
+              <ul className="md:hidden divide-y divide-ig-border">
+                {orders.map((order) => (
+                  <li
+                    key={order.id}
+                    className={`px-4 py-4 space-y-3 ${highlightedOrderId === order.id ? 'bg-blue-50' : ''}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-base font-semibold">#{order.id}</p>
+                          <StatusBadge order={order} />
+                        </div>
+                        <p className="text-xs text-ig-text-secondary mt-1">{order.created_at.slice(0, 10)}</p>
+                      </div>
+                      <p className="text-base font-semibold shrink-0">{formatPrice(order.total_amount)}</p>
+                    </div>
+                    <OrderFacts order={order} />
+                    <OrderManage
+                      order={order}
+                      showTracking={fulfillment === 'delivery'}
+                      trackingValue={trackingDrafts[order.id] ?? ''}
+                      readyValue={readyDrafts[order.id] ?? '20'}
+                      updating={updatingId === order.id}
+                      onTrackingChange={(value) =>
+                        setTrackingDrafts((prev) => ({ ...prev, [order.id]: value }))
+                      }
+                      onReadyChange={(value) => setReadyDrafts((prev) => ({ ...prev, [order.id]: value }))}
+                      onAdvance={() => handleAdvance(order)}
+                      onCancel={() => handleCancel(order)}
+                      onSaveReady={() => handleSaveReady(order)}
+                      onSaveTracking={() => handleSaveTracking(order)}
+                    />
+                  </li>
+                ))}
+              </ul>
+              <div className="hidden md:block overflow-x-auto">
+            <table className="w-full min-w-[880px] text-sm">
               <thead className="bg-ig-secondary text-left">
                 <tr>
                   <th className="px-4 py-3 font-semibold">주문</th>
-                  <th className="px-4 py-3 font-semibold">구매자</th>
-                  <th className="px-4 py-3 font-semibold">상품</th>
+                  <th className="px-4 py-3 font-semibold">상품 · 구매자</th>
                   <th className="px-4 py-3 font-semibold">금액</th>
                   <th className="px-4 py-3 font-semibold">상태</th>
                   {fulfillment === 'delivery' ? (
@@ -296,17 +491,7 @@ export function AdminOrdersPage() {
                 </tr>
               </thead>
               <tbody>
-                {orders.length === 0 ? (
-                  <tr>
-                    <td colSpan={fulfillment === 'pickup' ? 6 : 7} className="px-4 py-12 text-center text-ig-text-secondary">
-                      {fulfillment === 'pickup' ? '포장 주문이 없습니다.' : '택배 주문이 없습니다.'}
-                    </td>
-                  </tr>
-                ) : (
-                  orders.map((order) => {
-                    const next = nextAction(order);
-                    const isPickup = order.fulfillment_type === 'pickup';
-                    return (
+                {orders.map((order) => (
                       <tr
                         key={order.id}
                         className={`border-t border-ig-border align-top ${
@@ -319,25 +504,12 @@ export function AdminOrdersPage() {
                             {order.created_at.slice(0, 10)}
                           </p>
                         </td>
-                        <td className="px-4 py-3">
-                          <p className="font-medium">@{order.username}</p>
-                          <p className="text-xs text-ig-text-secondary mt-1">{order.shipping_name}</p>
-                          <p className="text-xs text-ig-text-secondary">{order.phone}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p>{order.product?.name || `상품 #${order.product_id}`}</p>
-                          <p className="text-xs text-ig-text-secondary mt-1">
-                            {order.quantity}개{isPickup ? ' · 포장' : ' · 배송'}
-                          </p>
+                        <td className="px-4 py-3 min-w-[220px]">
+                          <OrderFacts order={order} />
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">{formatPrice(order.total_amount)}</td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs font-semibold px-2 py-1 rounded bg-ig-secondary">
-                            {statusLabel(order)}
-                          </span>
-                          {isPickup && order.pickup_ready_minutes ? (
-                            <p className="text-xs text-ig-primary mt-1">포장 {order.pickup_ready_minutes}분</p>
-                          ) : null}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <StatusBadge order={order} />
                         </td>
                         {fulfillment === 'delivery' ? (
                         <td className="px-4 py-3 min-w-[180px]">
@@ -369,81 +541,30 @@ export function AdminOrdersPage() {
                           )}
                         </td>
                         ) : null}
-                        <td className="px-4 py-3 space-y-2 min-w-[200px]">
-                          {isPickup && (order.status === 'paid' || order.status === 'preparing') ? (
-                            <div className="space-y-2">
-                              <p className="text-xs font-semibold">포장 완료까지</p>
-                              <div className="flex flex-wrap gap-1">
-                                {PICKUP_MINUTES.map((minutes) => (
-                                  <button
-                                    key={minutes}
-                                    type="button"
-                                    onClick={() =>
-                                      setReadyDrafts((prev) => ({ ...prev, [order.id]: String(minutes) }))
-                                    }
-                                    className={`px-2 py-1 rounded text-xs border ${
-                                      Number(readyDrafts[order.id]) === minutes
-                                        ? 'bg-ig-primary text-white border-ig-primary'
-                                        : 'border-ig-border'
-                                    }`}
-                                  >
-                                    {minutes}분
-                                  </button>
-                                ))}
-                              </div>
-                              <input
-                                type="number"
-                                min={5}
-                                max={180}
-                                value={readyDrafts[order.id] ?? '20'}
-                                onChange={(e) =>
-                                  setReadyDrafts((prev) => ({ ...prev, [order.id]: e.target.value }))
-                                }
-                                className="w-24 border border-ig-border rounded px-2 py-1 text-xs"
-                                aria-label="포장 완료까지 분"
-                              />
-                              {order.status === 'preparing' ? (
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  disabled={updatingId === order.id}
-                                  onClick={() => handleSaveReady(order)}
-                                >
-                                  시간 변경
-                                </Button>
-                              ) : null}
-                            </div>
-                          ) : null}
-                          {next ? (
-                            <Button
-                              size="sm"
-                              disabled={updatingId === order.id}
-                              onClick={() => handleAdvance(order)}
-                            >
-                              {next.label}
-                            </Button>
-                          ) : null}
-                          {['pending', 'paid', 'preparing', 'ready'].includes(order.status) && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              disabled={updatingId === order.id}
-                              onClick={() => handleCancel(order)}
-                            >
-                              취소/환불
-                            </Button>
-                          )}
-                          {!next && !['pending', 'paid', 'preparing', 'ready'].includes(order.status) && (
-                            <span className="text-xs text-ig-text-secondary">-</span>
-                          )}
+                        <td className="px-4 py-3 min-w-[200px]">
+                          <OrderManage
+                            order={order}
+                            showTracking={false}
+                            trackingValue={trackingDrafts[order.id] ?? ''}
+                            readyValue={readyDrafts[order.id] ?? '20'}
+                            updating={updatingId === order.id}
+                            onTrackingChange={(value) =>
+                              setTrackingDrafts((prev) => ({ ...prev, [order.id]: value }))
+                            }
+                            onReadyChange={(value) => setReadyDrafts((prev) => ({ ...prev, [order.id]: value }))}
+                            onAdvance={() => handleAdvance(order)}
+                            onCancel={() => handleCancel(order)}
+                            onSaveReady={() => handleSaveReady(order)}
+                            onSaveTracking={() => handleSaveTracking(order)}
+                          />
                         </td>
                       </tr>
-                    );
-                  })
-                )}
+                ))}
               </tbody>
             </table>
-          </div>
+              </div>
+            </>
+          )}
 
           <div className="flex items-center justify-between px-4 py-3 border-t border-ig-border">
             <p className="text-xs text-ig-text-secondary">총 {total.toLocaleString()}건</p>
