@@ -5,9 +5,11 @@ import { Spinner } from '@/components/common/Spinner';
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="bg-white border border-ig-border rounded-xl p-5">
-      <p className="text-sm text-ig-text-secondary mb-2">{label}</p>
-      <p className="text-3xl font-semibold">{typeof value === 'number' ? value.toLocaleString() : value}</p>
+    <div className="bg-white border border-ig-border rounded-xl px-3 py-3 md:p-5">
+      <p className="text-xs md:text-sm text-ig-text-secondary mb-1 md:mb-2 break-keep leading-snug">{label}</p>
+      <p className="text-xl md:text-3xl font-semibold tabular-nums leading-none">
+        {typeof value === 'number' ? value.toLocaleString() : value}
+      </p>
     </div>
   );
 }
@@ -36,11 +38,11 @@ export function AdminDashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-6">통계 대시보드</h1>
+      <h1 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">통계 대시보드</h1>
 
-      <section className="mb-8">
-        <h2 className="text-sm font-semibold text-ig-text-secondary mb-3 uppercase tracking-wide">주문·매출 (오늘)</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <section className="mb-5 md:mb-8">
+        <h2 className="text-xs md:text-sm font-semibold text-ig-text-secondary mb-2 md:mb-3 uppercase tracking-wide">주문·매출 (오늘)</h2>
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 md:gap-4">
           <StatCard label="오늘 주문" value={stats.orders_today} />
           <StatCard label="오늘 매출" value={formatPrice(stats.revenue_today)} />
           <StatCard label="발송 대기" value={stats.pending_shipment} />
@@ -48,9 +50,9 @@ export function AdminDashboardPage() {
         </div>
       </section>
 
-      <section className="mb-8">
-        <h2 className="text-sm font-semibold text-ig-text-secondary mb-3 uppercase tracking-wide">회원</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <section className="mb-5 md:mb-8">
+        <h2 className="text-xs md:text-sm font-semibold text-ig-text-secondary mb-2 md:mb-3 uppercase tracking-wide">회원</h2>
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 md:gap-4">
           <StatCard label="전체 회원" value={stats.total_users} />
           <StatCard label="활성 회원" value={stats.active_users} />
           <StatCard label="탈퇴/비활성" value={stats.inactive_users} />
@@ -59,8 +61,8 @@ export function AdminDashboardPage() {
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold text-ig-text-secondary mb-3 uppercase tracking-wide">콘텐츠</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <h2 className="text-xs md:text-sm font-semibold text-ig-text-secondary mb-2 md:mb-3 uppercase tracking-wide">콘텐츠</h2>
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 md:gap-4">
           <StatCard label="전체 게시물" value={stats.total_posts} />
           <StatCard label="최근 7일 게시물" value={stats.posts_7d} />
           <StatCard label="전체 댓글" value={stats.total_comments} />
