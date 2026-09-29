@@ -243,7 +243,7 @@ export function AdminOrdersPage() {
             key={tab.value}
             type="button"
             onClick={() => selectFulfillment(tab.value)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold border ${
+            className={`flex-1 whitespace-nowrap px-4 py-2 rounded-lg text-sm font-semibold border ${
               fulfillment === tab.value
                 ? 'bg-ig-primary text-white border-ig-primary'
                 : 'bg-white border-ig-border text-ig-text'
@@ -263,7 +263,7 @@ export function AdminOrdersPage() {
               setPage(1);
               setStatusFilter(filter.value);
             }}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${
+            className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-semibold border ${
               statusFilter === filter.value
                 ? 'bg-ig-primary text-white border-ig-primary'
                 : 'bg-white border-ig-border text-ig-text'
@@ -281,7 +281,7 @@ export function AdminOrdersPage() {
       ) : (
         <div className="bg-white border border-ig-border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead className="bg-ig-secondary text-left">
                 <tr>
                   <th className="px-4 py-3 font-semibold">주문</th>
