@@ -78,7 +78,7 @@ export function BrandIcon({ size = 28, className }: { size?: number; className?:
 
 export function InstagramLogo({ className = 'text-3xl' }: { className?: string }) {
   return (
-    <span className={cn('inline-flex items-center select-none text-ig-text font-brand leading-tight', className)}>
+    <span className={cn('inline-flex items-center select-none text-ig-primary font-brand leading-tight', className)}>
       i am not a fishmonger
     </span>
   );
