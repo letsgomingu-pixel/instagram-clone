@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>탭·상품 카드 시안</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #fff;
+        color: #262626;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        background: #fff;
+        border-bottom: 1px solid #dbdbdb;
+        padding: 16px 24px;
+        z-index: 1;
+      }
+      h1 { margin: 0 0 6px; font-size: 20px; }
+      p { margin: 0; color: #8e8e8e; font-size: 14px; }
+      nav { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+      nav a {
+        color: #262626;
+        text-decoration: none;
+        border: 1px solid #dbdbdb;
+        border-radius: 999px;
+        padding: 6px 12px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      section { padding: 24px 0; }
+      h2 { margin: 0 0 8px; font-size: 18px; }
+      .note { margin: 0 0 16px; }
+      img {
+        width: 100%;
+        border: 1px solid #dbdbdb;
+        border-radius: 12px;
+        background: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>탭 + 상품 카드 시안</h1>
+      <p>전체 페이지가 아니라, 위쪽 탭과 상품 카드만 바꾼 안입니다.</p>
+      <nav>
+        <a href="#a">A안 알약 탭</a>
+        <a href="#b">B안 사진 위 가격</a>
+        <a href="#c">C안 상점형 카드</a>
+      </nav>
+    </header>
+    <main>
+      <section id="a">
+        <h2>A안 — 알약 탭 + 지금 카드</h2>
+        <p class="note">탭만 둥근 알약으로 바꾸고, 카드 구성은 지금과 비슷합니다.</p>
+        <img src="card-tab-a.png" alt="A안 알약 탭과 상품 카드" />
+      </section>
+      <section id="b">
+        <h2>B안 — 밑줄 탭 + 사진 위 가격</h2>
+        <p class="note">상품명과 가격을 사진 아래로 겹치고, 구매 버튼을 더 크게 둡니다.</p>
+        <img src="card-tab-b.png" alt="B안 사진 위 가격 카드" />
+      </section>
+      <section id="c">
+        <h2>C안 — 묶음 탭 + 상점형 카드</h2>
+        <p class="note">탭을 하나의 막대로 묶고, 카드는 이름·가격·구매가 더 상점처럼 보이게 합니다.</p>
+        <img src="card-tab-c.png" alt="C안 상점형 카드" />
+      </section>
+    </main>
+  </body>
+</html>

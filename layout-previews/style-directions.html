@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>지금 화면 정돈</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: #f6f6f6;
+        color: #262626;
+        font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      header {
+        padding: 20px 28px 8px;
+        max-width: 1080px;
+        margin: 0 auto;
+      }
+      header h1 { margin: 0 0 6px; font-size: 20px; letter-spacing: -0.03em; }
+      header p { margin: 0; color: #8e8e8e; font-size: 14px; line-height: 1.5; }
+      main { max-width: 1080px; margin: 0 auto; padding: 8px 24px 48px; }
+      section { padding-top: 28px; }
+      h2 { margin: 0 0 10px; font-size: 15px; }
+      .frame {
+        background: #fff;
+        border: 1px solid #dbdbdb;
+        overflow: hidden;
+      }
+      .app {
+        display: flex;
+        min-height: 780px;
+        background: #fff;
+        color: #262626;
+      }
+      .side {
+        width: 220px;
+        flex-shrink: 0;
+        border-right: 1px solid #dbdbdb;
+        padding: 28px 12px 16px;
+      }
+      .wordmark {
+        font-family: "DM Serif Display", Georgia, serif;
+        font-size: 16px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+        padding: 0 12px 22px;
+      }
+      .nav {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        width: 100%;
+        padding: 12px;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 16px;
+        text-align: left;
+        border-radius: 8px;
+      }
+      .nav.on { font-weight: 700; }
+      .stage {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        gap: 32px;
+        padding: 30px 16px 32px;
+      }
+      .feed { width: 470px; }
+      .block {
+        background: #fff;
+        border: 1px solid #dbdbdb;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        overflow: hidden;
+      }
+      .stories {
+        display: flex;
+        gap: 16px;
+        padding: 14px 16px;
+      }
+      .story { width: 66px; text-align: center; }
+      .ring {
+        width: 62px;
+        height: 62px;
+        margin: 0 auto 6px;
+        padding: 2px;
+        border-radius: 50%;
+        background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+      }
+      .ring.seen { background: #dbdbdb; }
+      .ring span {
+        display: block;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        background: #eee center / cover no-repeat;
+      }
+      .story em {
+        display: block;
+        font-style: normal;
+        font-size: 12px;
+        line-height: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tabs { display: flex; }
+      .tabs b, .tabs span {
+        flex: 1;
+        text-align: center;
+        padding: 12px 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #8e8e8e;
+        border-bottom: 1px solid transparent;
+      }
+      .tabs b {
+        color: #262626;
+        border-bottom-color: #262626;
+        margin-bottom: -1px;
+      }
+      .head, .product, .actions, .caption { padding-left: 16px; padding-right: 16px; }
+      .head {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+      }
+      .ava {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: url("seafood.jpg") 30% 60% / cover no-repeat;
+        flex-shrink: 0;
+      }
+      .who { font-size: 14px; font-weight: 600; line-height: 1.15; }
+      .where { font-size: 12px; color: #8e8e8e; }
+      .more { margin-left: auto; font-weight: 700; letter-spacing: 1px; }
+      .photo { aspect-ratio: 1; background: #efefef; }
+      .photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 68%; display: block; }
+      .product {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding-top: 12px;
+        padding-bottom: 8px;
+        border-top: 1px solid #dbdbdb;
+        background: #fafafa;
+      }
+      .product strong { display: block; font-size: 15px; font-weight: 600; }
+      .badges { display: flex; gap: 6px; margin-top: 4px; }
+      .badges span {
+        font-size: 10px;
+        font-weight: 500;
+        color: #8e8e8e;
+        background: #efefef;
+        border-radius: 4px;
+        padding: 2px 6px;
+      }
+      .price { text-align: right; flex-shrink: 0; }
+      .price b { display: block; font-size: 16px; font-weight: 700; color: #0095f6; }
+      .price span { font-size: 11px; color: #8e8e8e; }
+      .buys {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding: 4px 16px 12px;
+        background: #fafafa;
+      }
+      .buys button {
+        height: 40px;
+        border-radius: 8px;
+        font: inherit;
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .cart { background: #fff; color: #262626; border: 1px solid #dbdbdb; }
+      .buy { background: #0095f6; color: #fff; border: 0; }
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-top: 8px;
+        padding-bottom: 4px;
+      }
+      .actions .count { font-size: 14px; font-weight: 600; margin-left: -6px; }
+      .save { margin-left: auto; }
+      .caption { font-size: 14px; line-height: 18px; padding-top: 4px; padding-bottom: 16px; }
+      .caption b { font-weight: 600; margin-right: 6px; }
+      .time {
+        margin-top: 4px;
+        color: #8e8e8e;
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .suggest { width: 250px; padding-top: 8px; }
+      .me, .person { display: flex; align-items: center; gap: 12px; }
+      .me { margin-bottom: 20px; }
+      .suggest h3 {
+        margin: 0 0 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-size: 14px;
+        font-weight: 600;
+        color: #8e8e8e;
+      }
+      .suggest h3 b { color: #262626; font-size: 12px; }
+      .person { margin-bottom: 12px; }
+      .person .who { font-size: 14px; }
+      .person .where { font-size: 12px; }
+      .follow {
+        margin-left: auto;
+        border: 0;
+        background: transparent;
+        color: #0095f6;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 0;
+      }
+      .ring span.p1, .ava.p1 { background-image: url("seafood.jpg"); background-position: 40% 70%; }
+      .ring span.p2, .ava.p2 { background-image: url("fish.jpg"); background-position: 35% 55%; }
+      .ring span.p3, .ava.p3 { background-image: url("seafood.jpg"); background-position: 75% 35%; }
+      .ring span.p4, .ava.p4 { background-image: url("fish.jpg"); background-position: 55% 30%; }
+
+      .tidy svg { width: 24px; height: 24px; flex-shrink: 0; stroke-width: 1.75; }
+      .tidy .side { padding: 24px 12px 16px; }
+      .tidy .wordmark {
+        font-size: 16px;
+        line-height: 22px;
+        padding: 4px 12px 24px;
+      }
+      .tidy .nav {
+        height: 48px;
+        padding: 0 12px;
+        gap: 16px;
+        font-size: 16px;
+        line-height: 24px;
+      }
+      .tidy .stage { padding: 24px 24px 32px; gap: 24px; }
+      .tidy .block { margin-bottom: 16px; }
+      .tidy .stories { gap: 16px; padding: 16px; align-items: flex-start; }
+      .tidy .story { width: 72px; }
+      .tidy .ring { width: 64px; height: 64px; margin: 0 auto 8px; }
+      .tidy .story em { font-size: 12px; line-height: 16px; }
+      .tidy .tabs b,
+      .tidy .tabs span {
+        height: 48px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        line-height: 20px;
+      }
+      .tidy .head { height: 56px; padding: 0 16px; gap: 12px; }
+      .tidy .ava { width: 32px; height: 32px; }
+      .tidy .who { font-size: 14px; line-height: 18px; }
+      .tidy .where { font-size: 12px; line-height: 16px; }
+      .tidy .product,
+      .tidy .buys { background: #fff; }
+      .tidy .product {
+        align-items: flex-start;
+        padding: 16px 16px 0;
+        gap: 16px;
+      }
+      .tidy .product strong { font-size: 14px; line-height: 20px; font-weight: 600; }
+      .tidy .price b { font-size: 14px; line-height: 20px; color: #0095f6; }
+      .tidy .price span { font-size: 12px; line-height: 16px; }
+      .tidy .badges { gap: 8px; margin-top: 8px; }
+      .tidy .badges span {
+        font-size: 12px;
+        line-height: 16px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 6px;
+      }
+      .tidy .buys { gap: 8px; padding: 12px 16px 16px; }
+      .tidy .buys button { height: 40px; font-size: 14px; line-height: 20px; }
+      .tidy .actions {
+        height: 48px;
+        gap: 0;
+        padding: 0 16px;
+      }
+      .tidy .actions > * { margin-right: 16px; }
+      .tidy .actions svg + .count { margin-left: -12px; }
+      .tidy .count {
+        font-size: 14px;
+        line-height: 24px;
+        margin-left: 0;
+      }
+      .tidy .save { margin-right: 0; margin-left: auto; }
+      .tidy .caption {
+        font-size: 14px;
+        line-height: 20px;
+        padding: 0 16px 16px;
+      }
+      .tidy .time {
+        font-size: 12px;
+        line-height: 16px;
+        letter-spacing: 0;
+        text-transform: none;
+        margin-top: 8px;
+      }
+      .tidy .suggest { width: 280px; padding-top: 16px; }
+      .tidy .me,
+      .tidy .person { min-height: 48px; gap: 12px; }
+      .tidy .me { margin-bottom: 16px; }
+      .tidy .suggest h3 {
+        height: 32px;
+        margin: 0 0 8px;
+        font-size: 12px;
+        line-height: 16px;
+        font-weight: 600;
+      }
+      .tidy .suggest h3 b { font-size: 12px; line-height: 16px; }
+      .tidy .person { margin-bottom: 8px; }
+      .tidy .person .who { font-size: 14px; line-height: 18px; }
+      .tidy .person .where { font-size: 12px; line-height: 16px; }
+      .tidy .follow { font-size: 12px; line-height: 16px; height: 32px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>지금 화면을 정돈한 시안</h1>
+      <p>색과 배치는 그대로입니다. 아래 정돈 안은 글자를 14px와 12px만 쓰고, 아이콘은 전부 24px입니다. 칸 안쪽 여백은 16px, 묶음 사이는 8px로 맞췄습니다. 사이트에는 적용하지 않습니다.</p>
+    </header>
+    <main>
+      <section>
+        <h2>지금</h2>
+        <div class="frame" data-preview="now"></div>
+      </section>
+      <section>
+        <h2>정돈</h2>
+        <div class="frame" data-preview="tidy"></div>
+      </section>
+    </main>
+    <template id="shell">
+      <div class="app">
+        <aside class="side">
+          <div class="wordmark">i am not a<br />fishmonger</div>
+          <button class="nav on" type="button">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>
+            홈
+          </button>
+          <button class="nav" type="button">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m10 9 6 3-6 3z"/></svg>
+            릴스
+          </button>
+          <button class="nav" type="button">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 6h14v10H8l-3 3z"/></svg>
+            메시지
+          </button>
+          <button class="nav" type="button">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="6"/><path d="m20 20-3.5-3.5"/></svg>
+            검색
+          </button>
+          <button class="nav" type="button">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 9a6 6 0 0 1 12 0c0 7 3 7 3 9H3c0-2 3-2 3-9"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+            알림
+          </button>
+        </aside>
+        <div class="stage">
+          <div class="feed">
+            <div class="block stories">
+              <div class="story"><div class="ring"><span class="p1"></span></div><em>내 스토리</em></div>
+              <div class="story"><div class="ring"><span class="p2"></span></div><em>노량진</em></div>
+              <div class="story"><div class="ring"><span class="p3"></span></div><em>속초항</em></div>
+              <div class="story"><div class="ring seen"><span class="p4"></span></div><em>제주회</em></div>
+            </div>
+            <div class="block tabs"><b>상품</b><span>소식</span><span>리뷰</span></div>
+            <article class="block">
+              <div class="head">
+                <div class="ava"></div>
+                <div>
+                  <div class="who">노량진수산</div>
+                  <div class="where">서울 · 노량진</div>
+                </div>
+                <div class="more">···</div>
+              </div>
+              <div class="photo"><img src="seafood.jpg" alt="생물 홍새우" /></div>
+              <div class="product">
+                <div>
+                  <strong>생물 홍새우</strong>
+                  <div class="badges"><span>신선</span><span>제철</span></div>
+                </div>
+                <div class="price"><b>32,000원</b><span>/ 500g</span></div>
+              </div>
+              <div class="buys">
+                <button class="cart" type="button">장바구니</button>
+                <button class="buy" type="button">구매하기</button>
+              </div>
+              <div class="actions">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 4.6-7 9-7 9z"/></svg>
+                <span class="count">128</span>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 6h14v10H8l-3 3z"/></svg>
+                <span class="count">12</span>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h11M13 7l5 5-5 5"/></svg>
+                <svg class="save" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 4h10a1 1 0 0 1 1 1v15l-6-3-6 3V5a1 1 0 0 1 1-1z"/></svg>
+              </div>
+              <div class="caption">
+                <b>노량진수산</b>오늘 아침 들어온 홍새우입니다. 손질 후 냉장 발송합니다.
+                <div class="time">2시간 전</div>
+              </div>
+            </article>
+          </div>
+          <aside class="suggest">
+            <div class="me">
+              <div class="ava p2"></div>
+              <div><div class="who">mina.kim</div><div class="where">김미나</div></div>
+            </div>
+            <h3>회원님을 위한 추천 <b>모두 보기</b></h3>
+            <div class="person"><div class="ava p3"></div><div><div class="who">sokcho.market</div><div class="where">속초 좌판</div></div><button class="follow" type="button">팔로우</button></div>
+            <div class="person"><div class="ava p4"></div><div><div class="who">jeju.hoe</div><div class="where">제주 횟집</div></div><button class="follow" type="button">팔로우</button></div>
+          </aside>
+        </div>
+      </div>
+    </template>
+    <script>
+      const shell = document.getElementById("shell");
+      document.querySelectorAll("[data-preview]").forEach((frame) => {
+        const app = shell.content.firstElementChild.cloneNode(true);
+        app.classList.add(frame.dataset.preview);
+        frame.appendChild(app);
+      });
+    </script>
+  </body>
+</html>
