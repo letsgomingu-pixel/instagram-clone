@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from app.schemas.product import ProductOut
+from app.schemas.product import ProductOut, ProductUpdate
 from app.schemas.user import UserOut
 
 
@@ -39,6 +39,7 @@ class PostMediaOut(BaseModel):
 class PostUpdate(BaseModel):
     caption: str | None = Field(None, max_length=2200)
     location: str | None = Field(None, max_length=255)
+    product: ProductUpdate | None = None
 
 
 class PostReportCreate(BaseModel):

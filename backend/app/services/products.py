@@ -94,6 +94,40 @@ def create_product_listing(
     return product
 
 
+def apply_post_product_edit(db: Session, post: Post, data: ProductUpdate) -> None:
+    existing = db.scalar(select(Product).where(Product.post_id == post.id))
+    if existing:
+        update_product(db, existing.id, data)
+        return
+    if (
+        not data.name
+        or data.price is None
+        or not data.unit
+        or not data.storage_type
+        or not data.availability
+    ):
+        return
+    post.post_type = "product"
+    db.commit()
+    db.refresh(post)
+    create_product_listing(
+        db,
+        post.user_id,
+        post,
+        ProductCreate(
+            name=data.name,
+            price=data.price,
+            unit=data.unit,
+            storage_type=data.storage_type,
+            availability=data.availability,
+            season_start=data.season_start,
+            season_end=data.season_end,
+            stock=data.stock or 0,
+        ),
+    )
+    db.commit()
+
+
 def update_product(db: Session, product_id: int, data: ProductUpdate) -> Product:
     product = db.scalar(
         select(Product)

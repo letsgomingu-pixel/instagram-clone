@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { isAxiosError } from 'axios';
 import { Modal } from '@/components/common/Modal';
+import * as postsApi from '@/api/posts';
 import type { Post, PostEditInput, Product } from '@/types';
 import { formatNumberInput, formatNumberValue, parseNumberInput } from '@/utils/formatNumber';
 
@@ -27,14 +28,50 @@ interface PostEditModalProps {
   onSave: (data: PostEditInput) => Promise<void>;
 }
 
+function fillFromPost(
+  source: Post,
+  setters: {
+    setCaption: (value: string) => void;
+    setLocation: (value: string) => void;
+    setLinkedProduct: (value: boolean) => void;
+    setCanEditProduct: (value: boolean) => void;
+    setName: (value: string) => void;
+    setPrice: (value: string) => void;
+    setUnit: (value: string) => void;
+    setStock: (value: string) => void;
+    setStorageType: (value: Product['storage_type']) => void;
+    setAvailability: (value: Product['availability']) => void;
+    setSeasonStart: (value: string) => void;
+    setSeasonEnd: (value: string) => void;
+    setIsActive: (value: boolean) => void;
+  },
+) {
+  const ownsListing = source.post_type === 'product';
+  const product = ownsListing ? source.product : undefined;
+  setters.setCaption(source.caption ?? '');
+  setters.setLocation(source.location ?? '');
+  setters.setLinkedProduct(ownsListing);
+  setters.setCanEditProduct(source.post_type !== 'review');
+  setters.setName(product?.name ?? '');
+  setters.setPrice(product ? formatNumberValue(product.price) : '');
+  setters.setUnit(product?.unit ?? '1kg');
+  setters.setStock(product ? formatNumberValue(product.stock) : '0');
+  setters.setStorageType(product?.storage_type ?? 'fresh');
+  setters.setAvailability(product?.availability ?? 'year_round');
+  setters.setSeasonStart(product?.season_start?.slice(0, 10) ?? '');
+  setters.setSeasonEnd(product?.season_end?.slice(0, 10) ?? '');
+  setters.setIsActive(product?.is_active ?? true);
+}
+
 export function PostEditModal({ post, isOpen, onClose, onSave }: PostEditModalProps) {
-  const isProduct = post.post_type === 'product' && Boolean(post.product);
+  const [linkedProduct, setLinkedProduct] = useState(post.post_type === 'product');
+  const [canEditProduct, setCanEditProduct] = useState(post.post_type !== 'review');
   const [caption, setCaption] = useState(post.caption ?? '');
   const [location, setLocation] = useState(post.location ?? '');
   const [name, setName] = useState(post.product?.name ?? '');
   const [price, setPrice] = useState(post.product ? formatNumberValue(post.product.price) : '');
-  const [unit, setUnit] = useState(post.product?.unit ?? '');
-  const [stock, setStock] = useState(post.product ? formatNumberValue(post.product.stock) : '');
+  const [unit, setUnit] = useState(post.product?.unit ?? '1kg');
+  const [stock, setStock] = useState(post.product ? formatNumberValue(post.product.stock) : '0');
   const [storageType, setStorageType] = useState<Product['storage_type']>(post.product?.storage_type ?? 'fresh');
   const [availability, setAvailability] = useState<Product['availability']>(post.product?.availability ?? 'year_round');
   const [seasonStart, setSeasonStart] = useState(post.product?.season_start?.slice(0, 10) ?? '');
@@ -44,22 +81,38 @@ export function PostEditModal({ post, isOpen, onClose, onSave }: PostEditModalPr
 
   useEffect(() => {
     if (!isOpen) return;
-    setCaption(post.caption ?? '');
-    setLocation(post.location ?? '');
-    setName(post.product?.name ?? '');
-    setPrice(post.product ? formatNumberValue(post.product.price) : '');
-    setUnit(post.product?.unit ?? '');
-    setStock(post.product ? formatNumberValue(post.product.stock) : '');
-    setStorageType(post.product?.storage_type ?? 'fresh');
-    setAvailability(post.product?.availability ?? 'year_round');
-    setSeasonStart(post.product?.season_start?.slice(0, 10) ?? '');
-    setSeasonEnd(post.product?.season_end?.slice(0, 10) ?? '');
-    setIsActive(post.product?.is_active ?? true);
+    const setters = {
+      setCaption,
+      setLocation,
+      setLinkedProduct,
+      setCanEditProduct,
+      setName,
+      setPrice,
+      setUnit,
+      setStock,
+      setStorageType,
+      setAvailability,
+      setSeasonStart,
+      setSeasonEnd,
+      setIsActive,
+    };
+    fillFromPost(post, setters);
+    let cancelled = false;
+    postsApi
+      .getPost(post.id)
+      .then((full) => {
+        if (!cancelled) fillFromPost(full, setters);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, [isOpen, post]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isProduct) {
+    const editingProduct = canEditProduct && (linkedProduct || Boolean(name.trim() || price.trim()));
+    if (editingProduct) {
       if (!name.trim()) return toast.error('상품명을 입력해주세요.');
       if (!price.trim()) return toast.error('가격을 입력해주세요.');
       if (!unit.trim()) return toast.error('단위를 입력해주세요.');
@@ -73,7 +126,7 @@ export function PostEditModal({ post, isOpen, onClose, onSave }: PostEditModalPr
       await onSave({
         caption: caption.trim() || null,
         location: location.trim() || null,
-        ...(isProduct
+        ...(editingProduct
           ? {
               product: {
                 name: name.trim(),
@@ -107,7 +160,7 @@ export function PostEditModal({ post, isOpen, onClose, onSave }: PostEditModalPr
         <h2 className="text-[16px] font-bold text-center">게시물 수정</h2>
       </div>
       <form onSubmit={(e) => void handleSubmit(e)} className="p-4 space-y-4 max-h-[75vh] overflow-y-auto">
-        {isProduct && (
+        {canEditProduct && (
           <>
             <Field label="상품명">
               <input

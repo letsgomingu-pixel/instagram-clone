@@ -1639,6 +1639,36 @@ def test_admin_update_product():
     assert sold_out.json()["is_available"] is False
 
 
+def test_owner_edit_post_updates_product():
+    admin_headers = _admin_login()
+    created = _create_admin_product(admin_headers, name="게시물수정", price=12000)
+    post_id = created["id"]
+
+    updated = client.patch(
+        f"/api/v1/posts/{post_id}",
+        headers=admin_headers,
+        json={
+            "caption": "가격을 바꿨습니다",
+            "product": {
+                "name": "게시물에서 수정",
+                "price": 18000,
+                "unit": "1kg",
+                "stock": 3,
+                "is_active": True,
+                "storage_type": "fresh",
+                "availability": "year_round",
+            },
+        },
+    )
+    assert updated.status_code == 200, updated.text
+    body = updated.json()
+    assert body["caption"] == "가격을 바꿨습니다"
+    assert body["product"]["name"] == "게시물에서 수정"
+    assert body["product"]["price"] == 18000
+    assert body["product"]["storage_type"] == "fresh"
+    assert body["product"]["availability"] == "year_round"
+
+
 def test_order_quote_includes_stock(auth_headers):
     admin_headers = _admin_login()
     product_post = _create_admin_product(admin_headers, name="재고테스트", price=20000)

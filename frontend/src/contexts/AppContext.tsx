@@ -23,7 +23,6 @@ import toast from 'react-hot-toast';
 import type { Comment, FeedTab, Post, PostEditInput, Reel, Story, SuggestedUser, User } from '@/types';
 import { updateCommentInTree } from '@/utils/comments';
 
-import * as adminApi from '@/api/admin';
 import * as postsApi from '@/api/posts';
 
 import * as reelsApi from '@/api/reels';
@@ -872,14 +871,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updatePost = useCallback(
     async (postId: number, data: PostEditInput) => {
       if (!isAuthenticated) return;
-      let updated = await postsApi.updatePost(postId, {
-        caption: data.caption,
-        location: data.location,
-      });
-      if (data.product && updated.product) {
-        const product = await adminApi.updateAdminProduct(updated.product.id, data.product);
-        updated = { ...updated, product };
-      }
+      const updated = await postsApi.updatePost(postId, data);
       updatePostInState(postId, () => updated);
     },
     [isAuthenticated, updatePostInState],

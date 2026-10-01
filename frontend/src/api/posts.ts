@@ -1,4 +1,4 @@
-import type { Comment, FeedTab, PaginatedResponse, Post, User } from '@/types';
+import type { Comment, FeedTab, PaginatedResponse, Post, PostEditInput, User } from '@/types';
 import { api } from './client';
 
 export async function getFeed(
@@ -96,10 +96,7 @@ export async function deletePost(postId: number): Promise<void> {
   await api.delete(`/posts/${postId}`);
 }
 
-export async function updatePost(
-  postId: number,
-  data: { caption?: string | null; location?: string | null },
-): Promise<Post> {
+export async function updatePost(postId: number, data: PostEditInput): Promise<Post> {
   const { data: post } = await api.patch<Post>(`/posts/${postId}`, data);
   return post;
 }

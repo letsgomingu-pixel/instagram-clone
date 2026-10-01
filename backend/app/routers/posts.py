@@ -20,6 +20,7 @@ from app.schemas.post import (
 )
 from app.services.notifications import create_post_activity_notifications, create_mention_notifications, create_reply_notification, create_tag_notifications
 from app.utils.uploads import OptionalUploadFiles, collect_upload_files
+from app.services.products import apply_post_product_edit
 from app.services.posts import (
     build_post_out,
     build_posts_out,
@@ -139,6 +140,9 @@ def edit_post(post_id: int, body: PostUpdate, current_user: CurrentUser, db: DbS
     post = update_post_by_owner(
         db, post_id, current_user, caption=body.caption, location=body.location
     )
+    if body.product is not None:
+        apply_post_product_edit(db, post, body.product)
+        db.refresh(post)
     return build_post_out(db, post, current_user)
 
 
