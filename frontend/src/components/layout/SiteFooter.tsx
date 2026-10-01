@@ -25,8 +25,9 @@ export function SiteFooter({ className }: SiteFooterProps) {
           </span>
         ))}
       </p>
-      <p className="mt-3">상호 금복수산 · 사업자등록번호 674-97-01154</p>
-      <p>소재지 충청남도 태안군 근흥면 신진부두길 35-14</p>
+      <p className="mt-3">상호 : 금복수산</p>
+      <p>등록번호 : 674-97-01154</p>
+      <p>소재지 : 충청남도 태안군 근흥면 신진부두길 35-14</p>
       <p className="mt-4">© 2026 i am not a fishmonger</p>
     </footer>
   );

@@ -25,11 +25,10 @@ export function LoginPage() {
             </Link>
           ))}
         </div>
+        <p className="text-center text-xs text-ig-text-secondary">상호 : 금복수산</p>
+        <p className="text-center text-xs text-ig-text-secondary">등록번호 : 674-97-01154</p>
         <p className="text-center text-xs text-ig-text-secondary">
-          상호 금복수산 · 사업자등록번호 674-97-01154
-        </p>
-        <p className="text-center text-xs text-ig-text-secondary">
-          소재지 충청남도 태안군 근흥면 신진부두길 35-14
+          소재지 : 충청남도 태안군 근흥면 신진부두길 35-14
         </p>
         <p className="text-center text-xs text-ig-text-secondary mt-4">© 2026 i am not a fishmonger</p>
       </footer>
