@@ -78,6 +78,11 @@ const ROUTE_META: Record<string, SeoMeta> = {
     title: '수산물 소매 안내',
     description: '제철 해산물을 소매로 주문하고, 배송 완료 후 구매 후기를 공유하세요.',
   },
+  '/info/shipping': {
+    ...INDEXABLE,
+    title: '배송·반품 안내',
+    description: '금복수산 수산물 택배 배송, 교환, 반품 안내입니다. 신선 수산물은 단순 변심 반품이 어렵습니다.',
+  },
   '/info/help': {
     ...INDEXABLE,
     title: '고객센터',

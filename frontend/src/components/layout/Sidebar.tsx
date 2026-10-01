@@ -11,7 +11,7 @@ import {
 } from '@/components/post/PostActionIcons';
 import { ReelsIcon } from '@/components/common/ReelsIcon';
 import { NavBadge } from '@/components/common/NavBadge';
-import { LayoutDashboard, Package, ShoppingCart } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart, Truck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/contexts/AppContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -136,12 +136,21 @@ export function Sidebar() {
           );
         })}
 
+        <NavLink
+          to="/info/shipping"
+          onClick={() => setNotificationsPanelOpen(false)}
+          className={({ isActive }) => cn(navButtonClass(isActive), 'mt-2')}
+        >
+          <Truck size={24} />
+          <span className="text-base hidden lg:inline">배송·반품</span>
+        </NavLink>
+
         {isAuthenticated && (
           <>
             <NavLink
               to="/cart"
               onClick={() => setNotificationsPanelOpen(false)}
-              className={({ isActive }) => cn(navButtonClass(isActive), 'mt-2')}
+              className={({ isActive }) => navButtonClass(isActive)}
             >
               <ShoppingCart size={24} />
               <span className="text-base hidden lg:inline">장바구니</span>

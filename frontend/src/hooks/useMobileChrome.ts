@@ -160,6 +160,16 @@ export function useMobileChrome(pathname: string): MobileChromeConfig {
       };
     }
 
+    if (pathname === '/info/shipping') {
+      return {
+        showHeader: true,
+        showBottomNav: true,
+        headerVariant: 'back-title',
+        title: '배송·반품',
+        backTo: '/',
+      };
+    }
+
     if (pathname === '/') {
       return {
         showHeader: true,

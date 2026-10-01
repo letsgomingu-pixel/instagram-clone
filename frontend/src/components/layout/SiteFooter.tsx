@@ -3,6 +3,7 @@ import { cn } from '@/utils/cn';
 
 const FOOTER_LINKS: { label: string; to: string }[] = [
   { label: '소개', to: '/info/about' },
+  { label: '배송·반품', to: '/info/shipping' },
   { label: '도움말', to: '/info/help' },
   { label: '개인정보처리방침', to: '/info/privacy' },
   { label: '약관', to: '/info/terms' },

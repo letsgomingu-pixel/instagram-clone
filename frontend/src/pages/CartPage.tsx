@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { AddressFields } from '@/components/address/AddressFields';
 import { FulfillmentToggle, type FulfillmentType } from '@/components/order/FulfillmentToggle';
 import { PickupPhoneAlertButton } from '@/components/order/PickupPhoneAlertButton';
+import { ShippingPolicyNote } from '@/components/order/ShippingPolicyNote';
 import { Button } from '@/components/common/Button';
 import { PostCoverMedia } from '@/components/post/PostCoverMedia';
 import { Spinner } from '@/components/common/Spinner';
@@ -296,9 +297,12 @@ export function CartPage() {
                 <PickupPhoneAlertButton />
               </div>
             ) : (
-              <p className="text-xs text-ig-text-secondary">
-                결제되면 상품 준비 중으로 바뀌고 앱 알림이 갑니다. 운송장이 등록되면 배송 중, 택배가 도착하면 배송 완료로 바뀝니다.
-              </p>
+              <div className="space-y-2">
+                <p className="text-xs text-ig-text-secondary">
+                  결제되면 상품 준비 중으로 바뀌고 앱 알림이 갑니다. 운송장이 등록되면 배송 중, 택배가 도착하면 배송 완료로 바뀝니다.
+                </p>
+                <ShippingPolicyNote />
+              </div>
             )}
 
             <div className="rounded-lg border border-ig-border p-4 space-y-2 text-sm">

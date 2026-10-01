@@ -5,6 +5,7 @@ const FOOTER_LINKS = [
   { label: '회사 소개', to: '/info/about' },
   { label: '도매 안내', to: '/info/wholesale' },
   { label: '소매 안내', to: '/info/retail' },
+  { label: '배송·반품', to: '/info/shipping' },
   { label: '이용약관', to: '/info/terms' },
   { label: '개인정보처리방침', to: '/info/privacy' },
   { label: '고객센터', to: '/info/help' },
