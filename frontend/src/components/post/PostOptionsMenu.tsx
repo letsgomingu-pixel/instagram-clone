@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { PostMoreIcon } from '@/components/post/PostActionIcons';
 import { PostEditModal } from '@/components/post/PostEditModal';
 import { useAuth } from '@/hooks/useAuth';
-import type { Post } from '@/types';
+import type { Post, PostEditInput } from '@/types';
 
 const REPORT_REASONS = [
   { value: 'spam', label: '스팸' },
@@ -17,7 +17,7 @@ interface PostOptionsMenuProps {
   post: Post;
   onUnfollow?: () => void;
   onDelete?: () => void;
-  onEdit?: (data: { caption?: string | null; location?: string | null }) => Promise<void>;
+  onEdit?: (data: PostEditInput) => Promise<void>;
   onArchive?: () => Promise<void>;
   onHide?: () => Promise<void>;
   onReport?: (reason: string, details?: string) => Promise<void>;

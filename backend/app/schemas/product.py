@@ -58,7 +58,9 @@ class ProductCreate(BaseModel):
 
 
 class ProductUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
     price: int | None = Field(default=None, ge=0)
+    unit: str | None = Field(default=None, min_length=1, max_length=50)
     stock: int | None = Field(default=None, ge=0)
     is_active: bool | None = None
     storage_type: str | None = None

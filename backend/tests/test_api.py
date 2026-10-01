@@ -1607,12 +1607,27 @@ def test_admin_update_product():
     updated = client.patch(
         f"/api/v1/admin/products/{product_id}",
         headers=admin_headers,
-        json={"price": 15000, "stock": 5},
+        json={
+            "name": "수정된 광어",
+            "unit": "1마리",
+            "price": 15000,
+            "stock": 5,
+            "storage_type": "frozen",
+            "availability": "seasonal",
+            "season_start": "2026-03-01",
+            "season_end": "2026-06-30",
+        },
     )
     assert updated.status_code == 200, updated.text
     body = updated.json()
+    assert body["name"] == "수정된 광어"
+    assert body["unit"] == "1마리"
     assert body["price"] == 15000
     assert body["stock"] == 5
+    assert body["storage_type"] == "frozen"
+    assert body["availability"] == "seasonal"
+    assert body["season_start"] == "2026-03-01"
+    assert body["season_end"] == "2026-06-30"
 
     sold_out = client.patch(
         f"/api/v1/admin/products/{product_id}",

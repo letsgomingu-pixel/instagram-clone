@@ -103,8 +103,18 @@ def update_product(db: Session, product_id: int, data: ProductUpdate) -> Product
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    if data.name is not None:
+        name = data.name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Product name is required")
+        product.name = name
     if data.price is not None:
         product.price = data.price
+    if data.unit is not None:
+        unit = data.unit.strip()
+        if not unit:
+            raise HTTPException(status_code=400, detail="Product unit is required")
+        product.unit = unit
     if data.stock is not None:
         product.stock = data.stock
     if data.is_active is not None:

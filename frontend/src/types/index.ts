@@ -45,6 +45,24 @@ export interface Product {
 
 export type FeedTab = 'products' | 'reviews' | 'daily';
 
+export interface ProductEditInput {
+  name: string;
+  price: number;
+  unit: string;
+  stock: number;
+  is_active: boolean;
+  storage_type: Product['storage_type'];
+  availability: Product['availability'];
+  season_start?: string;
+  season_end?: string;
+}
+
+export interface PostEditInput {
+  caption?: string | null;
+  location?: string | null;
+  product?: ProductEditInput;
+}
+
 export interface Post {
   id: number;
   user: User;

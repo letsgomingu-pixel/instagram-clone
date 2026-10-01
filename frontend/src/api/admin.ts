@@ -90,7 +90,9 @@ export async function getAdminProducts(page = 1, limit = 20): Promise<PaginatedR
 }
 
 export interface UpdateProductPayload {
+  name?: string;
   price?: number;
+  unit?: string;
   stock?: number;
   is_active?: boolean;
   storage_type?: Product['storage_type'];

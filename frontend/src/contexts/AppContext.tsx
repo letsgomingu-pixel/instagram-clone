@@ -20,9 +20,10 @@ import {
 
 import toast from 'react-hot-toast';
 
-import type { Comment, FeedTab, Post, Reel, Story, SuggestedUser, User } from '@/types';
+import type { Comment, FeedTab, Post, PostEditInput, Reel, Story, SuggestedUser, User } from '@/types';
 import { updateCommentInTree } from '@/utils/comments';
 
+import * as adminApi from '@/api/admin';
 import * as postsApi from '@/api/posts';
 
 import * as reelsApi from '@/api/reels';
@@ -117,7 +118,7 @@ interface AppContextValue {
 
   deletePost: (postId: number) => Promise<void>;
 
-  updatePost: (postId: number, data: { caption?: string | null; location?: string | null }) => Promise<void>;
+  updatePost: (postId: number, data: PostEditInput) => Promise<void>;
 
   archivePost: (postId: number) => Promise<void>;
 
@@ -869,9 +870,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const updatePost = useCallback(
-    async (postId: number, data: { caption?: string | null; location?: string | null }) => {
+    async (postId: number, data: PostEditInput) => {
       if (!isAuthenticated) return;
-      const updated = await postsApi.updatePost(postId, data);
+      let updated = await postsApi.updatePost(postId, {
+        caption: data.caption,
+        location: data.location,
+      });
+      if (data.product && updated.product) {
+        const product = await adminApi.updateAdminProduct(updated.product.id, data.product);
+        updated = { ...updated, product };
+      }
       updatePostInState(postId, () => updated);
     },
     [isAuthenticated, updatePostInState],
