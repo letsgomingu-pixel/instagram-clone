@@ -108,7 +108,7 @@ export function MainLayout({ showSuggestions = true }: MainLayoutProps) {
         </div>
 
         {showSidebar && (
-          <div className="hidden xl:flex justify-center py-8 px-4">
+          <div className="flex justify-center py-8 px-4">
             <SiteFooter className="max-w-[935px]" />
           </div>
         )}
