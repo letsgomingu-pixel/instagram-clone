@@ -6,6 +6,7 @@ import {
   PlusSquare,
   Search,
   Smile,
+  Truck,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -151,6 +152,10 @@ export const NavLoginIcon = (props: Omit<NavIconProps, 'icon'>) => (
 
 export const NavMenuIcon = (props: Omit<NavIconProps, 'icon'>) => (
   <NavIcon icon={Menu} {...props} />
+);
+
+export const NavShippingIcon = ({ className, ...props }: Omit<NavIconProps, 'icon'>) => (
+  <NavIcon icon={Truck} className={['origin-center scale-[1.2]', className].filter(Boolean).join(' ')} {...props} />
 );
 
 export function DoubleTapHeartIcon({

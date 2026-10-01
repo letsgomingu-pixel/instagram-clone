@@ -8,10 +8,11 @@ import {
   NavMessagesIcon,
   NavNotificationsIcon,
   NavSearchIcon,
+  NavShippingIcon,
 } from '@/components/post/PostActionIcons';
 import { ReelsIcon } from '@/components/common/ReelsIcon';
 import { NavBadge } from '@/components/common/NavBadge';
-import { LayoutDashboard, Package, ShoppingCart, Truck } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/contexts/AppContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -30,6 +31,7 @@ const navItems: NavItem[] = [
   { kind: 'link', to: '/messages', label: '메시지', renderIcon: (active) => <NavMessagesIcon active={active} /> },
   { kind: 'link', to: '/search', label: '검색', renderIcon: (active) => <NavSearchIcon active={active} /> },
   { kind: 'notifications', label: '알림', renderIcon: (active) => <NavNotificationsIcon active={active} /> },
+  { kind: 'link', to: '/info/shipping', label: '배송·반품', renderIcon: (active) => <NavShippingIcon active={active} /> },
   { kind: 'create', label: '만들기', renderIcon: () => <NavCreateIcon /> },
 ];
 
@@ -135,15 +137,6 @@ export function Sidebar() {
             </NavLink>
           );
         })}
-
-        <NavLink
-          to="/info/shipping"
-          onClick={() => setNotificationsPanelOpen(false)}
-          className={({ isActive }) => cn(navButtonClass(isActive), 'mt-2')}
-        >
-          <Truck size={24} />
-          <span className="text-base hidden lg:inline">배송·반품</span>
-        </NavLink>
 
         {isAuthenticated && (
           <>
