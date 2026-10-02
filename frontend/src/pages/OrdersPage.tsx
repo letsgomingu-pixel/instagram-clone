@@ -80,6 +80,11 @@ export function OrdersPage() {
                         {order.quantity}개 · {formatPrice(order.total_amount)}
                       </p>
                       <p className="text-xs text-ig-text-secondary mt-1">{order.created_at.slice(0, 10)}</p>
+                      {order.fulfillment_type !== 'pickup' && order.tracking_number && (
+                        <p className="text-xs text-ig-text mt-1">
+                          운송장번호 <span className="font-mono">{order.tracking_number}</span>
+                        </p>
+                      )}
                       {order.fulfillment_type === 'pickup' && order.pickup_ready_minutes && (
                         <p className="text-xs text-ig-primary mt-1">포장 {order.pickup_ready_minutes}분</p>
                       )}

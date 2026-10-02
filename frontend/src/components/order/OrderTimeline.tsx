@@ -66,7 +66,7 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
     if (!order.tracking_number) return;
     try {
       await navigator.clipboard.writeText(order.tracking_number);
-      toast.success('송장번호가 복사되었습니다.');
+      toast.success('운송장번호가 복사되었습니다.');
     } catch {
       toast.error('복사에 실패했습니다.');
     }
@@ -106,7 +106,7 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
 
       {!pickup && order.tracking_number && (
         <div className="rounded-lg border border-ig-border p-3 text-sm space-y-2">
-          <p className="font-semibold">송장번호</p>
+          <p className="font-semibold">운송장번호</p>
           <p className="font-mono text-ig-text break-all">{order.tracking_number}</p>
           <div className="flex flex-wrap gap-2">
             <button

@@ -127,17 +127,26 @@ function OrderManage({
   return (
     <div className="space-y-2">
       {canTrack ? (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={trackingValue}
-            onChange={(e) => onTrackingChange(e.target.value)}
-            placeholder="송장번호"
-            className="flex-1 min-w-0 border border-ig-border rounded-lg px-3 py-2 text-sm"
-          />
-          <Button variant="secondary" size="sm" disabled={updating} onClick={onSaveTracking}>
-            {order.status === 'preparing' ? '배송 시작' : '저장'}
-          </Button>
+        <div className="space-y-1.5">
+          <label className="block text-xs font-semibold" htmlFor={`tracking-${order.id}`}>
+            운송장번호
+          </label>
+          <div className="flex gap-2">
+            <input
+              id={`tracking-${order.id}`}
+              type="text"
+              value={trackingValue}
+              onChange={(e) => onTrackingChange(e.target.value)}
+              placeholder="운송장번호 입력"
+              className="flex-1 min-w-0 border border-ig-border rounded-lg px-3 py-2 text-sm"
+            />
+            <Button variant="secondary" size="sm" disabled={updating} onClick={onSaveTracking}>
+              {order.status === 'preparing' ? '택배 발송' : '저장'}
+            </Button>
+          </div>
+          {order.status === 'preparing' ? (
+            <p className="text-xs text-ig-text-secondary">번호를 저장하면 구매자 주문에 표시됩니다.</p>
+          ) : null}
         </div>
       ) : null}
       {showReady ? (
@@ -305,7 +314,7 @@ export function AdminOrdersPage() {
     if (next.status === 'shipped') {
       const tracking = trackingDrafts[order.id]?.trim();
       if (!tracking) {
-        toast.error('운송장 번호를 입력해 주세요.');
+        toast.error('운송장번호를 입력해 주세요.');
         return;
       }
       payload.tracking_number = tracking;
@@ -321,7 +330,7 @@ export function AdminOrdersPage() {
             : next.status === 'delivered' && order.fulfillment_type !== 'pickup'
               ? '배송 완료로 바꾸고 알림을 보냈습니다.'
               : next.status === 'shipped'
-                ? '배송 중으로 바꾸고 알림을 보냈습니다.'
+                ? '택배 발송으로 바꾸고 운송장번호를 보냈습니다.'
                 : '주문 상태가 업데이트되었습니다.',
       );
       load();
@@ -367,7 +376,7 @@ export function AdminOrdersPage() {
   const handleSaveTracking = async (order: AdminOrder) => {
     const tracking = trackingDrafts[order.id]?.trim() || '';
     if (order.fulfillment_type !== 'pickup' && order.status === 'preparing' && !tracking) {
-      toast.error('운송장 번호를 입력해 주세요.');
+      toast.error('운송장번호를 입력해 주세요.');
       return;
     }
     setUpdatingId(order.id);
@@ -375,8 +384,8 @@ export function AdminOrdersPage() {
       const updated = await updateAdminOrder(order.id, { tracking_number: tracking });
       toast.success(
         order.status === 'preparing' && updated.status === 'shipped'
-          ? '배송 중으로 바꾸고 알림을 보냈습니다.'
-          : '송장번호가 저장되었습니다.',
+          ? '택배 발송으로 바꾸고 운송장번호를 보냈습니다.'
+          : '운송장번호가 저장되었습니다.',
       );
       load();
     } catch {
@@ -485,7 +494,7 @@ export function AdminOrdersPage() {
                   <th className="px-4 py-3 font-semibold">금액</th>
                   <th className="px-4 py-3 font-semibold">상태</th>
                   {fulfillment === 'delivery' ? (
-                    <th className="px-4 py-3 font-semibold">송장번호</th>
+                    <th className="px-4 py-3 font-semibold">운송장번호</th>
                   ) : null}
                   <th className="px-4 py-3 font-semibold">관리</th>
                 </tr>
@@ -524,7 +533,8 @@ export function AdminOrdersPage() {
                                     [order.id]: e.target.value,
                                   }))
                                 }
-                                placeholder="송장번호"
+                                placeholder="운송장번호"
+                                aria-label="운송장번호"
                                 className="flex-1 min-w-0 border border-ig-border rounded px-2 py-1 text-xs"
                               />
                               <Button
@@ -533,7 +543,7 @@ export function AdminOrdersPage() {
                                 disabled={updatingId === order.id}
                                 onClick={() => handleSaveTracking(order)}
                               >
-                                {order.status === 'preparing' ? '배송 시작' : '저장'}
+                                {order.status === 'preparing' ? '택배 발송' : '저장'}
                               </Button>
                             </div>
                           ) : (

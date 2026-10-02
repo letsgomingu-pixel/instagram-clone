@@ -1381,6 +1381,7 @@ def test_admin_order_management(auth_headers):
         note for note in notes if note["order_id"] == order["id"] and note["type"] == "order_shipped"
     )
     assert "배송 중" in shipped_note["comment_preview"]
+    assert "운송장번호 1234567890" in shipped_note["comment_preview"]
     delivered_note = next(
         note for note in notes if note["order_id"] == order["id"] and note["type"] == "order_delivered"
     )

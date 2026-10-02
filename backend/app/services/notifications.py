@@ -231,7 +231,7 @@ def notify_buyer_order_status(
         "preparing": preparing,
         "ready": f"{product_name} 포장이 완료되었습니다. 가게에서 픽업해 주세요.",
         "shipped": f"{product_name} 상품이 배송 중입니다."
-        + (f" (송장: {tracking_number})" if tracking_number else ""),
+        + (f" 운송장번호 {tracking_number}" if tracking_number else ""),
         "delivered": delivered,
     }
     ntypes = {

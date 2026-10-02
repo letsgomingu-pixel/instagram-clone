@@ -667,7 +667,7 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
             if target_status == "shipped":
                 number = incoming_tracking if tracking_provided else order.tracking_number
                 if not number:
-                    raise HTTPException(status_code=400, detail="운송장 번호를 입력해 주세요.")
+                    raise HTTPException(status_code=400, detail="운송장번호를 입력해 주세요.")
         order.status = target_status
         status_changed = target_status
         if target_status == "shipped":
@@ -734,6 +734,11 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
                     email_body = (
                         f"{product_name} 주문 #{order.id} 포장이 완료되었습니다. "
                         "가게에서 픽업해 주세요."
+                    )
+                elif notify_status == "shipped" and order.tracking_number:
+                    email_body = (
+                        f"{product_name} 주문 #{order.id}이 배송 중입니다. "
+                        f"운송장번호 {order.tracking_number}"
                     )
                 else:
                     email_body = f"{product_name} 주문 #{order.id} — {label}"
