@@ -121,6 +121,7 @@ function OrderManage({
   const next = nextAction(order);
   const isPickup = order.fulfillment_type === 'pickup';
   const canTrack = showTracking && ['preparing', 'shipped', 'delivered'].includes(order.status);
+  const trackingChanged = trackingValue.trim() !== (order.tracking_number || '');
   const canCancel = ['pending', 'paid', 'preparing', 'ready'].includes(order.status);
   const showReady = isPickup && (order.status === 'paid' || order.status === 'preparing');
 
@@ -140,9 +141,11 @@ function OrderManage({
               placeholder="운송장번호 입력"
               className="flex-1 min-w-0 border border-ig-border rounded-lg px-3 py-2 text-sm"
             />
-            <Button variant="secondary" size="sm" disabled={updating} onClick={onSaveTracking}>
-              {order.status === 'preparing' ? '택배 발송' : '저장'}
-            </Button>
+            {order.status === 'preparing' || trackingChanged ? (
+              <Button variant="secondary" size="sm" disabled={updating} onClick={onSaveTracking}>
+                {order.status === 'preparing' ? '택배 발송' : '저장'}
+              </Button>
+            ) : null}
           </div>
           {order.status === 'preparing' ? (
             <p className="text-xs text-ig-text-secondary">번호를 저장하면 구매자 주문에 표시됩니다.</p>
@@ -537,14 +540,17 @@ export function AdminOrdersPage() {
                                 aria-label="운송장번호"
                                 className="flex-1 min-w-0 border border-ig-border rounded px-2 py-1 text-xs"
                               />
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                disabled={updatingId === order.id}
-                                onClick={() => handleSaveTracking(order)}
-                              >
-                                {order.status === 'preparing' ? '택배 발송' : '저장'}
-                              </Button>
+                              {order.status === 'preparing' ||
+                              (trackingDrafts[order.id] ?? '').trim() !== (order.tracking_number || '') ? (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  disabled={updatingId === order.id}
+                                  onClick={() => handleSaveTracking(order)}
+                                >
+                                  {order.status === 'preparing' ? '택배 발송' : '저장'}
+                                </Button>
+                              ) : null}
                             </div>
                           ) : (
                             <span className="text-xs text-ig-text-secondary">-</span>
