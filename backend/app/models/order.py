@@ -27,6 +27,7 @@ class Order(Base):
     address_line1: Mapped[str] = mapped_column(String(255), nullable=False)
     address_line2: Mapped[str] = mapped_column(String(255), nullable=False)
     tracking_number: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    carrier: Mapped[str | None] = mapped_column(String(20), nullable=True)
     fulfillment_type: Mapped[str] = mapped_column(String(20), nullable=False, default="delivery", server_default="delivery")
     pickup_ready_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     pickup_ready_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -43,6 +43,7 @@ export interface Order {
   address_line1: string;
   address_line2: string;
   tracking_number?: string | null;
+  carrier?: string | null;
   fulfillment_type?: FulfillmentType;
   pickup_ready_minutes?: number | null;
   pickup_ready_at?: string | null;

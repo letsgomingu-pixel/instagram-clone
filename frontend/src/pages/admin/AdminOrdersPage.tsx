@@ -10,6 +10,7 @@ import {
 import { formatPrice } from '@/components/post/ProductInfo';
 import { Button } from '@/components/common/Button';
 import { Spinner } from '@/components/common/Spinner';
+import { CARRIERS } from '@/utils/carriers';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: '결제 대기',
@@ -93,13 +94,81 @@ function StatusBadge({ order }: { order: AdminOrder }) {
   );
 }
 
+function TrackingEditor({
+  order,
+  trackingValue,
+  carrierValue,
+  updating,
+  idPrefix,
+  onTrackingChange,
+  onCarrierChange,
+  onSave,
+}: {
+  order: AdminOrder;
+  trackingValue: string;
+  carrierValue: string;
+  updating: boolean;
+  idPrefix: string;
+  onTrackingChange: (value: string) => void;
+  onCarrierChange: (value: string) => void;
+  onSave: () => void;
+}) {
+  const trackingChanged = trackingValue.trim() !== (order.tracking_number || '');
+  const carrierChanged = carrierValue !== (order.carrier || '');
+  const showSave = order.status === 'preparing' || trackingChanged || carrierChanged;
+
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-xs font-semibold" htmlFor={`${idPrefix}carrier-${order.id}`}>
+        택배사
+      </label>
+      <select
+        id={`${idPrefix}carrier-${order.id}`}
+        value={carrierValue}
+        onChange={(e) => onCarrierChange(e.target.value)}
+        className="w-full border border-ig-border rounded-lg px-3 py-2 text-sm bg-white"
+      >
+        <option value="">택배사 선택</option>
+        {CARRIERS.map((carrier) => (
+          <option key={carrier.id} value={carrier.id}>
+            {carrier.label}
+          </option>
+        ))}
+      </select>
+      <label className="block text-xs font-semibold" htmlFor={`${idPrefix}tracking-${order.id}`}>
+        운송장번호
+      </label>
+      <div className="flex gap-2">
+        <input
+          id={`${idPrefix}tracking-${order.id}`}
+          type="text"
+          value={trackingValue}
+          onChange={(e) => onTrackingChange(e.target.value)}
+          placeholder="운송장번호 입력"
+          className="flex-1 min-w-0 border border-ig-border rounded-lg px-3 py-2 text-sm"
+        />
+        {showSave ? (
+          <Button variant="secondary" size="sm" disabled={updating} onClick={onSave}>
+            {order.status === 'preparing' ? '택배 발송' : '저장'}
+          </Button>
+        ) : null}
+      </div>
+      {order.status === 'preparing' ? (
+        <p className="text-xs text-ig-text-secondary">택배사와 번호를 저장하면 구매자 주문에 표시됩니다.</p>
+      ) : null}
+    </div>
+  );
+}
+
 function OrderManage({
   order,
   showTracking,
   trackingValue,
+  carrierValue,
   readyValue,
   updating,
   onTrackingChange,
+  onCarrierChange,
   onReadyChange,
   onAdvance,
   onCancel,
@@ -109,9 +178,11 @@ function OrderManage({
   order: AdminOrder;
   showTracking: boolean;
   trackingValue: string;
+  carrierValue: string;
   readyValue: string;
   updating: boolean;
   onTrackingChange: (value: string) => void;
+  onCarrierChange: (value: string) => void;
   onReadyChange: (value: string) => void;
   onAdvance: () => void;
   onCancel: () => void;
@@ -121,36 +192,22 @@ function OrderManage({
   const next = nextAction(order);
   const isPickup = order.fulfillment_type === 'pickup';
   const canTrack = showTracking && ['preparing', 'shipped', 'delivered'].includes(order.status);
-  const trackingChanged = trackingValue.trim() !== (order.tracking_number || '');
   const canCancel = ['pending', 'paid', 'preparing', 'ready'].includes(order.status);
   const showReady = isPickup && (order.status === 'paid' || order.status === 'preparing');
 
   return (
     <div className="space-y-2">
       {canTrack ? (
-        <div className="space-y-1.5">
-          <label className="block text-xs font-semibold" htmlFor={`tracking-${order.id}`}>
-            운송장번호
-          </label>
-          <div className="flex gap-2">
-            <input
-              id={`tracking-${order.id}`}
-              type="text"
-              value={trackingValue}
-              onChange={(e) => onTrackingChange(e.target.value)}
-              placeholder="운송장번호 입력"
-              className="flex-1 min-w-0 border border-ig-border rounded-lg px-3 py-2 text-sm"
-            />
-            {order.status === 'preparing' || trackingChanged ? (
-              <Button variant="secondary" size="sm" disabled={updating} onClick={onSaveTracking}>
-                {order.status === 'preparing' ? '택배 발송' : '저장'}
-              </Button>
-            ) : null}
-          </div>
-          {order.status === 'preparing' ? (
-            <p className="text-xs text-ig-text-secondary">번호를 저장하면 구매자 주문에 표시됩니다.</p>
-          ) : null}
-        </div>
+        <TrackingEditor
+          order={order}
+          trackingValue={trackingValue}
+          carrierValue={carrierValue}
+          updating={updating}
+          idPrefix="m-"
+          onTrackingChange={onTrackingChange}
+          onCarrierChange={onCarrierChange}
+          onSave={onSaveTracking}
+        />
       ) : null}
       {showReady ? (
         <div className="space-y-2">
@@ -247,6 +304,7 @@ export function AdminOrdersPage() {
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState('');
   const [trackingDrafts, setTrackingDrafts] = useState<Record<number, string>>({});
+  const [carrierDrafts, setCarrierDrafts] = useState<Record<number, string>>({});
   const [readyDrafts, setReadyDrafts] = useState<Record<number, string>>({});
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const limit = 20;
@@ -262,6 +320,15 @@ export function AdminOrdersPage() {
           for (const order of data.items) {
             if (next[order.id] === undefined) {
               next[order.id] = order.tracking_number || '';
+            }
+          }
+          return next;
+        });
+        setCarrierDrafts((prev) => {
+          const next = { ...prev };
+          for (const order of data.items) {
+            if (next[order.id] === undefined) {
+              next[order.id] = order.carrier || '';
             }
           }
           return next;
@@ -304,6 +371,7 @@ export function AdminOrdersPage() {
     const payload: {
       status: 'preparing' | 'ready' | 'shipped' | 'delivered';
       tracking_number?: string;
+      carrier?: string;
       pickup_ready_minutes?: number;
     } = { status: next.status };
     if (order.fulfillment_type === 'pickup' && next.status === 'preparing') {
@@ -316,11 +384,17 @@ export function AdminOrdersPage() {
     }
     if (next.status === 'shipped') {
       const tracking = trackingDrafts[order.id]?.trim();
+      const carrier = carrierDrafts[order.id] || '';
+      if (!carrier) {
+        toast.error('택배사를 선택해 주세요.');
+        return;
+      }
       if (!tracking) {
         toast.error('운송장번호를 입력해 주세요.');
         return;
       }
       payload.tracking_number = tracking;
+      payload.carrier = carrier;
     }
     setUpdatingId(order.id);
     try {
@@ -378,13 +452,18 @@ export function AdminOrdersPage() {
 
   const handleSaveTracking = async (order: AdminOrder) => {
     const tracking = trackingDrafts[order.id]?.trim() || '';
-    if (order.fulfillment_type !== 'pickup' && order.status === 'preparing' && !tracking) {
+    const carrier = carrierDrafts[order.id] || '';
+    if (!carrier) {
+      toast.error('택배사를 선택해 주세요.');
+      return;
+    }
+    if (!tracking) {
       toast.error('운송장번호를 입력해 주세요.');
       return;
     }
     setUpdatingId(order.id);
     try {
-      const updated = await updateAdminOrder(order.id, { tracking_number: tracking });
+      const updated = await updateAdminOrder(order.id, { tracking_number: tracking, carrier });
       toast.success(
         order.status === 'preparing' && updated.status === 'shipped'
           ? '택배 발송으로 바꾸고 운송장번호를 보냈습니다.'
@@ -474,10 +553,14 @@ export function AdminOrdersPage() {
                       order={order}
                       showTracking={fulfillment === 'delivery'}
                       trackingValue={trackingDrafts[order.id] ?? ''}
+                      carrierValue={carrierDrafts[order.id] ?? ''}
                       readyValue={readyDrafts[order.id] ?? '20'}
                       updating={updatingId === order.id}
                       onTrackingChange={(value) =>
                         setTrackingDrafts((prev) => ({ ...prev, [order.id]: value }))
+                      }
+                      onCarrierChange={(value) =>
+                        setCarrierDrafts((prev) => ({ ...prev, [order.id]: value }))
                       }
                       onReadyChange={(value) => setReadyDrafts((prev) => ({ ...prev, [order.id]: value }))}
                       onAdvance={() => handleAdvance(order)}
@@ -497,7 +580,7 @@ export function AdminOrdersPage() {
                   <th className="px-4 py-3 font-semibold">금액</th>
                   <th className="px-4 py-3 font-semibold">상태</th>
                   {fulfillment === 'delivery' ? (
-                    <th className="px-4 py-3 font-semibold">운송장번호</th>
+                    <th className="px-4 py-3 font-semibold">택배 · 운송장</th>
                   ) : null}
                   <th className="px-4 py-3 font-semibold">관리</th>
                 </tr>
@@ -524,34 +607,22 @@ export function AdminOrdersPage() {
                           <StatusBadge order={order} />
                         </td>
                         {fulfillment === 'delivery' ? (
-                        <td className="px-4 py-3 min-w-[180px]">
+                        <td className="px-4 py-3 min-w-[240px]">
                           {['preparing', 'shipped', 'delivered'].includes(order.status) ? (
-                            <div className="flex gap-2">
-                              <input
-                                type="text"
-                                value={trackingDrafts[order.id] ?? ''}
-                                onChange={(e) =>
-                                  setTrackingDrafts((prev) => ({
-                                    ...prev,
-                                    [order.id]: e.target.value,
-                                  }))
-                                }
-                                placeholder="운송장번호"
-                                aria-label="운송장번호"
-                                className="flex-1 min-w-0 border border-ig-border rounded px-2 py-1 text-xs"
-                              />
-                              {order.status === 'preparing' ||
-                              (trackingDrafts[order.id] ?? '').trim() !== (order.tracking_number || '') ? (
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  disabled={updatingId === order.id}
-                                  onClick={() => handleSaveTracking(order)}
-                                >
-                                  {order.status === 'preparing' ? '택배 발송' : '저장'}
-                                </Button>
-                              ) : null}
-                            </div>
+                            <TrackingEditor
+                              order={order}
+                              trackingValue={trackingDrafts[order.id] ?? ''}
+                              carrierValue={carrierDrafts[order.id] ?? ''}
+                              updating={updatingId === order.id}
+                              idPrefix="d-"
+                              onTrackingChange={(value) =>
+                                setTrackingDrafts((prev) => ({ ...prev, [order.id]: value }))
+                              }
+                              onCarrierChange={(value) =>
+                                setCarrierDrafts((prev) => ({ ...prev, [order.id]: value }))
+                              }
+                              onSave={() => handleSaveTracking(order)}
+                            />
                           ) : (
                             <span className="text-xs text-ig-text-secondary">-</span>
                           )}
@@ -562,10 +633,14 @@ export function AdminOrdersPage() {
                             order={order}
                             showTracking={false}
                             trackingValue={trackingDrafts[order.id] ?? ''}
+                            carrierValue={carrierDrafts[order.id] ?? ''}
                             readyValue={readyDrafts[order.id] ?? '20'}
                             updating={updatingId === order.id}
                             onTrackingChange={(value) =>
                               setTrackingDrafts((prev) => ({ ...prev, [order.id]: value }))
+                            }
+                            onCarrierChange={(value) =>
+                              setCarrierDrafts((prev) => ({ ...prev, [order.id]: value }))
                             }
                             onReadyChange={(value) => setReadyDrafts((prev) => ({ ...prev, [order.id]: value }))}
                             onAdvance={() => handleAdvance(order)}

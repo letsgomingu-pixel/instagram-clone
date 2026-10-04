@@ -1359,14 +1359,22 @@ def test_admin_order_management(auth_headers):
     )
     assert missing.status_code == 400, missing.text
 
-    ship = client.patch(
+    missing_carrier = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
         headers=admin_headers,
         json={"tracking_number": "1234567890"},
     )
+    assert missing_carrier.status_code == 400, missing_carrier.text
+
+    ship = client.patch(
+        f"/api/v1/admin/orders/{order['id']}",
+        headers=admin_headers,
+        json={"tracking_number": "1234567890", "carrier": "cj"},
+    )
     assert ship.status_code == 200, ship.text
     assert ship.json()["status"] == "shipped"
     assert ship.json()["tracking_number"] == "1234567890"
+    assert ship.json()["carrier"] == "cj"
 
     deliver = client.patch(
         f"/api/v1/admin/orders/{order['id']}",
@@ -1381,6 +1389,7 @@ def test_admin_order_management(auth_headers):
         note for note in notes if note["order_id"] == order["id"] and note["type"] == "order_shipped"
     )
     assert "배송 중" in shipped_note["comment_preview"]
+    assert "CJ대한통운" in shipped_note["comment_preview"]
     assert "운송장번호 1234567890" in shipped_note["comment_preview"]
     delivered_note = next(
         note for note in notes if note["order_id"] == order["id"] and note["type"] == "order_delivered"
@@ -1391,6 +1400,8 @@ def test_admin_order_management(auth_headers):
     assert detail.status_code == 200
     assert detail.json()["can_review"] is True
     assert detail.json()["review_post_id"] is None
+    assert detail.json()["carrier"] == "cj"
+    assert detail.json()["tracking_number"] == "1234567890"
 
 
 def test_pickup_order_ready_time(auth_headers):
@@ -1550,6 +1561,7 @@ def test_create_review_after_delivery(auth_headers):
         payload: dict = {"status": status}
         if status == "shipped":
             payload["tracking_number"] = "1234567890"
+            payload["carrier"] = "cj"
         r = client.patch(
             f"/api/v1/admin/orders/{order['id']}",
             headers=admin_headers,

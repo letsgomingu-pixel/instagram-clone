@@ -8,6 +8,7 @@ import { Button } from '@/components/common/Button';
 import { Spinner } from '@/components/common/Spinner';
 import * as ordersApi from '@/api/orders';
 import { enableOrderPush, orderPushSupport } from '@/pwa/orderPush';
+import { carrierLabel } from '@/utils/carriers';
 
 const STATUS_LABELS: Record<string, string> = {
   pending: '결제 대기',
@@ -82,6 +83,7 @@ export function OrdersPage() {
                       <p className="text-xs text-ig-text-secondary mt-1">{order.created_at.slice(0, 10)}</p>
                       {order.fulfillment_type !== 'pickup' && order.tracking_number && (
                         <p className="text-xs text-ig-text mt-1">
+                          {carrierLabel(order.carrier) ? `${carrierLabel(order.carrier)} · ` : ''}
                           운송장번호 <span className="font-mono">{order.tracking_number}</span>
                         </p>
                       )}

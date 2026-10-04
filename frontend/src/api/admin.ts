@@ -124,6 +124,7 @@ export interface AdminOrder {
   address_line1: string;
   address_line2: string;
   tracking_number?: string | null;
+  carrier?: string | null;
   fulfillment_type?: 'delivery' | 'pickup';
   pickup_ready_minutes?: number | null;
   pickup_ready_at?: string | null;
@@ -152,6 +153,7 @@ export async function updateAdminOrder(
   payload: {
     status?: 'preparing' | 'ready' | 'shipped' | 'delivered';
     tracking_number?: string;
+    carrier?: string;
     pickup_ready_minutes?: number;
   },
 ): Promise<AdminOrder> {

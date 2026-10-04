@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.models import Comment, Notification, Post, User
+from app.services.carriers import tracking_phrase
 from app.services.settings import user_allows_notification
 from app.utils.mentions import extract_mentions
 
@@ -209,6 +210,7 @@ def notify_buyer_order_status(
     status: str,
     product_name: str,
     tracking_number: str | None = None,
+    carrier: str | None = None,
     fulfillment_type: str = "delivery",
     pickup_ready_minutes: int | None = None,
     pickup_ready_at: datetime | None = None,
@@ -231,7 +233,7 @@ def notify_buyer_order_status(
         "preparing": preparing,
         "ready": f"{product_name} 포장이 완료되었습니다. 가게에서 픽업해 주세요.",
         "shipped": f"{product_name} 상품이 배송 중입니다."
-        + (f" 운송장번호 {tracking_number}" if tracking_number else ""),
+        + tracking_phrase(carrier, tracking_number),
         "delivered": delivered,
     }
     ntypes = {

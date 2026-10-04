@@ -21,6 +21,7 @@ from app.schemas.order import (
     PaymentPrepareOut,
 )
 from app.schemas.shipping import ShippingFields
+from app.services.carriers import CARRIERS, tracking_phrase
 from app.services.products import build_product_out, _is_in_season
 from app.services.shipping import calculate_order_amounts, calculate_shipping_fee
 from app.utils.datetime_fmt import format_pickup_clock, to_iso
@@ -179,6 +180,7 @@ def build_order_out(
         address_line1=order.address_line1,
         address_line2=order.address_line2,
         tracking_number=order.tracking_number,
+        carrier=order.carrier,
         fulfillment_type=order.fulfillment_type,
         pickup_ready_minutes=order.pickup_ready_minutes,
         pickup_ready_at=to_iso(order.pickup_ready_at) if order.pickup_ready_at else None,
@@ -620,7 +622,12 @@ def _apply_pickup_ready(order: Order, minutes: int, now: datetime) -> None:
 
 def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin: User) -> Order:
     order = get_order_for_admin(db, order_id)
-    if body.status is None and body.tracking_number is None and body.pickup_ready_minutes is None:
+    if (
+        body.status is None
+        and body.tracking_number is None
+        and body.pickup_ready_minutes is None
+        and body.carrier is None
+    ):
         raise HTTPException(status_code=400, detail="No fields to update")
 
     status_changed: str | None = None
@@ -628,6 +635,11 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
     now = datetime.now(timezone.utc)
     tracking_provided = body.tracking_number is not None
     incoming_tracking = body.tracking_number.strip() or None if tracking_provided else None
+    carrier_provided = body.carrier is not None
+    incoming_carrier = body.carrier.strip() or None if carrier_provided else None
+    if carrier_provided and incoming_carrier is not None:
+        if incoming_carrier not in CARRIERS:
+            raise HTTPException(status_code=400, detail="지원하지 않는 택배사입니다.")
     target_status = body.status
     if (
         target_status is None
@@ -666,8 +678,11 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
                 )
             if target_status == "shipped":
                 number = incoming_tracking if tracking_provided else order.tracking_number
+                carrier = incoming_carrier if carrier_provided else order.carrier
                 if not number:
                     raise HTTPException(status_code=400, detail="운송장번호를 입력해 주세요.")
+                if not carrier:
+                    raise HTTPException(status_code=400, detail="택배사를 선택해 주세요.")
         order.status = target_status
         status_changed = target_status
         if target_status == "shipped":
@@ -685,8 +700,20 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
         _apply_pickup_ready(order, body.pickup_ready_minutes, now)
         ready_time_set = True
 
+    if tracking_provided or carrier_provided:
+        if order.fulfillment_type == "pickup":
+            raise HTTPException(status_code=400, detail="Pickup orders do not use a tracking number")
+        next_number = incoming_tracking if tracking_provided else order.tracking_number
+        next_carrier = incoming_carrier if carrier_provided else order.carrier
+        if next_number and not next_carrier:
+            raise HTTPException(status_code=400, detail="택배사를 선택해 주세요.")
+        if next_carrier and not next_number:
+            raise HTTPException(status_code=400, detail="운송장번호를 입력해 주세요.")
+
     if tracking_provided:
         order.tracking_number = incoming_tracking
+    if carrier_provided:
+        order.carrier = incoming_carrier
 
     db.commit()
     order = get_order_for_admin(db, order_id)
@@ -704,6 +731,7 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
             status=notify_status,
             product_name=product_name,
             tracking_number=order.tracking_number,
+            carrier=order.carrier,
             fulfillment_type=order.fulfillment_type,
             pickup_ready_minutes=order.pickup_ready_minutes,
             pickup_ready_at=order.pickup_ready_at,
@@ -737,8 +765,8 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
                     )
                 elif notify_status == "shipped" and order.tracking_number:
                     email_body = (
-                        f"{product_name} 주문 #{order.id}이 배송 중입니다. "
-                        f"운송장번호 {order.tracking_number}"
+                        f"{product_name} 주문 #{order.id}이 배송 중입니다."
+                        f"{tracking_phrase(order.carrier, order.tracking_number)}"
                     )
                 else:
                     email_body = f"{product_name} 주문 #{order.id} — {label}"

@@ -1,5 +1,6 @@
 import toast from 'react-hot-toast';
 import type { Order } from '@/api/orders';
+import { carrierLabel, trackingSearchUrl } from '@/utils/carriers';
 
 const DELIVERY_STEPS = [
   { key: 'paid', label: '결제 완료' },
@@ -39,10 +40,6 @@ function timestampForStep(order: Order, stepKey: string): string | null {
     return order.paid_at;
   }
   return null;
-}
-
-function trackingSearchUrl(trackingNumber: string) {
-  return `https://search.naver.com/search.naver?query=${encodeURIComponent(trackingNumber)}`;
 }
 
 interface OrderTimelineProps {
@@ -106,6 +103,12 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
 
       {!pickup && order.tracking_number && (
         <div className="rounded-lg border border-ig-border p-3 text-sm space-y-2">
+          {carrierLabel(order.carrier) && (
+            <div>
+              <p className="font-semibold">택배사</p>
+              <p className="text-ig-text mt-0.5">{carrierLabel(order.carrier)}</p>
+            </div>
+          )}
           <p className="font-semibold">운송장번호</p>
           <p className="font-mono text-ig-text break-all">{order.tracking_number}</p>
           <div className="flex flex-wrap gap-2">
@@ -117,7 +120,7 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
               복사
             </button>
             <a
-              href={trackingSearchUrl(order.tracking_number)}
+              href={trackingSearchUrl(order.carrier, order.tracking_number)}
               target="_blank"
               rel="noopener noreferrer"
               className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-ig-primary text-white hover:opacity-90"
