@@ -1,14 +1,106 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { StoryBar } from '@/components/story/StoryBar';
 import { SuggestedUsersStrip } from '@/components/layout/SuggestedUsersStrip';
 import { Button } from '@/components/common/Button';
+import { Modal } from '@/components/common/Modal';
 import { FeedPostSkeleton } from '@/components/post/FeedPostSkeleton';
 import { FeedTabs } from '@/components/post/FeedTabs';
 import { PostCard } from '@/components/post/PostCard';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import * as ordersApi from '@/api/orders';
 import type { FeedTab } from '@/types';
+
+async function listReviewableOrders(): Promise<ordersApi.Order[]> {
+  const reviewable: ordersApi.Order[] = [];
+  let page = 1;
+  for (let i = 0; i < 20; i += 1) {
+    const data = await ordersApi.getMyOrders(page, 50);
+    reviewable.push(...data.items.filter((order) => order.can_review));
+    if (!data.next_page) break;
+    page = data.next_page;
+  }
+  return reviewable;
+}
+
+function ReviewWriteButton() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [choices, setChoices] = useState<ordersApi.Order[] | null>(null);
+
+  const openReview = async () => {
+    setLoading(true);
+    try {
+      const reviewable = await listReviewableOrders();
+      if (reviewable.length === 0) {
+        toast.error('리뷰를 작성할 수 있는 배송 완료 주문이 없습니다.');
+        return;
+      }
+      if (reviewable.length === 1) {
+        navigate(`/orders/${reviewable[0].id}/review`);
+        return;
+      }
+      setChoices(reviewable);
+    } catch {
+      toast.error('주문 정보를 불러오지 못했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <Button loading={loading} onClick={() => void openReview()}>
+        리뷰 작성하기
+      </Button>
+      <Modal
+        isOpen={choices !== null}
+        onClose={() => setChoices(null)}
+        size="sm"
+        showClose={false}
+        className="w-full"
+      >
+        <div className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
+          <div>
+            <h2 className="text-base font-semibold">리뷰할 주문</h2>
+            <p className="text-xs text-ig-text-secondary mt-1">배송이 완료된 주문을 선택하세요.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setChoices(null)}
+            className="text-sm text-ig-text-secondary hover:text-ig-text"
+          >
+            닫기
+          </button>
+        </div>
+        <ul className="max-h-[60vh] overflow-y-auto divide-y divide-ig-border border-t border-ig-border">
+          {choices?.map((order) => (
+            <li key={order.id}>
+              <button
+                type="button"
+                className="w-full text-left px-5 py-3.5 hover:bg-ig-hover"
+                onClick={() => {
+                  setChoices(null);
+                  navigate(`/orders/${order.id}/review`);
+                }}
+              >
+                <p className="text-sm font-semibold">
+                  {order.product?.name || `주문 #${order.id}`}
+                </p>
+                <p className="text-xs text-ig-text-secondary mt-0.5">
+                  {(order.delivered_at || order.created_at).slice(0, 10)}
+                </p>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </Modal>
+    </>
+  );
+}
 
 const emptyMessages: Record<
   FeedTab,
@@ -123,9 +215,7 @@ export function HomePage() {
               <Button onClick={() => setCreatePostOpen(true)}>소식 올리기</Button>
             ) : feedTab === 'reviews' ? (
               isAuthenticated ? (
-                <Link to="/orders">
-                  <Button>리뷰 작성하기</Button>
-                </Link>
+                <ReviewWriteButton />
               ) : (
                 <Link to="/login" state={{ from: '/' }}>
                   <Button>로그인</Button>
