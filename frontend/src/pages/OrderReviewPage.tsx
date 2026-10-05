@@ -7,6 +7,7 @@ import * as ordersApi from '@/api/orders';
 import { createReview } from '@/api/posts';
 import { ProductInfo } from '@/components/post/ProductInfo';
 import { Button } from '@/components/common/Button';
+import { RatingStars } from '@/components/review/RatingStars';
 import { Spinner } from '@/components/common/Spinner';
 import { useApp } from '@/contexts/AppContext';
 
@@ -114,19 +115,7 @@ export function OrderReviewPage() {
         <form onSubmit={handleSubmit} className="mt-6 space-y-5">
           <div>
             <label className="block text-sm font-semibold mb-2">별점</label>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setRating(value)}
-                  className={`text-2xl ${value <= rating ? 'text-yellow-500' : 'text-ig-border'}`}
-                  aria-label={`${value}점`}
-                >
-                  ★
-                </button>
-              ))}
-            </div>
+            <RatingStars value={rating} onChange={setRating} size={36} />
           </div>
 
           <div>

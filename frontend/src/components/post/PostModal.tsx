@@ -17,6 +17,7 @@ import {
   PostShareIcon,
 } from '@/components/post/PostActionIcons';
 import { CommentList } from '@/components/comment/CommentList';
+import { RatingStars } from '@/components/review/RatingStars';
 import { CommentInput } from '@/components/comment/CommentInput';
 import { formatRelativeTime } from '@/utils/formatDate';
 import { formatCompactCount } from '@/utils/formatNumber';
@@ -222,11 +223,7 @@ export function PostModal({ post, onClose, focusComments = false }: PostModalPro
 
             {post.post_type === 'review' && (
               <div className="mb-4 px-1 py-2 border border-ig-border rounded-lg bg-ig-muted space-y-1">
-                {post.rating != null && (
-                  <p className="text-[13px] font-semibold text-amber-600">
-                    {'★'.repeat(post.rating)}{'☆'.repeat(5 - post.rating)}
-                  </p>
-                )}
+                {post.rating != null && <RatingStars value={post.rating} size={16} />}
                 {post.product && (
                   <p className="text-[12px] text-ig-text-secondary">{post.product.name} 구매 리뷰</p>
                 )}

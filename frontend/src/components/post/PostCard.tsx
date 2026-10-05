@@ -6,6 +6,7 @@ import { LikeListModal } from '@/components/post/LikeListModal';
 import { PostCaption } from '@/components/post/PostCaption';
 import { PostMediaCarousel } from '@/components/post/PostMediaCarousel';
 import { ProductInfo } from '@/components/post/ProductInfo';
+import { RatingStars } from '@/components/review/RatingStars';
 import { PostOptionsMenu } from '@/components/post/PostOptionsMenu';
 import {
   DoubleTapHeartIcon,
@@ -145,11 +146,7 @@ export function PostCard({ post }: PostCardProps) {
 
       {post.post_type === 'review' && (
         <div className="px-4 py-2 border-t border-ig-border space-y-1">
-          {post.rating != null && (
-            <p className="text-[13px] font-semibold text-amber-600">
-              {'★'.repeat(post.rating)}{'☆'.repeat(5 - post.rating)}
-            </p>
-          )}
+          {post.rating != null && <RatingStars value={post.rating} size={16} />}
           {post.product && (
             <p className="text-[12px] text-ig-text-secondary">
               {post.product.name} 구매 리뷰
