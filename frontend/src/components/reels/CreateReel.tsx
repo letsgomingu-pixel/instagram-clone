@@ -1,4 +1,5 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import axios from 'axios';
 import { useDropzone } from 'react-dropzone';
 import { Film } from 'lucide-react';
 import { Modal } from '@/components/common/Modal';
@@ -38,6 +39,9 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
   const [caption, setCaption] = useState('');
   const [audioName, setAudioName] = useState('');
   const [uploading, setUploading] = useState(false);
+  const attemptRef = useRef(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const previewReadyAt = useRef(0);
 
   const reset = () => {
     if (preview) URL.revokeObjectURL(preview);
@@ -45,9 +49,18 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
     setVideoFile(null);
     setCaption('');
     setAudioName('');
+    setUploading(false);
+  };
+
+  const cancelUpload = () => {
+    attemptRef.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setUploading(false);
   };
 
   const handleClose = () => {
+    cancelUpload();
     reset();
     onClose();
   };
@@ -60,6 +73,11 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
       return;
     }
     const normalized = normalizeVideoFile(file);
+    attemptRef.current += 1;
+    abortRef.current?.abort();
+    abortRef.current = null;
+    previewReadyAt.current = Date.now();
+    setUploading(false);
     setVideoFile(normalized);
     setPreview(URL.createObjectURL(normalized));
   }, []);
@@ -76,24 +94,32 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
   });
 
   const handleShare = async () => {
-    if (!videoFile) {
-      toast.error('동영상을 선택해주세요.');
-      return;
-    }
+    if (!videoFile || uploading) return;
+    // A file-picker tap can land on this button the moment the preview appears.
+    if (Date.now() - previewReadyAt.current < 800) return;
+    const attempt = attemptRef.current + 1;
+    attemptRef.current = attempt;
+    const controller = new AbortController();
+    abortRef.current = controller;
     setUploading(true);
     try {
       const form = new FormData();
       form.append('video', videoFile, videoFile.name);
       if (caption.trim()) form.append('caption', caption.trim());
       if (audioName.trim()) form.append('audio_name', audioName.trim());
-      await reelsApi.createReel(form);
+      await reelsApi.createReel(form, controller.signal);
+      if (attempt !== attemptRef.current) return;
       await refreshReels();
+      if (attempt !== attemptRef.current) return;
       toast.success('릴스가 공유되었습니다!');
-      handleClose();
+      reset();
+      onClose();
     } catch (err) {
+      if (attempt !== attemptRef.current) return;
+      if (axios.isCancel(err) || (axios.isAxiosError(err) && err.code === 'ERR_CANCELED')) return;
       toast.error(formatApiError(err, '릴스 업로드에 실패했습니다.'));
     } finally {
-      setUploading(false);
+      if (attempt === attemptRef.current) setUploading(false);
     }
   };
 
