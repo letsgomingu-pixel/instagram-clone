@@ -5,6 +5,7 @@ import sys
 import tempfile
 import threading
 import uuid
+from collections.abc import Callable
 from functools import lru_cache
 from io import BytesIO
 from pathlib import Path
@@ -135,18 +136,21 @@ def save_reel_video(
     upload: UploadFile,
     thumbnail: UploadFile | None = None,
     subdir: str = "reels",
-) -> tuple[str, str]:
-    data, ext, content_type = _prepared_video_from_upload(upload)
+) -> tuple[str, str, Callable[[], None]]:
+    """Store the phone video immediately. HEVC transcoding stays off the request
+    so sharing is not stuck on "공유 중..." until ffmpeg finishes."""
+    data, ext, content_type = _prepared_video_from_upload(upload, transcode=False)
     video_url = _store_bytes(data, subdir, f"{uuid.uuid4().hex}{ext}", content_type)
     if thumbnail is not None:
-        return video_url, save_image(thumbnail, subdir)
-    poster = extract_mp4_poster(data)
-    if poster:
-        return video_url, _store_bytes(poster, subdir, f"{uuid.uuid4().hex}.jpg", "image/jpeg")
-    return video_url, save_reel_placeholder_thumbnail(subdir)
+        thumb_url = save_image(thumbnail, subdir)
+        replace_thumb = False
+    else:
+        thumb_url = save_reel_placeholder_thumbnail(subdir)
+        replace_thumb = True
+    return video_url, thumb_url, (lambda: _schedule_reel_finish(video_url, data, ext, thumb_url, replace_thumb))
 
 
-def _prepared_video_from_upload(upload: UploadFile) -> tuple[bytes, str, str]:
+def _prepared_video_from_upload(upload: UploadFile, *, transcode: bool = True) -> tuple[bytes, str, str]:
     content_type = _normalize_video_content_type(upload)
 
     data = upload.file.read()
@@ -163,6 +167,17 @@ def _prepared_video_from_upload(upload: UploadFile) -> tuple[bytes, str, str]:
         "video/webm": ".webm",
         "video/quicktime": ".mov",
     }.get(content_type, ".mp4")
+    if not transcode:
+        if ext == ".webm":
+            return data, ext, "video/webm"
+        if ext in {".mp4", ".m4v", ".mov"}:
+            data = faststart_mp4(data)
+        stored_type = {
+            ".mp4": "video/mp4",
+            ".m4v": "video/mp4",
+            ".mov": "video/quicktime",
+        }.get(ext, "video/mp4")
+        return data, ext, stored_type
     return _prepare_web_video(data, ext)
 
 
@@ -350,6 +365,77 @@ def extract_mp4_poster(data: bytes) -> bytes | None:
         src = Path(tmp) / "in.mp4"
         src.write_bytes(data)
         return extract_mp4_poster_from_path(src)
+
+
+def _schedule_reel_finish(
+    video_url: str,
+    data: bytes,
+    ext: str,
+    thumb_url: str,
+    replace_thumb: bool,
+) -> None:
+    if "pytest" in sys.modules:
+        return
+    needs_transcode = ext != ".webm" and (_bytes_look_like_hevc(data) or ext == ".mov")
+    if not needs_transcode and not replace_thumb:
+        return
+    threading.Thread(
+        target=_finish_reel_media,
+        args=(video_url, data, ext, thumb_url, needs_transcode, replace_thumb),
+        name="reel-transcode",
+        daemon=True,
+    ).start()
+
+
+def _finish_reel_media(
+    video_url: str,
+    data: bytes,
+    ext: str,
+    thumb_url: str,
+    needs_transcode: bool,
+    replace_thumb: bool,
+) -> None:
+    try:
+        playable = data
+        new_video_url = video_url
+        if needs_transcode:
+            converted = _transcode_to_h264(data, ext)
+            if converted:
+                playable = converted
+                new_video_url = _store_bytes(converted, "reels", f"{uuid.uuid4().hex}.mp4", "video/mp4")
+        new_thumb_url = None
+        if replace_thumb:
+            poster = extract_mp4_poster(playable)
+            if poster:
+                new_thumb_url = _store_bytes(poster, "reels", f"{uuid.uuid4().hex}.jpg", "image/jpeg")
+        if new_video_url != video_url or new_thumb_url:
+            _rewrite_reel_media(video_url, new_video_url, new_thumb_url)
+        if new_video_url != video_url:
+            _delete_stored_url(video_url)
+        if new_thumb_url and new_thumb_url != thumb_url:
+            _delete_stored_url(thumb_url)
+    except Exception:
+        _logger.exception("background reel optimize failed for %s", video_url)
+
+
+def _delete_stored_url(url: str) -> None:
+    if settings.storage_backend == "s3":
+        base = (settings.media_cdn_base_url or "").rstrip("/")
+        if not base or not url.startswith(f"{base}/"):
+            return
+        key = url[len(base) + 1 :]
+        try:
+            _s3_client().delete_object(Bucket=settings.aws_s3_bucket, Key=key)
+        except Exception:
+            _logger.exception("failed to delete stored media %s", url)
+        return
+    if not url.startswith("/media/"):
+        return
+    path = Path(settings.media_root) / url.removeprefix("/media/")
+    try:
+        path.unlink(missing_ok=True)
+    except OSError:
+        _logger.exception("failed to delete stored media %s", path)
 
 
 def _prepare_web_video(data: bytes, ext: str) -> tuple[bytes, str, str]:

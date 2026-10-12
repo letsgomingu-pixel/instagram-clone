@@ -45,9 +45,9 @@ async def post_reel(
     caption: str | None = Form(None),
     audio_name: str | None = Form(None),
 ):
-    video_url, thumbnail_url = save_reel_video(video, thumbnail, "reels")
+    video_url, thumbnail_url, finish_media = save_reel_video(video, thumbnail, "reels")
 
-    return create_reel(
+    reel = create_reel(
         db,
         current_user,
         video_url=video_url,
@@ -55,6 +55,8 @@ async def post_reel(
         caption=caption,
         audio_name=audio_name,
     )
+    finish_media()
+    return reel
 
 
 @router.post("/{reel_id}/like", response_model=ReelLikeResponse)
