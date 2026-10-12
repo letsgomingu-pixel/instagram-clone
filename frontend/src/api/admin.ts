@@ -166,6 +166,67 @@ export async function cancelAdminOrder(orderId: number): Promise<AdminOrder> {
   return data;
 }
 
+export interface SettlementOrderLine {
+  order_id: number;
+  paid_at: string;
+  product_name: string;
+  username: string;
+  shipping_name: string;
+  phone: string;
+  address: string;
+  fulfillment_type: 'delivery' | 'pickup' | string;
+  tracking_number: string | null;
+  carrier: string | null;
+  status: string;
+  subtotal: number;
+  shipping_fee: number;
+  total_amount: number;
+}
+
+export interface SettlementDay {
+  settlement_date: string;
+  subtotal: number;
+  shipping_fee: number;
+  total_amount: number;
+  order_count: number;
+  orders: SettlementOrderLine[];
+}
+
+export interface SettlementReport {
+  start: string;
+  end: string;
+  summary: {
+    subtotal: number;
+    shipping_fee: number;
+    total_amount: number;
+    order_count: number;
+  };
+  days: SettlementDay[];
+}
+
+export async function getAdminSettlements(start: string, end: string): Promise<SettlementReport> {
+  const { data } = await api.get<SettlementReport>('/admin/settlements', { params: { start, end } });
+  return data;
+}
+
+export async function downloadAdminSettlements(start: string, end: string): Promise<void> {
+  const response = await api.get('/admin/settlements/export', {
+    params: { start, end },
+    responseType: 'blob',
+  });
+  const blob = new Blob([response.data], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `정산내역_${start}_${end}.xlsx`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export interface AdminPostReport {
   id: number;
   post_id: number;

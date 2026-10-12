@@ -17,6 +17,7 @@ import { AdminPostsPage } from '@/pages/admin/AdminPostsPage';
 import { AdminProductsPage } from '@/pages/admin/AdminProductsPage';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { AdminOrdersPage } from '@/pages/admin/AdminOrdersPage';
+import { AdminSettlementsPage } from '@/pages/admin/AdminSettlementsPage';
 import { HomePage } from '@/pages/HomePage';
 import { ExplorePage } from '@/pages/ExplorePage';
 import { HashtagPage } from '@/pages/HashtagPage';
@@ -90,6 +91,7 @@ export default function App() {
                   <Route path="/admin/products" element={<AdminProductsPage />} />
                   <Route path="/admin/posts" element={<AdminPostsPage />} />
                   <Route path="/admin/orders" element={<AdminOrdersPage />} />
+                  <Route path="/admin/settlements" element={<AdminSettlementsPage />} />
                   <Route path="/admin/reports" element={<AdminReportsPage />} />
                 </Route>
               </Route>

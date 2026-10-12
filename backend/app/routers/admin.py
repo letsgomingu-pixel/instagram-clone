@@ -16,6 +16,7 @@ from app.schemas.admin import (
     AdminUserStatusUpdate,
 )
 from app.schemas.order import AdminOrderOut, AdminOrderUpdate
+from app.schemas.settlement import SettlementReportOut
 from app.schemas.post import PostOut
 from app.schemas.product import ProductCreate, ProductOut, ProductUpdate
 from app.utils.uploads import OptionalUploadFiles, collect_upload_files
@@ -35,6 +36,7 @@ from app.services.hashtags import attach_hashtags_to_post
 from app.services.posts import build_post_out
 from app.services.orders import build_admin_order_out, cancel_order_for_admin, list_admin_orders, update_admin_order
 from app.services.products import build_product_out, create_product_listing, update_product
+from app.services.settlements import export_settlements_xlsx, get_settlement_report
 from app.utils.hashtags import extract_hashtags
 from app.utils.media import repair_local_mp4_faststart, save_post_media
 from app.utils.pagination import PaginatedResponse, paginate, pagination_params
@@ -241,6 +243,26 @@ def admin_update_order(
 def admin_cancel_order(order_id: int, _admin: AdminUser, db: DbSession):
     order = cancel_order_for_admin(db, order_id)
     return build_admin_order_out(db, order)
+
+
+@router.get("/settlements", response_model=SettlementReportOut)
+def admin_settlements(
+    _admin: AdminUser,
+    db: DbSession,
+    start: date = Query(...),
+    end: date = Query(...),
+):
+    return get_settlement_report(db, start, end)
+
+
+@router.get("/settlements/export")
+def admin_settlements_export(
+    _admin: AdminUser,
+    db: DbSession,
+    start: date = Query(...),
+    end: date = Query(...),
+):
+    return export_settlements_xlsx(db, start, end)
 
 
 @router.get("/reports/posts", response_model=PaginatedResponse)
