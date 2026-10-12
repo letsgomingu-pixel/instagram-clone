@@ -19,6 +19,8 @@ export default defineConfig({
         target: 'http://127.0.0.1:8001',
         changeOrigin: true,
         ws: true,
+        timeout: 600_000,
+        proxyTimeout: 600_000,
       },
       '/media': {
         target: 'http://127.0.0.1:8001',

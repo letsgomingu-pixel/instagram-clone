@@ -302,7 +302,7 @@ def _run_h264_ffmpeg(src: Path, dst: Path) -> bool:
         if dst.exists():
             dst.unlink()
         try:
-            result = subprocess.run(cmd, capture_output=True, timeout=600)
+            result = subprocess.run(cmd, capture_output=True, timeout=180)
         except subprocess.TimeoutExpired:
             _logger.warning("ffmpeg transcode timed out")
             continue

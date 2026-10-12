@@ -85,7 +85,12 @@ export function CreateReelModal({ isOpen, onClose }: CreateReelModalProps) {
     try {
       const form = new FormData();
       form.append('video', videoFile, videoFile.name);
-      const thumbnail = await captureVideoThumbnail(videoFile);
+      const thumbnail = await Promise.race([
+        captureVideoThumbnail(videoFile),
+        new Promise<null>((resolve) => {
+          window.setTimeout(() => resolve(null), 6000);
+        }),
+      ]);
       if (thumbnail) form.append('thumbnail', thumbnail, thumbnail.name);
       if (caption.trim()) form.append('caption', caption.trim());
       if (audioName.trim()) form.append('audio_name', audioName.trim());

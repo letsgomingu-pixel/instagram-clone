@@ -107,57 +107,99 @@ export async function normalizeStoryFile(file: File): Promise<File> {
   return normalizeImageFile(file);
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error('timeout')), ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        window.clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 /** Grab a JPEG still from a video so Reels don't show a blank/black poster. */
 export async function captureVideoThumbnail(file: File): Promise<File | null> {
   const url = URL.createObjectURL(file);
   const video = document.createElement('video');
   video.muted = true;
+  video.defaultMuted = true;
   video.playsInline = true;
   video.preload = 'auto';
-  video.src = url;
+  video.setAttribute('playsinline', '');
+  // Off-screen nodes are required. Detached videos often never fire `seeked` on phones.
+  video.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+  document.body.appendChild(video);
 
   try {
-    await new Promise<void>((resolve, reject) => {
-      const timer = window.setTimeout(() => reject(new Error('thumbnail timeout')), 8000);
-      const done = () => {
-        window.clearTimeout(timer);
-        resolve();
-      };
-      video.onloadeddata = done;
-      video.onerror = () => {
-        window.clearTimeout(timer);
-        reject(new Error('video load failed'));
-      };
-    });
+    video.src = url;
+    await withTimeout(
+      new Promise<void>((resolve, reject) => {
+        video.onloadeddata = () => resolve();
+        video.onerror = () => reject(new Error('video load failed'));
+      }),
+      4000,
+    );
 
+    if (!video.videoWidth || !video.videoHeight) {
+      try {
+        await video.play();
+        video.pause();
+      } catch {
+        return null;
+      }
+    }
     if (!video.videoWidth || !video.videoHeight) return null;
 
-    const seekTo = Number.isFinite(video.duration) && video.duration > 0
+    const seekTo = Number.isFinite(video.duration) && video.duration > 0.3
       ? Math.min(0.25, video.duration * 0.1)
       : 0;
     if (seekTo > 0) {
-      await new Promise<void>((resolve) => {
-        video.onseeked = () => resolve();
-        video.currentTime = seekTo;
-      });
+      try {
+        await withTimeout(
+          new Promise<void>((resolve) => {
+            video.addEventListener('seeked', () => resolve(), { once: true });
+            try {
+              video.currentTime = seekTo;
+            } catch {
+              resolve();
+            }
+          }),
+          2000,
+        );
+      } catch {
+        // Use the frame that is already decoded.
+      }
     }
 
+    const maxEdge = 720;
+    const scale = Math.min(1, maxEdge / Math.max(video.videoWidth, video.videoHeight));
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
+    canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
-    ctx.drawImage(video, 0, 0);
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, 'image/jpeg', 0.85);
-    });
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await withTimeout(
+      new Promise<Blob | null>((resolve) => {
+        canvas.toBlob((value) => resolve(value), 'image/jpeg', 0.85);
+      }),
+      3000,
+    );
     if (!blob) return null;
     return new File([blob], 'thumbnail.jpg', { type: 'image/jpeg' });
   } catch {
     return null;
   } finally {
+    video.pause();
     video.removeAttribute('src');
     video.load();
+    video.remove();
     URL.revokeObjectURL(url);
   }
 }
