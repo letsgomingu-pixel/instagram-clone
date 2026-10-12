@@ -1,11 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
-import { Play } from 'lucide-react';
+import { Play, Volume2, VolumeX } from 'lucide-react';
 import { resolveMediaUrl } from '@/utils/media';
 
 interface ReelVideoProps {
   src: string;
   poster?: string | null;
   isActive?: boolean;
+}
+
+const SOUND_KEY = 'reel-sound';
+
+function wantsSound() {
+  try {
+    return sessionStorage.getItem(SOUND_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+function rememberSound(on: boolean) {
+  try {
+    sessionStorage.setItem(SOUND_KEY, on ? 'on' : 'off');
+  } catch {
+    // Private browsing can block storage. Playback still follows the button.
+  }
 }
 
 function isAbortError(video: HTMLVideoElement) {
@@ -16,6 +34,7 @@ export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [paused, setPaused] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [muted, setMuted] = useState(() => !wantsSound());
   const resolved = resolveMediaUrl(src);
   const resolvedPoster = resolveMediaUrl(poster);
 
@@ -27,9 +46,11 @@ export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
     const video = videoRef.current;
     if (!video || !resolved) return;
 
-    video.muted = true;
+    const soundOn = wantsSound();
+    video.muted = !soundOn;
+    video.defaultMuted = !soundOn;
+    setMuted(!soundOn);
     video.playsInline = true;
-    video.defaultMuted = true;
 
     let frameTimer: number | undefined;
 
@@ -38,6 +59,12 @@ export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
       if (isAbortError(video)) return;
       if (video.videoWidth > 0) return;
       setFailed(true);
+    };
+
+    const playMuted = () => {
+      video.muted = true;
+      setMuted(true);
+      void video.play().then(() => setPaused(false)).catch(() => setPaused(true));
     };
 
     const tryPlay = () => {
@@ -54,6 +81,10 @@ export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
           frameTimer = window.setTimeout(markUnplayable, 900);
         })
         .catch(() => {
+          if (!video.muted) {
+            playMuted();
+            return;
+          }
           setPaused(true);
         });
     };
@@ -95,12 +126,31 @@ export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
     const video = videoRef.current;
     if (!video || failed) return;
     if (video.paused) {
-      video.muted = true;
       void video.play().catch(() => {
+        if (!video.muted) {
+          video.muted = true;
+          setMuted(true);
+          void video.play().catch(() => {
+            if (video.error && !isAbortError(video)) setFailed(true);
+          });
+          return;
+        }
         if (video.error && !isAbortError(video)) setFailed(true);
       });
     } else {
       video.pause();
+    }
+  };
+
+  const handleToggleSound = () => {
+    const video = videoRef.current;
+    if (!video || failed) return;
+    const nextMuted = !video.muted;
+    video.muted = nextMuted;
+    setMuted(nextMuted);
+    rememberSound(!nextMuted);
+    if (!nextMuted && video.paused) {
+      void video.play().catch(() => setPaused(true));
     }
   };
 
@@ -111,7 +161,7 @@ export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
         src={resolved}
         poster={failed ? undefined : resolvedPoster || undefined}
         className="absolute inset-0 block h-full w-full object-cover object-center"
-        muted
+        muted={muted}
         playsInline
         loop
         autoPlay={isActive}
@@ -122,6 +172,16 @@ export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
         <p className="absolute inset-0 z-[1] flex items-center justify-center px-6 text-center text-sm text-white">
           동영상을 재생할 수 없습니다.
         </p>
+      )}
+      {isActive && !failed && (
+        <button
+          type="button"
+          onClick={handleToggleSound}
+          className="absolute right-3 top-3 z-[2] rounded-full bg-black/50 p-2 text-white"
+          aria-label={muted ? '소리 켜기' : '소리 끄기'}
+        >
+          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        </button>
       )}
       {isActive && paused && !failed && (
         <button
@@ -138,3 +198,4 @@ export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
     </div>
   );
 }
+

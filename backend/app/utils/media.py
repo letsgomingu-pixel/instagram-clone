@@ -309,8 +309,8 @@ def _run_h264_ffmpeg(src: Path, dst: Path) -> bool:
         "+faststart",
     ]
     attempts = [
-        [*common, "-c:a", "aac", "-ac", "2", str(dst)],
-        [*common, "-an", str(dst)],
+        [*common, "-c:a", "aac", "-b:a", "128k", "-ac", "2", str(dst)],
+        [*common, "-c:a", "copy", str(dst)],
     ]
     last_err = b""
     for cmd in attempts:
