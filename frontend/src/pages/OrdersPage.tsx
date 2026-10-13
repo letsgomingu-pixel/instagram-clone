@@ -229,7 +229,7 @@ export function OrderDetailPage() {
   }
 
   return (
-    <div className="max-w-[560px] mx-auto space-y-4">
+    <div className="max-w-[560px] mx-auto space-y-4 pb-16">
       <div className="feed-card p-6">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold">주문 #{order.id}</h1>
