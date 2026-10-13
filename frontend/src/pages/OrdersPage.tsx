@@ -31,11 +31,31 @@ function statusLabel(status: string, fulfillment?: string) {
   return STATUS_LABELS[status] || status;
 }
 
-function OrderStatusBadge({ status, fulfillment }: { status: string; fulfillment?: string }) {
+function OrderStatusBadge({
+  status,
+  fulfillment,
+  onPress,
+}: {
+  status: string;
+  fulfillment?: string;
+  onPress?: () => void;
+}) {
+  const label = statusLabel(status, fulfillment);
+  if (!onPress) {
+    return (
+      <span className="text-xs font-semibold px-2 py-1 rounded bg-ig-secondary text-ig-text">
+        {label}
+      </span>
+    );
+  }
   return (
-    <span className="text-xs font-semibold px-2 py-1 rounded bg-ig-secondary text-ig-text">
-      {statusLabel(status, fulfillment)}
-    </span>
+    <button
+      type="button"
+      onClick={onPress}
+      className="text-xs font-semibold px-3 min-h-[44px] rounded-lg bg-ig-secondary text-ig-text"
+    >
+      {label}
+    </button>
   );
 }
 
@@ -111,6 +131,7 @@ export function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [pushState, setPushState] = useState<'unknown' | 'on' | 'off' | 'denied' | 'unsupported' | 'install'>('unknown');
   const [enablingPush, setEnablingPush] = useState(false);
   const statusRef = useRef<string | null>(null);
@@ -213,11 +234,11 @@ export function OrderDetailPage() {
 
   const handleCancel = async () => {
     if (!order || !canCancel) return;
-    if (!window.confirm('주문을 취소하시겠습니까?')) return;
     setCancelling(true);
     try {
       const updated = await ordersApi.cancelOrder(order.id);
       setOrder(updated);
+      setConfirmingCancel(false);
       toast.success('주문이 취소되었습니다.');
     } catch (error) {
       const detail = isAxiosError(error) ? error.response?.data?.detail : null;
@@ -243,7 +264,13 @@ export function OrderDetailPage() {
       <div className="feed-card p-6">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-semibold">주문 #{order.id}</h1>
-          <OrderStatusBadge status={order.status} fulfillment={order.fulfillment_type} />
+          <OrderStatusBadge
+            status={order.status}
+            fulfillment={order.fulfillment_type}
+            onPress={
+              order.status === 'cancelled' ? () => toast('이미 취소된 주문입니다.') : undefined
+            }
+          />
         </div>
 
         {(order.items && order.items.length > 0 ? order.items : order.product ? [{ product: order.product, quantity: order.quantity, subtotal: order.subtotal }] : []).map((item, index) => (
@@ -319,11 +346,44 @@ export function OrderDetailPage() {
         )}
       </div>
 
-      {canCancel && (
-        <Button variant="secondary" fullWidth loading={cancelling} onClick={handleCancel}>
-          주문 취소
-        </Button>
-      )}
+      {canCancel &&
+        (confirmingCancel ? (
+          <div className="feed-card p-4 space-y-3">
+            <p className="text-sm text-center">이 주문을 취소할까요?</p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                fullWidth
+                className="min-h-[44px]"
+                disabled={cancelling}
+                onClick={() => setConfirmingCancel(false)}
+              >
+                돌아가기
+              </Button>
+              <Button
+                type="button"
+                variant="danger"
+                fullWidth
+                className="min-h-[44px]"
+                loading={cancelling}
+                onClick={handleCancel}
+              >
+                주문 취소
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="secondary"
+            fullWidth
+            className="min-h-[44px]"
+            onClick={() => setConfirmingCancel(true)}
+          >
+            주문 취소
+          </Button>
+        ))}
 
       {order.can_review && (
         <Link
