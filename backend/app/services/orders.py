@@ -90,6 +90,24 @@ ADMIN_STATUS_FROM = {
 SETTLED_ORDER_STATUSES = ("paid", "preparing", "ready", "shipped", "delivered")
 
 
+def _change_status(db: Session, order: Order, from_status: str, to_status: str) -> None:
+    """Update status only if it is still from_status.
+
+    A buyer cancel loaded while the order is paid must not overwrite a pickup
+    accept that already saved preparing.
+    """
+    result = db.execute(
+        update(Order)
+        .where(Order.id == order.id, Order.status == from_status)
+        .values(status=to_status)
+    )
+    if result.rowcount == 0:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="주문 상태가 이미 바뀌었습니다.")
+    db.expire(order)
+    db.refresh(order)
+
+
 def _review_info_for_orders(
     db: Session, orders: list[Order], viewer: User | None
 ) -> dict[int, tuple[int | None, bool]]:
@@ -446,9 +464,10 @@ async def confirm_portone_payment(db: Session, order_id: int, user: User) -> Ord
     if isinstance(paid_amount, dict):
         paid_amount = paid_amount.get("total")
     if paid_amount is not None and int(paid_amount) != order.payment.amount:
-        order.payment.status = "failed"
-        order.status = "failed"
-        db.commit()
+        if order.status == "pending":
+            order.payment.status = "failed"
+            _change_status(db, order, "pending", "failed")
+            db.commit()
         raise HTTPException(status_code=400, detail="Payment amount mismatch")
 
     portone_status = verified.get("status", "")
@@ -505,9 +524,16 @@ async def handle_portone_webhook(db: Session, payload: dict) -> None:
         if isinstance(paid_amount, dict):
             paid_amount = paid_amount.get("total")
         if paid_amount is not None and int(paid_amount) != payment.amount:
+            if order.status != "pending":
+                logger.warning(
+                    "Ignoring payment amount mismatch for order %s in status %s",
+                    order.id,
+                    order.status,
+                )
+                return
             payment.status = "failed"
-            order.status = "failed"
             payment.raw_webhook = raw
+            _change_status(db, order, "pending", "failed")
             db.commit()
             raise HTTPException(status_code=400, detail="Payment amount mismatch")
         portone_status = verified.get("status", "")
@@ -593,8 +619,9 @@ def cancel_order(db: Session, order: Order, *, by_admin: bool = False) -> Order:
     if order.status not in allowed:
         raise HTTPException(status_code=400, detail=f"Cannot cancel order in status {order.status}")
 
-    restore_stock = order.status in STOCK_RESTORE_STATUSES
-    order.status = "cancelled"
+    previous = order.status
+    restore_stock = previous in STOCK_RESTORE_STATUSES
+    _change_status(db, order, previous, "cancelled")
     if order.payment:
         order.payment.status = "cancelled"
     if restore_stock:
@@ -683,7 +710,8 @@ def update_admin_order(db: Session, order_id: int, body: AdminOrderUpdate, admin
                     raise HTTPException(status_code=400, detail="운송장번호를 입력해 주세요.")
                 if not carrier:
                     raise HTTPException(status_code=400, detail="택배사를 선택해 주세요.")
-        order.status = target_status
+        previous = order.status
+        _change_status(db, order, previous, target_status)
         status_changed = target_status
         if target_status == "shipped":
             order.shipped_at = now

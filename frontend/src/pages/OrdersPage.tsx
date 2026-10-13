@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { isAxiosError } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { OrderTimeline } from '@/components/order/OrderTimeline';
@@ -187,6 +188,14 @@ export function OrderDetailPage() {
     pushState !== 'unknown' &&
     (pushState !== 'unsupported' || ios);
   const canCancel = order && (order.status === 'pending' || order.status === 'paid');
+  const showPickupPanel =
+    !!order &&
+    order.fulfillment_type === 'pickup' &&
+    (showPhoneAlert ||
+      order.status === 'pending' ||
+      order.status === 'paid' ||
+      (Boolean(order.pickup_ready_at && order.pickup_ready_minutes) &&
+        !['delivered', 'cancelled', 'failed'].includes(order.status)));
 
   const handleEnablePush = async () => {
     setEnablingPush(true);
@@ -210,8 +219,9 @@ export function OrderDetailPage() {
       const updated = await ordersApi.cancelOrder(order.id);
       setOrder(updated);
       toast.success('주문이 취소되었습니다.');
-    } catch {
-      toast.error('주문 취소에 실패했습니다.');
+    } catch (error) {
+      const detail = isAxiosError(error) ? error.response?.data?.detail : null;
+      toast.error(typeof detail === 'string' ? detail : '주문 취소에 실패했습니다.');
     } finally {
       setCancelling(false);
     }
@@ -261,7 +271,7 @@ export function OrderDetailPage() {
         </div>
       </div>
 
-      {order.fulfillment_type === 'pickup' && (
+      {showPickupPanel && (
         <div className="feed-card p-6 space-y-3">
           <PickupReadyCard order={order} />
           {showPhoneAlert && (

@@ -54,7 +54,13 @@ export function OrderTimeline({ order }: OrderTimelineProps) {
   if (current < 0) {
     return (
       <p className="text-sm text-ig-text-secondary">
-        {order.status === 'pending' ? '결제를 기다리는 중입니다.' : '주문이 취소되었거나 결제에 실패했습니다.'}
+        {order.status === 'pending'
+          ? '결제를 기다리는 중입니다.'
+          : order.status === 'cancelled'
+            ? '주문이 취소되었습니다.'
+            : order.status === 'failed'
+              ? '결제에 실패했습니다.'
+              : '주문 상태를 확인할 수 없습니다.'}
       </p>
     );
   }

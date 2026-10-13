@@ -1532,6 +1532,84 @@ def test_pickup_order_ready_time(auth_headers):
     assert picked_up.json()["status"] == "delivered"
 
 
+def test_stale_buyer_cancel_keeps_accepted_pickup(auth_headers):
+    from fastapi import HTTPException
+
+    from app.database import SessionLocal
+    from app.models import User
+    from app.services.orders import cancel_order, get_order_for_user
+
+    admin_headers = _admin_login()
+    product_post = _create_admin_product(admin_headers, name="접수유지", price=9000)
+    product_id = product_post["product"]["id"]
+    order_res = client.post(
+        "/api/v1/orders",
+        headers=auth_headers,
+        json={
+            "product_id": product_id,
+            "quantity": 1,
+            "shipping_name": "포장 고객",
+            "phone": "010-1111-2222",
+            "fulfillment_type": "pickup",
+        },
+    )
+    assert order_res.status_code == 201, order_res.text
+    order = order_res.json()["order"]
+    payment_id = order_res.json()["payment"]["payment_id"]
+    confirm = client.post(f"/api/v1/payments/mock/{order['id']}/confirm", headers=auth_headers)
+    assert confirm.status_code == 200, confirm.text
+
+    me = client.get("/api/v1/users/me", headers=auth_headers).json()
+    stale = SessionLocal()
+    try:
+        buyer = stale.get(User, me["id"])
+        assert buyer is not None
+        stale_order = get_order_for_user(stale, order["id"], buyer)
+        assert stale_order.status == "paid"
+
+        accepted = client.patch(
+            f"/api/v1/admin/orders/{order['id']}",
+            headers=admin_headers,
+            json={"status": "preparing", "pickup_ready_minutes": 15},
+        )
+        assert accepted.status_code == 200, accepted.text
+        assert accepted.json()["status"] == "preparing"
+
+        with pytest.raises(HTTPException) as exc:
+            cancel_order(stale, stale_order, by_admin=False)
+        assert exc.value.status_code == 409
+    finally:
+        stale.close()
+
+    detail = client.get(f"/api/v1/orders/{order['id']}", headers=auth_headers)
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["status"] == "preparing"
+    assert detail.json()["pickup_ready_minutes"] == 15
+
+    from unittest.mock import AsyncMock, patch
+
+    from app.services.orders import handle_portone_webhook
+
+    webhook_db = SessionLocal()
+    try:
+        with (
+            patch("app.services.orders.settings") as mocked_settings,
+            patch(
+                "app.services.orders.fetch_portone_payment",
+                new=AsyncMock(return_value={"status": "CANCELLED", "amount": {"total": 1}}),
+            ),
+        ):
+            mocked_settings.portone_enabled = True
+            import asyncio
+
+            asyncio.run(handle_portone_webhook(webhook_db, {"paymentId": payment_id}))
+    finally:
+        webhook_db.close()
+
+    detail = client.get(f"/api/v1/orders/{order['id']}", headers=auth_headers)
+    assert detail.json()["status"] == "preparing"
+
+
 def test_get_users_me(auth_headers):
     r = client.get("/api/v1/users/me", headers=auth_headers)
     assert r.status_code == 200, r.text
