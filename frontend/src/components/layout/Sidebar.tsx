@@ -1,7 +1,6 @@
 import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Avatar } from '@/components/common/Avatar';
 import {
-  NavCreateIcon,
   NavHomeIcon,
   NavLoginIcon,
   NavMenuIcon,
@@ -22,8 +21,7 @@ import { InstagramLogo } from '@/components/common/InstagramLogo';
 
 type NavItem =
   | { kind: 'link'; to: string; label: string; renderIcon: (active: boolean) => React.ReactNode }
-  | { kind: 'notifications'; label: string; renderIcon: (active: boolean) => React.ReactNode }
-  | { kind: 'create'; label: string; renderIcon: () => React.ReactNode };
+  | { kind: 'notifications'; label: string; renderIcon: (active: boolean) => React.ReactNode };
 
 const navItems: NavItem[] = [
   { kind: 'link', to: '/', label: '홈', renderIcon: (active) => <NavHomeIcon active={active} /> },
@@ -32,7 +30,6 @@ const navItems: NavItem[] = [
   { kind: 'link', to: '/search', label: '검색', renderIcon: (active) => <NavSearchIcon active={active} /> },
   { kind: 'notifications', label: '알림', renderIcon: (active) => <NavNotificationsIcon active={active} /> },
   { kind: 'link', to: '/info/shipping', label: '배송·반품', renderIcon: (active) => <NavShippingIcon active={active} /> },
-  { kind: 'create', label: '만들기', renderIcon: () => <NavCreateIcon /> },
 ];
 
 function navButtonClass(active: boolean) {
@@ -47,14 +44,11 @@ export function Sidebar() {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const {
-    setCreatePostOpen,
     setNotificationsPanelOpen,
     isNotificationsPanelOpen,
   } = useApp();
   const { requireAuth } = useRequireAuth();
   const { messageCount, notificationCount } = useUnreadBadges();
-
-  const handleCreate = () => requireAuth(() => setCreatePostOpen(true));
 
   const handleNotifications = () => {
     requireAuth(() => {
@@ -65,10 +59,6 @@ export function Sidebar() {
       }
     });
   };
-
-  const visibleNavItems = navItems.filter(
-    (item) => item.kind !== 'create' || user?.is_admin,
-  );
 
   const panelOpen = isNotificationsPanelOpen;
   const isNotificationsActive =
@@ -84,22 +74,7 @@ export function Sidebar() {
       </NavLink>
 
       <nav className="flex flex-col gap-1 flex-1">
-        {visibleNavItems.map((item) => {
-          if (item.kind === 'create') {
-            return (
-              <button
-                key={item.label}
-                type="button"
-                onClick={handleCreate}
-                className={navButtonClass(false)}
-                aria-label={item.label}
-              >
-                {item.renderIcon()}
-                <span className="text-base hidden lg:inline">{item.label}</span>
-              </button>
-            );
-          }
-
+        {navItems.map((item) => {
           if (item.kind === 'notifications') {
             return (
               <button
