@@ -63,12 +63,12 @@ export function SendReelModal({ isOpen, reelId, onClose }: SendReelModalProps) {
     return source.filter((user) => user.id !== currentUser?.id);
   }, [debouncedQuery, results, suggestedUsers, currentUser?.id]);
 
+  const noteText = note.trim();
+
   const handleSend = async (target: User) => {
-    if (sendingId !== null || sentIds.includes(target.id)) return;
+    if (!noteText || sendingId !== null || sentIds.includes(target.id)) return;
     setSendingId(target.id);
-    const text = note.trim();
-    const link = reelShareUrl(reelId);
-    const content = text ? `${text}\n${link}` : link;
+    const content = `${noteText}\n${reelShareUrl(reelId)}`;
     try {
       await conversationsApi.sendMessage(target.username, content);
       setSentIds((prev) => [...prev, target.id]);
@@ -137,7 +137,7 @@ export function SendReelModal({ isOpen, reelId, onClose }: SendReelModalProps) {
                   </div>
                   <button
                     type="button"
-                    disabled={sent || sendingId !== null}
+                    disabled={sent || sendingId !== null || !noteText}
                     onClick={() => void handleSend(user)}
                     className={cn(
                       'h-8 shrink-0 rounded-lg px-3 text-[14px] font-semibold text-white',
