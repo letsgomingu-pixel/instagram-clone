@@ -32,6 +32,7 @@ function isAbortError(video: HTMLVideoElement) {
 
 export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const userChoseSound = useRef(false);
   const [paused, setPaused] = useState(false);
   const [failed, setFailed] = useState(false);
   const [muted, setMuted] = useState(() => !wantsSound());
@@ -41,6 +42,13 @@ export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
   useEffect(() => {
     setFailed(false);
   }, [resolved]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.muted = muted;
+    if (!muted) video.volume = 1;
+  }, [muted]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -62,6 +70,7 @@ export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
     };
 
     const playMuted = () => {
+      if (userChoseSound.current) return;
       video.muted = true;
       setMuted(true);
       void video.play().then(() => setPaused(false)).catch(() => setPaused(true));
@@ -147,6 +156,8 @@ export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
     if (!video || failed) return;
     const nextMuted = !video.muted;
     video.muted = nextMuted;
+    if (!nextMuted) video.volume = 1;
+    userChoseSound.current = !nextMuted;
     setMuted(nextMuted);
     rememberSound(!nextMuted);
     if (!nextMuted && video.paused) {
@@ -155,13 +166,17 @@ export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
   };
 
   return (
-    <div className="absolute inset-0 bg-black">
+    <div
+      className="absolute inset-0 bg-black"
+      onClick={() => {
+        if (videoRef.current?.muted) handleToggleSound();
+      }}
+    >
       <video
         ref={videoRef}
         src={resolved}
         poster={failed ? undefined : resolvedPoster || undefined}
         className="absolute inset-0 block h-full w-full object-cover object-center"
-        muted={muted}
         playsInline
         loop
         autoPlay={isActive}
@@ -176,11 +191,15 @@ export function ReelVideo({ src, poster, isActive = true }: ReelVideoProps) {
       {isActive && !failed && (
         <button
           type="button"
-          onClick={handleToggleSound}
-          className="absolute right-3 top-3 z-[2] rounded-full bg-black/50 p-2 text-white"
+          onClick={(event) => {
+            event.stopPropagation();
+            handleToggleSound();
+          }}
+          className="absolute left-3 top-3 z-[3] flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-[13px] font-semibold text-white"
           aria-label={muted ? '소리 켜기' : '소리 끄기'}
         >
-          {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+          {muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          {muted ? '소리 켜기' : null}
         </button>
       )}
       {isActive && paused && !failed && (

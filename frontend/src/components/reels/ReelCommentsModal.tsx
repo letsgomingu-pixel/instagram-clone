@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Smile, X } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -16,7 +16,8 @@ interface ReelCommentsPanelProps {
   reel: Reel;
   isOpen: boolean;
   onClose: () => void;
-  onCommentAdded?: (commentCount: number) => void;
+  onCommentAdded?: () => void;
+  onCommentsLoaded?: (total: number) => void;
   className?: string;
 }
 
@@ -59,6 +60,7 @@ export function ReelCommentsPanel({
   isOpen,
   onClose,
   onCommentAdded,
+  onCommentsLoaded,
   className,
 }: ReelCommentsPanelProps) {
   const { user } = useAuth();
@@ -67,13 +69,18 @@ export function ReelCommentsPanel({
   const [loading, setLoading] = useState(false);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const onCommentsLoadedRef = useRef(onCommentsLoaded);
+  onCommentsLoadedRef.current = onCommentsLoaded;
 
   useEffect(() => {
     if (!isOpen) return;
     setLoading(true);
     reelsApi
       .getReelComments(reel.id)
-      .then((res) => setComments(res.items))
+      .then((res) => {
+        setComments(res.items);
+        onCommentsLoadedRef.current?.(res.total);
+      })
       .catch(() => toast.error('댓글을 불러오지 못했습니다.'))
       .finally(() => setLoading(false));
   }, [isOpen, reel.id]);
@@ -96,7 +103,7 @@ export function ReelCommentsPanel({
         const comment = await reelsApi.addReelComment(reel.id, trimmed);
         setComments((prev) => [...prev, comment]);
         setDraft('');
-        onCommentAdded?.(reel.comment_count + 1);
+        onCommentAdded?.();
       } catch {
         toast.error('댓글 작성에 실패했습니다.');
       } finally {

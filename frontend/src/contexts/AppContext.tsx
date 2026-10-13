@@ -97,6 +97,10 @@ interface AppContextValue {
 
   toggleReelLike: (reelId: number) => void;
 
+  incrementReelCommentCount: (reelId: number) => void;
+
+  syncReelCommentCount: (reelId: number, count: number) => void;
+
   toggleSave: (postId: number) => void;
 
   setPostSaved: (postId: number, isSaved: boolean) => void;
@@ -655,6 +659,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   );
 
+  const patchReelCommentCount = useCallback((reelId: number, nextCount: (current: number) => number) => {
+    const update = (reel: Reel) =>
+      reel.id === reelId ? { ...reel, comment_count: nextCount(reel.comment_count) } : reel;
+    setReels((prev) => prev.map(update));
+    setProfileReels((prev) => prev.map(update));
+  }, []);
+
+  const incrementReelCommentCount = useCallback(
+    (reelId: number) => {
+      patchReelCommentCount(reelId, (current) => current + 1);
+    },
+    [patchReelCommentCount],
+  );
+
+  const syncReelCommentCount = useCallback(
+    (reelId: number, count: number) => {
+      patchReelCommentCount(reelId, (current) => Math.max(current, count));
+    },
+    [patchReelCommentCount],
+  );
+
 
 
   const toggleSave = useCallback(
@@ -1009,6 +1034,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       toggleReelLike,
 
+      incrementReelCommentCount,
+
+      syncReelCommentCount,
+
       toggleSave,
 
       setPostSaved,
@@ -1122,6 +1151,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toggleLike,
 
       toggleReelLike,
+
+      incrementReelCommentCount,
+
+      syncReelCommentCount,
 
       toggleSave,
 

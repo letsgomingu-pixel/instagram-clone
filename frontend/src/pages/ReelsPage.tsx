@@ -16,9 +16,9 @@ import { CreateReelModal } from '@/components/reels/CreateReel';
 import { ReelCommentsPanel } from '@/components/reels/ReelCommentsModal';
 import { ReelOptionsMenu } from '@/components/reels/ReelOptionsMenu';
 import { ReelVideo } from '@/components/reels/ReelVideo';
+import { SendReelModal } from '@/components/reels/SendReelModal';
 import * as reelsApi from '@/api/reels';
 import { truncateSeo, useSeo } from '@/seo';
-import { reelShareUrl, shareUrl } from '@/utils/share';
 import { useApp } from '@/contexts/AppContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -64,7 +64,7 @@ function ReelMedia({ reel, isActive }: { reel: Reel; isActive: boolean }) {
 }
 
 function ReelItem({ reel, isActive }: ReelItemProps) {
-  const { toggleReelLike, followUser, refreshReels } = useApp();
+  const { toggleReelLike, followUser, refreshReels, incrementReelCommentCount, syncReelCommentCount } = useApp();
   const { user: currentUser } = useAuth();
   const { requireAuth } = useRequireAuth();
   const isDesktop = useIsDesktop();
@@ -72,6 +72,7 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
   const [showHeart, setShowHeart] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
 
   const isOwnReel = currentUser?.id === reel.user.id;
   const showFollow = !isOwnReel && !reel.user.is_following;
@@ -93,7 +94,7 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
   };
 
   const handleShare = () => {
-    void shareUrl(reelShareUrl(reel.id), `${reel.user.username}의 릴스`);
+    setSendOpen(true);
   };
 
   const handleDeleteReel = async () => {
@@ -130,7 +131,7 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
       <button
         onClick={() => requireAuth(handleShare)}
         className={tone === 'reels' ? 'text-white' : 'text-ig-text'}
-        aria-label="공유"
+        aria-label="보내기"
       >
         <PostShareIcon size={REEL_ACTION_ICON_SIZE} tone={tone} />
       </button>
@@ -253,15 +254,29 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
         <div className="hidden md:flex flex-col items-center gap-6 self-end pb-24 shrink-0 relative z-[50]">{actionButtons('default', isDesktop)}</div>
         {commentsOpen && (
           <div className="h-[640px] max-h-[85vh] w-[400px] rounded-xl border border-ig-border shadow-sm shrink-0 overflow-hidden">
-            <ReelCommentsPanel reel={reel} isOpen onClose={() => setCommentsOpen(false)} />
+            <ReelCommentsPanel
+              reel={reel}
+              isOpen
+              onClose={() => setCommentsOpen(false)}
+              onCommentAdded={() => incrementReelCommentCount(reel.id)}
+              onCommentsLoaded={(total) => syncReelCommentCount(reel.id, total)}
+            />
           </div>
         )}
       </div>
 
       {/* Mobile: full-screen comments sheet */}
+      <SendReelModal isOpen={sendOpen} reelId={reel.id} onClose={() => setSendOpen(false)} />
+
       {commentsOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-white">
-          <ReelCommentsPanel reel={reel} isOpen onClose={() => setCommentsOpen(false)} />
+          <ReelCommentsPanel
+            reel={reel}
+            isOpen
+            onClose={() => setCommentsOpen(false)}
+            onCommentAdded={() => incrementReelCommentCount(reel.id)}
+            onCommentsLoaded={(total) => syncReelCommentCount(reel.id, total)}
+          />
         </div>
       )}
     </section>

@@ -308,9 +308,12 @@ def _run_h264_ffmpeg(src: Path, dst: Path) -> bool:
         "-movflags",
         "+faststart",
     ]
+    # Map the picture and the first audio track explicitly. Phone files often
+    # carry extra tracks, and a bare -c:a can drop or reject the soundtrack.
+    audio_map = ["-map", "0:v:0", "-map", "0:a:0?"]
     attempts = [
-        [*common, "-c:a", "aac", "-b:a", "128k", "-ac", "2", str(dst)],
-        [*common, "-c:a", "copy", str(dst)],
+        [*common, *audio_map, "-c:a", "aac", "-b:a", "128k", "-ac", "2", str(dst)],
+        [*common, *audio_map, "-c:a", "copy", str(dst)],
     ]
     last_err = b""
     for cmd in attempts:

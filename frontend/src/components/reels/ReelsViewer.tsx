@@ -25,7 +25,7 @@ import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
 import { ReelCommentsPanel } from '@/components/reels/ReelCommentsModal';
 import { ReelVideo } from '@/components/reels/ReelVideo';
-import { reelShareUrl, shareUrl } from '@/utils/share';
+import { SendReelModal } from '@/components/reels/SendReelModal';
 import * as reelsApi from '@/api/reels';
 
 import { useApp } from '@/contexts/AppContext';
@@ -54,7 +54,7 @@ interface ReelsViewerProps {
 
 export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) {
 
-  const { toggleReelLike, followUser, markReelViewed, refreshReels } = useApp();
+  const { toggleReelLike, followUser, markReelViewed, refreshReels, incrementReelCommentCount, syncReelCommentCount } = useApp();
 
   const { user: currentUser } = useAuth();
 
@@ -68,6 +68,8 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
   const [commentsOpen, setCommentsOpen] = useState(false);
 
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const [sendOpen, setSendOpen] = useState(false);
 
 
 
@@ -137,7 +139,9 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
     setMenuOpen(false);
 
-  }, [reel, markReelViewed]);
+    setSendOpen(false);
+
+  }, [reel?.id, markReelViewed]);
 
 
 
@@ -174,8 +178,7 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
 
   const handleShare = () => {
-    void shareUrl(reelShareUrl(reel.id), `${reel.user.username}의 릴스`);
-
+    setSendOpen(true);
   };
 
 
@@ -322,7 +325,7 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
           </button>
 
-          <button onClick={() => requireAuth(handleShare)} className="text-white" aria-label="공유">
+          <button onClick={() => requireAuth(handleShare)} className="text-white" aria-label="보내기">
 
             <PostShareIcon size={REEL_ACTION_ICON_SIZE} tone="reels" />
 
@@ -423,18 +426,32 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
       {commentsOpen && (
         <div className="hidden md:flex h-full max-h-[85vh] w-[400px] rounded-xl overflow-hidden shrink-0 border border-white/20">
-          <ReelCommentsPanel reel={reel} isOpen onClose={() => setCommentsOpen(false)} />
+          <ReelCommentsPanel
+            reel={reel}
+            isOpen
+            onClose={() => setCommentsOpen(false)}
+            onCommentAdded={() => incrementReelCommentCount(reel.id)}
+            onCommentsLoaded={(total) => syncReelCommentCount(reel.id, total)}
+          />
         </div>
       )}
       </div>
 
       {commentsOpen && (
         <div className="md:hidden fixed inset-0 z-[110] bg-white">
-          <ReelCommentsPanel reel={reel} isOpen onClose={() => setCommentsOpen(false)} />
+          <ReelCommentsPanel
+            reel={reel}
+            isOpen
+            onClose={() => setCommentsOpen(false)}
+            onCommentAdded={() => incrementReelCommentCount(reel.id)}
+            onCommentsLoaded={(total) => syncReelCommentCount(reel.id, total)}
+          />
         </div>
       )}
 
 
+
+      <SendReelModal isOpen={sendOpen} reelId={reel.id} onClose={() => setSendOpen(false)} />
 
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-[12px] hidden md:block">
 
