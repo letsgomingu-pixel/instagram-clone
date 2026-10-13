@@ -451,7 +451,7 @@ export function ReelsViewer({ reels, initialIndex, onClose }: ReelsViewerProps) 
 
 
 
-      <SendReelModal isOpen={sendOpen} reelId={reel.id} onClose={() => setSendOpen(false)} />
+      <SendReelModal isOpen={sendOpen} onClose={() => setSendOpen(false)} />
 
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-[12px] hidden md:block">
 

@@ -266,7 +266,7 @@ function ReelItem({ reel, isActive }: ReelItemProps) {
       </div>
 
       {/* Mobile: full-screen comments sheet */}
-      <SendReelModal isOpen={sendOpen} reelId={reel.id} onClose={() => setSendOpen(false)} />
+      <SendReelModal isOpen={sendOpen} onClose={() => setSendOpen(false)} />
 
       {commentsOpen && (
         <div className="md:hidden fixed inset-0 z-50 bg-white">

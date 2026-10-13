@@ -7,17 +7,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDebounce } from '@/hooks/useDebounce';
 import * as usersApi from '@/api/users';
 import * as conversationsApi from '@/api/conversations';
-import { reelShareUrl } from '@/utils/share';
 import { cn } from '@/utils/cn';
 import type { User } from '@/types';
 
 interface SendReelModalProps {
   isOpen: boolean;
-  reelId: number;
   onClose: () => void;
 }
 
-export function SendReelModal({ isOpen, reelId, onClose }: SendReelModalProps) {
+export function SendReelModal({ isOpen, onClose }: SendReelModalProps) {
   const { user: currentUser } = useAuth();
   const { suggestedUsers, refreshSuggestedUsers } = useApp();
   const [query, setQuery] = useState('');
@@ -68,9 +66,8 @@ export function SendReelModal({ isOpen, reelId, onClose }: SendReelModalProps) {
   const handleSend = async (target: User) => {
     if (!noteText || sendingId !== null || sentIds.includes(target.id)) return;
     setSendingId(target.id);
-    const content = `${noteText}\n${reelShareUrl(reelId)}`;
     try {
-      await conversationsApi.sendMessage(target.username, content);
+      await conversationsApi.sendMessage(target.username, noteText);
       setSentIds((prev) => [...prev, target.id]);
       toast.success(`${target.username}님에게 보냈습니다.`);
     } catch {
