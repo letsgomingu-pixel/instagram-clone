@@ -24,6 +24,7 @@ export function SendReelModal({ isOpen, reelId, onClose }: SendReelModalProps) {
   const [results, setResults] = useState<User[]>([]);
   const [sendingId, setSendingId] = useState<number | null>(null);
   const [sentIds, setSentIds] = useState<number[]>([]);
+  const [note, setNote] = useState('');
   const debouncedQuery = useDebounce(query, 300);
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export function SendReelModal({ isOpen, reelId, onClose }: SendReelModalProps) {
       setResults([]);
       setSendingId(null);
       setSentIds([]);
+      setNote('');
       return;
     }
     void refreshSuggestedUsers();
@@ -64,8 +66,11 @@ export function SendReelModal({ isOpen, reelId, onClose }: SendReelModalProps) {
   const handleSend = async (target: User) => {
     if (sendingId !== null || sentIds.includes(target.id)) return;
     setSendingId(target.id);
+    const text = note.trim();
+    const link = reelShareUrl(reelId);
+    const content = text ? `${text}\n${link}` : link;
     try {
-      await conversationsApi.sendMessage(target.username, reelShareUrl(reelId));
+      await conversationsApi.sendMessage(target.username, content);
       setSentIds((prev) => [...prev, target.id]);
       toast.success(`${target.username}님에게 보냈습니다.`);
     } catch {
@@ -146,6 +151,16 @@ export function SendReelModal({ isOpen, reelId, onClose }: SendReelModalProps) {
             })
           )}
         </div>
+        <footer className="shrink-0 border-t border-ig-border px-4 py-3">
+          <textarea
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            placeholder="메시지 입력..."
+            rows={2}
+            maxLength={1800}
+            className="w-full resize-none rounded-2xl bg-ig-secondary px-4 py-2.5 text-[14px] outline-none placeholder:text-ig-text-secondary"
+          />
+        </footer>
       </div>
     </div>
   );
