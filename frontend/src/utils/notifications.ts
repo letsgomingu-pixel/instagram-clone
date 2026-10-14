@@ -2,14 +2,13 @@ import type { Notification, NotificationTab } from '@/types';
 
 export type NotificationPeriod = 'new' | 'earlier';
 
-export type NotificationFilter = 'all' | 'following' | 'comments' | 'follows' | 'tags';
+export type NotificationFilter = 'all' | 'following' | 'comments' | 'follows';
 
 export const notificationFilters: { id: NotificationFilter; label: string }[] = [
   { id: 'all', label: '모두' },
   { id: 'following', label: '내가 팔로우하는 사람' },
   { id: 'comments', label: '댓글' },
   { id: 'follows', label: '팔로우' },
-  { id: 'tags', label: '태그 및…' },
 ];
 
 export const periodLabels: Record<NotificationPeriod, string> = {
@@ -34,9 +33,6 @@ export function filterNotifications(
   }
   if (filter === 'follows') {
     return withoutFollowRequests.filter((n) => n.type === 'follow');
-  }
-  if (filter === 'tags') {
-    return withoutFollowRequests.filter((n) => n.type === 'mention');
   }
   return withoutFollowRequests;
 }
