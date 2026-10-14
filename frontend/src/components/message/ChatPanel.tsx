@@ -361,6 +361,39 @@ export function ChatPanel({
   );
 }
 
+const MESSAGE_URL = /(https?:\/\/[^\s]+)/g;
+
+function MessageText({ content, own }: { content: string; own: boolean }) {
+  const parts = content.split(MESSAGE_URL);
+  return (
+    <p className="whitespace-pre-wrap break-words">
+      {parts.map((part, index) => {
+        if (!/^https?:\/\//.test(part)) return <span key={index}>{part}</span>;
+        const matched = part.match(/^(https?:\/\/.*?)([),.!?]*)$/);
+        const href = matched?.[1] ?? part;
+        const trailing = matched?.[2] ?? '';
+        const className = cn('underline break-all', own ? 'text-white' : 'text-ig-primary');
+        const sameOrigin = href.startsWith(window.location.origin);
+        const link = sameOrigin ? (
+          <Link to={href.slice(window.location.origin.length) || '/'} className={className}>
+            {href}
+          </Link>
+        ) : (
+          <a href={href} target="_blank" rel="noreferrer" className={className}>
+            {href}
+          </a>
+        );
+        return (
+          <span key={index}>
+            {link}
+            {trailing}
+          </span>
+        );
+      })}
+    </p>
+  );
+}
+
 function MessageBubble({
   message,
   showRead,
@@ -410,7 +443,7 @@ function MessageBubble({
                 />
               )
             )}
-            {message.content && <p className="whitespace-pre-wrap break-words">{message.content}</p>}
+            {message.content && <MessageText content={message.content} own={isOwn} />}
           </>
         )}
         <p className={cn('text-[10px] mt-1', isOwn ? 'text-white/70' : 'text-ig-text-secondary')}>

@@ -22,7 +22,8 @@ import { CommentInput } from '@/components/comment/CommentInput';
 import { formatRelativeTime } from '@/utils/formatDate';
 import { formatCompactCount } from '@/utils/formatNumber';
 import { isVideoMediaUrl } from '@/utils/media';
-import { postShareUrl, shareUrl } from '@/utils/share';
+import { SendReelModal } from '@/components/reels/SendReelModal';
+import { postShareUrl } from '@/utils/share';
 import * as postsApi from '@/api/posts';
 import { useApp } from '@/contexts/AppContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -54,6 +55,7 @@ export function PostModal({ post, onClose, focusComments = false }: PostModalPro
   const { requireAuth } = useRequireAuth();
   const commentInputRef = useRef<HTMLInputElement>(null);
   const [savePickerOpen, setSavePickerOpen] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextPage, setNextPage] = useState<number | null>(null);
@@ -104,7 +106,7 @@ export function PostModal({ post, onClose, focusComments = false }: PostModalPro
   };
 
   const handleShare = () => {
-    void shareUrl(postShareUrl(post.id), `${post.user.username}의 게시물`);
+    setSendOpen(true);
   };
 
   const handleDelete = () => {
@@ -276,7 +278,7 @@ export function PostModal({ post, onClose, focusComments = false }: PostModalPro
                   <button
                     type="button"
                     onClick={() => requireAuth(handleShare)}
-                    aria-label="공유"
+                    aria-label="보내기"
                     className="hover:opacity-50 transition-opacity"
                   >
                     <PostShareIcon />
@@ -310,6 +312,12 @@ export function PostModal({ post, onClose, focusComments = false }: PostModalPro
           </div>
         </div>
       </div>
+
+      <SendReelModal
+        isOpen={sendOpen}
+        onClose={() => setSendOpen(false)}
+        link={postShareUrl(post.id)}
+      />
 
       <SaveCollectionModal
         postId={post.id}

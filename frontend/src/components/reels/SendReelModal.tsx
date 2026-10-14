@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import { X } from 'lucide-react';
 import { Avatar } from '@/components/common/Avatar';
@@ -13,9 +14,10 @@ import type { User } from '@/types';
 interface SendReelModalProps {
   isOpen: boolean;
   onClose: () => void;
+  link?: string;
 }
 
-export function SendReelModal({ isOpen, onClose }: SendReelModalProps) {
+export function SendReelModal({ isOpen, onClose, link }: SendReelModalProps) {
   const { user: currentUser } = useAuth();
   const { suggestedUsers, refreshSuggestedUsers } = useApp();
   const [query, setQuery] = useState('');
@@ -36,6 +38,17 @@ export function SendReelModal({ isOpen, onClose }: SendReelModalProps) {
     }
     void refreshSuggestedUsers();
   }, [isOpen, refreshSuggestedUsers]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.stopImmediatePropagation();
+      onClose();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (!isOpen || debouncedQuery.length < 1) {
@@ -62,12 +75,14 @@ export function SendReelModal({ isOpen, onClose }: SendReelModalProps) {
   }, [debouncedQuery, results, suggestedUsers, currentUser?.id]);
 
   const noteText = note.trim();
+  const canSend = Boolean(noteText);
 
   const handleSend = async (target: User) => {
-    if (!noteText || sendingId !== null || sentIds.includes(target.id)) return;
+    if (!canSend || sendingId !== null || sentIds.includes(target.id)) return;
+    const content = [noteText, link].filter(Boolean).join('\n');
     setSendingId(target.id);
     try {
-      await conversationsApi.sendMessage(target.username, noteText);
+      await conversationsApi.sendMessage(target.username, content);
       setSentIds((prev) => [...prev, target.id]);
       toast.success(`${target.username}님에게 보냈습니다.`);
     } catch {
@@ -79,7 +94,7 @@ export function SendReelModal({ isOpen, onClose }: SendReelModalProps) {
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[200] flex items-center justify-center">
       <button
         type="button"
@@ -90,7 +105,7 @@ export function SendReelModal({ isOpen, onClose }: SendReelModalProps) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="릴스 보내기"
+        aria-label="보내기"
         className="relative flex w-[400px] max-w-[95vw] max-h-[min(520px,85vh)] flex-col overflow-hidden rounded-xl bg-white"
       >
         <header className="relative flex h-[44px] shrink-0 items-center justify-center border-b border-ig-border">
@@ -134,7 +149,7 @@ export function SendReelModal({ isOpen, onClose }: SendReelModalProps) {
                   </div>
                   <button
                     type="button"
-                    disabled={sent || sendingId !== null || !noteText}
+                    disabled={sent || sendingId !== null || !canSend}
                     onClick={() => void handleSend(user)}
                     className={cn(
                       'h-8 shrink-0 rounded-lg px-3 text-[14px] font-semibold text-white',
@@ -157,8 +172,12 @@ export function SendReelModal({ isOpen, onClose }: SendReelModalProps) {
             maxLength={1800}
             className="w-full resize-none rounded-2xl bg-ig-secondary px-4 py-2.5 text-[14px] outline-none placeholder:text-ig-text-secondary"
           />
+          {link && (
+            <p className="mt-2 truncate text-[12px] text-ig-text-secondary">게시물 링크가 함께 보내집니다.</p>
+          )}
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

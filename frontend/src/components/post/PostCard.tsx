@@ -18,7 +18,8 @@ import {
 import { formatRelativeTime } from '@/utils/formatDate';
 import { isVideoMediaUrl } from '@/utils/media';
 import { formatCompactCount } from '@/utils/formatNumber';
-import { postShareUrl, shareUrl } from '@/utils/share';
+import { SendReelModal } from '@/components/reels/SendReelModal';
+import { postShareUrl } from '@/utils/share';
 import { useApp } from '@/contexts/AppContext';
 import { SaveCollectionModal } from '@/components/post/SaveCollectionModal';
 import { useAuth } from '@/hooks/useAuth';
@@ -48,6 +49,7 @@ export function PostCard({ post }: PostCardProps) {
   const [likeAnimating, setLikeAnimating] = useState(false);
   const [likesOpen, setLikesOpen] = useState(false);
   const [savePickerOpen, setSavePickerOpen] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
   const isOwnPost = user?.id === post.user.id;
 
   const openComments = () => setSelectedPost(post, true);
@@ -71,7 +73,7 @@ export function PostCard({ post }: PostCardProps) {
   };
 
   const handleShare = () => {
-    void shareUrl(postShareUrl(post.id), `${post.user.username}의 게시물`);
+    setSendOpen(true);
   };
 
   const handleUnfollow = () => {
@@ -198,7 +200,7 @@ export function PostCard({ post }: PostCardProps) {
             </div>
             <button
               onClick={() => requireAuth(handleShare)}
-              aria-label="공유"
+              aria-label="보내기"
               className="hover:opacity-50 transition-opacity active:scale-95"
             >
               <PostShareIcon />
@@ -228,6 +230,12 @@ export function PostCard({ post }: PostCardProps) {
         likeCount={post.like_count}
         isOpen={likesOpen}
         onClose={() => setLikesOpen(false)}
+      />
+
+      <SendReelModal
+        isOpen={sendOpen}
+        onClose={() => setSendOpen(false)}
+        link={postShareUrl(post.id)}
       />
 
       <SaveCollectionModal
