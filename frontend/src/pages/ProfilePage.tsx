@@ -5,7 +5,6 @@ import { ProfileHeader, type ProfileTab } from '@/components/profile/ProfileHead
 import { ProfileGrid } from '@/components/profile/ProfileGrid';
 import { ProfileSavedTab } from '@/components/profile/ProfileSavedTab';
 import { ProfileReelsGrid } from '@/components/profile/ProfileReelsGrid';
-import { ProfileTaggedGrid } from '@/components/profile/ProfileTaggedGrid';
 import { FollowListModal } from '@/components/profile/FollowListModal';
 import * as usersApi from '@/api/users';
 import * as postsApi from '@/api/posts';
@@ -26,7 +25,6 @@ export function ProfilePage() {
   const [profileUser, setProfileUser] = useState<User | null>(null);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [userReels, setUserReels] = useState<Reel[]>([]);
-  const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [following, setFollowing] = useState<boolean | undefined>(undefined);
   const [requested, setRequested] = useState<boolean | undefined>(undefined);
@@ -38,8 +36,6 @@ export function ProfilePage() {
   const [postsHasMore, setPostsHasMore] = useState(false);
   const [reelsPage, setReelsPage] = useState(1);
   const [reelsHasMore, setReelsHasMore] = useState(false);
-  const [taggedPage, setTaggedPage] = useState(1);
-  const [taggedHasMore, setTaggedHasMore] = useState(false);
   const [blockedByMe, setBlockedByMe] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -61,7 +57,7 @@ export function ProfilePage() {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    if (tab === 'saved' || tab === 'reels' || tab === 'tagged' || tab === 'posts') {
+    if (tab === 'saved' || tab === 'reels' || tab === 'posts') {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -73,10 +69,9 @@ export function ProfilePage() {
       setLoading(true);
       try {
         const user = await usersApi.getUserProfile(username);
-        const [postsRes, reelsRes, taggedRes] = await Promise.all([
+        const [postsRes, reelsRes] = await Promise.all([
           usersApi.getUserPosts(username),
           usersApi.getUserReels(username),
-          usersApi.getUserTaggedPosts(username),
         ]);
         if (cancelled) return;
         setProfileUser(user);
@@ -84,13 +79,10 @@ export function ProfilePage() {
         setRequested(user.is_requested);
         setUserPosts(postsRes.items);
         setUserReels(reelsRes.items);
-        setTaggedPosts(taggedRes.items);
         setPostsPage(1);
         setPostsHasMore(postsRes.next_page !== null);
         setReelsPage(1);
         setReelsHasMore(reelsRes.next_page !== null);
-        setTaggedPage(1);
-        setTaggedHasMore(taggedRes.next_page !== null);
         if (currentUser && username === currentUser.username) {
           const saved = await postsApi.getSavedPosts();
           if (!cancelled) setSavedPosts(saved.items);
@@ -181,14 +173,8 @@ export function ProfilePage() {
       setUserReels((prev) => [...prev, ...res.items]);
       setReelsPage(next);
       setReelsHasMore(res.next_page !== null);
-    } else if (activeTab === 'tagged' && taggedHasMore) {
-      const next = taggedPage + 1;
-      const res = await usersApi.getUserTaggedPosts(username, next);
-      setTaggedPosts((prev) => [...prev, ...res.items]);
-      setTaggedPage(next);
-      setTaggedHasMore(res.next_page !== null);
     }
-  }, [activeTab, username, postsHasMore, postsPage, reelsHasMore, reelsPage, taggedHasMore, taggedPage]);
+  }, [activeTab, username, postsHasMore, postsPage, reelsHasMore, reelsPage]);
 
   useEffect(() => {
     const el = loadMoreRef.current;
@@ -329,7 +315,6 @@ export function ProfilePage() {
         <ProfileReelsGrid reels={userReels} onReelClick={handleReelClick} isPrivate={isPrivateLocked} />
       )}
       {activeTab === 'saved' && isOwn && <ProfileSavedTab savedPosts={savedPosts} />}
-      {activeTab === 'tagged' && <ProfileTaggedGrid posts={taggedPosts} isOwn={isOwn} />}
 
       <div ref={loadMoreRef} className="h-8" />
 

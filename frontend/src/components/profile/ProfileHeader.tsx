@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { Grid3X3, Bookmark, MoreHorizontal, Settings, UserPlus, UserSquare2 } from 'lucide-react';
+import { Grid3X3, Bookmark, MoreHorizontal, Settings, UserPlus } from 'lucide-react';
 import { ProfileOptionsMenu } from '@/components/profile/ProfileOptionsMenu';
 
 import { ReelsIcon } from '@/components/common/ReelsIcon';
@@ -20,7 +20,7 @@ import { cn } from '@/utils/cn';
 
 
 
-export type ProfileTab = 'posts' | 'reels' | 'saved' | 'tagged';
+export type ProfileTab = 'posts' | 'reels' | 'saved';
 
 
 
@@ -479,22 +479,6 @@ export function ProfileHeader({
           </button>
 
         )}
-
-        <button
-
-          onClick={() => onTabChange('tagged')}
-
-          className={tabClass(activeTab === 'tagged')}
-
-          aria-label="태그됨"
-
-        >
-
-          <UserSquare2 size={12} className="md:mr-2" />
-
-          <span className="hidden md:inline text-[12px] font-semibold tracking-[1px] uppercase">태그됨</span>
-
-        </button>
 
       </div>
 
