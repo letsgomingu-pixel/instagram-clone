@@ -29,7 +29,7 @@ export function LeftSlidePanel({ isOpen, onClose, title, children }: LeftSlidePa
           ✕
         </button>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">{children}</div>
+      <div className="slide-panel-body flex-1 min-h-0 overflow-y-auto overscroll-contain">{children}</div>
     </aside>
   );
 }

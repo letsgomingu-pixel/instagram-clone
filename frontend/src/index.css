@@ -17,7 +17,7 @@
   --color-ig-red: #ed4956;
   --color-ig-link: #0095f6;
   --sidebar-width: 245px;
-  --slide-panel-width: 397px;
+  --slide-panel-width: 413px;
 }
 
 * {
@@ -178,6 +178,10 @@ body {
   content: '';
   flex: 0 0 16px;
   margin-left: -8px;
+}
+
+.slide-panel-body {
+  scrollbar-gutter: stable;
 }
 
 .ig-filter-pill {
