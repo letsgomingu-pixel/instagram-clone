@@ -52,6 +52,18 @@ export function formatMessageTime(dateString: string): string {
   return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
 }
 
+const MESSAGE_URL = /[ \t]*https?:\/\/[^\s]+[ \t]*/g;
+
+/** Chat shows the written note only. Shared post and reel addresses stay out of the thread. */
+export function visibleMessageText(content: string): string {
+  return content
+    .replace(MESSAGE_URL, ' ')
+    .replace(/[ ]{2,}/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{2,}/g, '\n')
+    .trim();
+}
+
 export function formatChatTime(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();

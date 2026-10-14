@@ -19,7 +19,6 @@ import { formatRelativeTime } from '@/utils/formatDate';
 import { isVideoMediaUrl } from '@/utils/media';
 import { formatCompactCount } from '@/utils/formatNumber';
 import { SendReelModal } from '@/components/reels/SendReelModal';
-import { postShareUrl } from '@/utils/share';
 import { useApp } from '@/contexts/AppContext';
 import { SaveCollectionModal } from '@/components/post/SaveCollectionModal';
 import { useAuth } from '@/hooks/useAuth';
@@ -232,11 +231,7 @@ export function PostCard({ post }: PostCardProps) {
         onClose={() => setLikesOpen(false)}
       />
 
-      <SendReelModal
-        isOpen={sendOpen}
-        onClose={() => setSendOpen(false)}
-        link={postShareUrl(post.id)}
-      />
+      <SendReelModal isOpen={sendOpen} onClose={() => setSendOpen(false)} />
 
       <SaveCollectionModal
         postId={post.id}

@@ -14,10 +14,9 @@ import type { User } from '@/types';
 interface SendReelModalProps {
   isOpen: boolean;
   onClose: () => void;
-  link?: string;
 }
 
-export function SendReelModal({ isOpen, onClose, link }: SendReelModalProps) {
+export function SendReelModal({ isOpen, onClose }: SendReelModalProps) {
   const { user: currentUser } = useAuth();
   const { suggestedUsers, refreshSuggestedUsers } = useApp();
   const [query, setQuery] = useState('');
@@ -79,10 +78,9 @@ export function SendReelModal({ isOpen, onClose, link }: SendReelModalProps) {
 
   const handleSend = async (target: User) => {
     if (!canSend || sendingId !== null || sentIds.includes(target.id)) return;
-    const content = [noteText, link].filter(Boolean).join('\n');
     setSendingId(target.id);
     try {
-      await conversationsApi.sendMessage(target.username, content);
+      await conversationsApi.sendMessage(target.username, noteText);
       setSentIds((prev) => [...prev, target.id]);
       toast.success(`${target.username}님에게 보냈습니다.`);
     } catch {
@@ -172,9 +170,6 @@ export function SendReelModal({ isOpen, onClose, link }: SendReelModalProps) {
             maxLength={1800}
             className="w-full resize-none rounded-2xl bg-ig-secondary px-4 py-2.5 text-[14px] outline-none placeholder:text-ig-text-secondary"
           />
-          {link && (
-            <p className="mt-2 truncate text-[12px] text-ig-text-secondary">게시물 링크가 함께 보내집니다.</p>
-          )}
         </footer>
       </div>
     </div>,

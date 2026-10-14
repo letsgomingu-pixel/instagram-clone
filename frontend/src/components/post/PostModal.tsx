@@ -23,7 +23,6 @@ import { formatRelativeTime } from '@/utils/formatDate';
 import { formatCompactCount } from '@/utils/formatNumber';
 import { isVideoMediaUrl } from '@/utils/media';
 import { SendReelModal } from '@/components/reels/SendReelModal';
-import { postShareUrl } from '@/utils/share';
 import * as postsApi from '@/api/posts';
 import { useApp } from '@/contexts/AppContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -313,11 +312,7 @@ export function PostModal({ post, onClose, focusComments = false }: PostModalPro
         </div>
       </div>
 
-      <SendReelModal
-        isOpen={sendOpen}
-        onClose={() => setSendOpen(false)}
-        link={postShareUrl(post.id)}
-      />
+      <SendReelModal isOpen={sendOpen} onClose={() => setSendOpen(false)} />
 
       <SaveCollectionModal
         postId={post.id}

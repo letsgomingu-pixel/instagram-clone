@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronDown, Search, SquarePen, Users } from 'lucide-react';
 import { Avatar } from '@/components/common/Avatar';
-import { formatMessageTime, getConversationDisplay, conversationRouteKey } from '@/utils/messages';
+import { formatMessageTime, getConversationDisplay, conversationRouteKey, visibleMessageText } from '@/utils/messages';
 import { useAuth } from '@/hooks/useAuth';
 import { useApp } from '@/contexts/AppContext';
 import type { Conversation } from '@/types';
@@ -18,13 +18,15 @@ interface ConversationListProps {
 
 function messagePreview(conversation: Conversation, currentUserId: number): string {
   const { last_message } = conversation;
-  if (last_message.media_url && !last_message.content?.trim()) {
+  const text = last_message.content ? visibleMessageText(last_message.content) : '';
+  if (last_message.media_url && !text) {
     return '첨부 파일을 보냈습니다';
   }
-  if (last_message.content) {
+  if (text) {
     const isOwn = last_message.sender_id === currentUserId;
-    return isOwn ? `보냄: ${last_message.content}` : last_message.content;
+    return isOwn ? `보냄: ${text}` : text;
   }
+  if (last_message.content) return '';
   return '대화를 시작해보세요';
 }
 
@@ -168,9 +170,9 @@ export function ConversationList({
                     )}
                   >
                     {preview}
-                    {last_message.content || last_message.media_url ? (
+                    {preview || last_message.media_url || last_message.content ? (
                       <span className="text-ig-text-secondary font-normal">
-                        {' · '}
+                        {preview ? ' · ' : ''}
                         {formatMessageTime(last_message.created_at)}
                       </span>
                     ) : null}

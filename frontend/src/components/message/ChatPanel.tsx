@@ -6,7 +6,7 @@ import { useCall } from '@/contexts/CallContext';
 import { Avatar } from '@/components/common/Avatar';
 import { MediaImage } from '@/components/common/MediaImage';
 import { NavIcon } from '@/components/post/PostActionIcons';
-import { formatChatTime, getConversationDisplay } from '@/utils/messages';
+import { formatChatTime, getConversationDisplay, visibleMessageText } from '@/utils/messages';
 import { resolveMediaUrl } from '@/utils/media';
 import { useAuth } from '@/hooks/useAuth';
 import type { Conversation, Message, User } from '@/types';
@@ -361,39 +361,6 @@ export function ChatPanel({
   );
 }
 
-const MESSAGE_URL = /(https?:\/\/[^\s]+)/g;
-
-function MessageText({ content, own }: { content: string; own: boolean }) {
-  const parts = content.split(MESSAGE_URL);
-  return (
-    <p className="whitespace-pre-wrap break-words">
-      {parts.map((part, index) => {
-        if (!/^https?:\/\//.test(part)) return <span key={index}>{part}</span>;
-        const matched = part.match(/^(https?:\/\/.*?)([),.!?]*)$/);
-        const href = matched?.[1] ?? part;
-        const trailing = matched?.[2] ?? '';
-        const className = cn('underline break-all', own ? 'text-white' : 'text-ig-primary');
-        const sameOrigin = href.startsWith(window.location.origin);
-        const link = sameOrigin ? (
-          <Link to={href.slice(window.location.origin.length) || '/'} className={className}>
-            {href}
-          </Link>
-        ) : (
-          <a href={href} target="_blank" rel="noreferrer" className={className}>
-            {href}
-          </a>
-        );
-        return (
-          <span key={index}>
-            {link}
-            {trailing}
-          </span>
-        );
-      })}
-    </p>
-  );
-}
-
 function MessageBubble({
   message,
   showRead,
@@ -407,7 +374,9 @@ function MessageBubble({
 }) {
   const { user } = useAuth();
   const isOwn = user != null && message.sender_id === user.id;
+  const text = message.content ? visibleMessageText(message.content) : '';
   const isDeleted = message.is_deleted || (!message.content && !message.media_url);
+  if (!isDeleted && !message.media_url && !text) return null;
 
   const handleDelete = () => {
     if (!onDelete || !window.confirm('메시지를 삭제할까요?')) return;
@@ -443,7 +412,7 @@ function MessageBubble({
                 />
               )
             )}
-            {message.content && <MessageText content={message.content} own={isOwn} />}
+            {text && <p className="whitespace-pre-wrap break-words">{text}</p>}
           </>
         )}
         <p className={cn('text-[10px] mt-1', isOwn ? 'text-white/70' : 'text-ig-text-secondary')}>
