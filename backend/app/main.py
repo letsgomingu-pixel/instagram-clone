@@ -24,8 +24,8 @@ if not settings.email_delivery_ready:
         "Email delivery is not configured (RESEND_API_KEY or SMTP_*). "
         "Password reset and auth emails will fail until configured."
     )
-if settings.use_mock_payments:
-    _logger.warning("Mock payments enabled — set PortOne keys and PORTONE_MOCK=false for live checkout.")
+if not settings.inicis_mid.strip():
+    _logger.warning("KG이니시스 test MID (INIpayTest) is active. Set INICIS_MID and INICIS_SIGN_KEY for live card charges.")
 
 app = FastAPI(
     title="Instagram Clone API",

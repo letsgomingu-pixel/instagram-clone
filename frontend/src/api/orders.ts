@@ -57,6 +57,11 @@ export interface Order {
   review_post_id?: number | null;
 }
 
+export interface InicisCheckout {
+  js_url: string;
+  fields: Record<string, string>;
+}
+
 export interface PaymentPrepare {
   order_id: number;
   payment_id: string;
@@ -65,6 +70,7 @@ export interface PaymentPrepare {
   channel_key?: string | null;
   mock: boolean;
   order_name: string;
+  inicis?: InicisCheckout | null;
 }
 
 export interface OrderCreatePayload {
@@ -116,8 +122,8 @@ export async function confirmPortOnePayment(orderId: number): Promise<Order> {
   return data;
 }
 
-export async function getPaymentConfig(): Promise<{ mock: boolean; store_id?: string; channel_key?: string }> {
-  const { data } = await api.get<{ mock: boolean; store_id?: string; channel_key?: string }>('/payments/config');
+export async function getPaymentConfig(): Promise<{ provider: string; mock: boolean; js_url: string; gopaymethod: string }> {
+  const { data } = await api.get<{ provider: string; mock: boolean; js_url: string; gopaymethod: string }>('/payments/config');
   return data;
 }
 

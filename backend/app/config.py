@@ -44,8 +44,15 @@ class Settings(BaseSettings):
     portone_channel_key: str = ""
     portone_api_secret: str = ""
     portone_webhook_secret: str = ""
-    # When true (or API secret missing), use mock payment confirm for local/tests.
+    # When true (or API secret missing), the mock confirm endpoint stays available for tests.
+    # Checkout itself opens the KG이니시스 card window and does not use this flag.
     portone_mock: bool = True
+
+    # KG이니시스 웹표준. Both empty → public test MID so the card window can open
+    # before a merchant contract MID is issued.
+    inicis_mid: str = ""
+    inicis_sign_key: str = ""
+    inicis_js_url: str = "https://stdpay.inicis.com/stdjs/INIStdPay.js"
 
     @property
     def portone_enabled(self) -> bool:

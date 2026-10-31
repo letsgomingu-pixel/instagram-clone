@@ -44,6 +44,11 @@ class OrderCreate(ShippingFields):
         return fill_pickup_address(data)
 
 
+class InicisCheckoutOut(BaseModel):
+    js_url: str
+    fields: dict[str, str]
+
+
 class PaymentPrepareOut(BaseModel):
     order_id: int
     payment_id: str
@@ -52,6 +57,7 @@ class PaymentPrepareOut(BaseModel):
     channel_key: str | None = None
     mock: bool = False
     order_name: str
+    inicis: InicisCheckoutOut | None = None
 
 
 class OrderItemOut(BaseModel):

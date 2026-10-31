@@ -1298,7 +1298,12 @@ def test_order_quote_and_checkout(auth_headers):
     order = order_res.json()["order"]
     payment = order_res.json()["payment"]
     assert order["status"] == "pending"
-    assert payment["mock"] is True
+    assert payment["mock"] is False
+    inicis = payment["inicis"]
+    assert inicis["fields"]["gopaymethod"] == "Card:DirectBank"
+    assert inicis["fields"]["mid"] == "INIpayTest"
+    assert inicis["fields"]["price"] == "34000"
+    assert "stdpay.inicis.com/stdjs/INIStdPay.js" in inicis["js_url"]
 
     confirm = client.post(f"/api/v1/payments/mock/{order['id']}/confirm", headers=auth_headers)
     assert confirm.status_code == 200, confirm.text

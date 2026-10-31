@@ -291,14 +291,26 @@ def create_order(db: Session, user: User, body: OrderCreate) -> OrderCreateRespo
     db.commit()
     order = get_order_for_user(db, order.id, user)
 
+    from app.services.inicis import build_inicis_checkout
+
+    order_name = _order_name_from_lines(lines)
     prepare = PaymentPrepareOut(
         order_id=order.id,
         payment_id=payment_id,
         amount=total,
-        store_id=settings.portone_store_id or None,
-        channel_key=settings.portone_channel_key or None,
-        mock=settings.use_mock_payments,
-        order_name=_order_name_from_lines(lines),
+        store_id=None,
+        channel_key=None,
+        mock=False,
+        order_name=order_name,
+        inicis=build_inicis_checkout(
+            payment_id=payment_id,
+            amount=total,
+            order_name=order_name,
+            buyer_name=body.shipping_name,
+            buyer_phone=body.phone,
+            buyer_email=user.email,
+            order_id=order.id,
+        ),
     )
     return OrderCreateResponse(order=build_order_out(db, order, user), payment=prepare)
 

@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse
 
 from app.dependencies import CurrentUser, DbSession
 from app.schemas.order import OrderOut
+from app.services.inicis import GOPAY_METHODS, close_page, complete_inicis_return
 from app.services.orders import confirm_mock_payment, confirm_portone_payment, handle_portone_webhook
 
 router = APIRouter(prefix="/payments", tags=["payments"])
@@ -12,10 +14,23 @@ def payment_config():
     from app.config import settings
 
     return {
-        "mock": settings.use_mock_payments,
-        "store_id": settings.portone_store_id or None,
-        "channel_key": settings.portone_channel_key or None,
+        "provider": "inicis",
+        "mock": False,
+        "js_url": settings.inicis_js_url,
+        "gopaymethod": GOPAY_METHODS,
     }
+
+
+@router.post("/inicis/return", response_class=HTMLResponse)
+async def inicis_return(request: Request, db: DbSession):
+    form = await request.form()
+    payload = {key: str(value) for key, value in form.items()}
+    return await complete_inicis_return(db, payload)
+
+
+@router.get("/inicis/close", response_class=HTMLResponse)
+def inicis_close():
+    return close_page()
 
 
 @router.post("/portone/webhook")

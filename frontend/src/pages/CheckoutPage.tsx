@@ -12,6 +12,7 @@ import { Spinner } from '@/components/common/Spinner';
 import { formatPrice } from '@/components/post/ProductInfo';
 import * as ordersApi from '@/api/orders';
 import { useAuth } from '@/hooks/useAuth';
+import { openInicisPayment } from '@/payments/inicis';
 import { getCheckoutShippingFields } from '@/utils/shipping';
 import {
   formatPhoneInput,
@@ -20,47 +21,6 @@ import {
   validateAddressLine1,
   validateAddressLine2,
 } from '@/utils/validateForm';
-
-async function requestPortOnePayment(payment: ordersApi.PaymentPrepare) {
-  const PortOne = await import('@portone/browser-sdk/v2');
-  const response = await PortOne.requestPayment({
-    storeId: payment.store_id!,
-    channelKey: payment.channel_key!,
-    paymentId: payment.payment_id,
-    orderName: payment.order_name,
-    totalAmount: payment.amount,
-    currency: 'CURRENCY_KRW',
-    payMethod: 'CARD',
-  });
-  if (response?.code != null) {
-    throw new Error(response.message || '결제가 취소되었습니다.');
-  }
-}
-
-async function pollPaymentConfirmation(orderId: number, maxAttempts = 30): Promise<ordersApi.Order> {
-  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-    try {
-      const order = await ordersApi.confirmPortOnePayment(orderId);
-      if (ordersApi.isPaymentSettled(order.status)) return order;
-      if (order.status === 'failed') throw new Error('결제에 실패했습니다.');
-    } catch (error) {
-      if (isAxiosError(error) && error.response?.status === 400) {
-        const detail = error.response.data?.detail;
-        if (typeof detail === 'string' && detail.includes('not pending')) {
-          const order = await ordersApi.getOrder(orderId);
-          if (ordersApi.isPaymentSettled(order.status)) return order;
-          if (order.status === 'failed') throw new Error('결제에 실패했습니다.');
-        } else {
-          throw error;
-        }
-      } else if (!isAxiosError(error)) {
-        throw error;
-      }
-    }
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-  }
-  throw new Error('timeout');
-}
 
 export function CheckoutPage() {
   const { productId } = useParams<{ productId: string }>();
@@ -72,8 +32,6 @@ export function CheckoutPage() {
   const [quote, setQuote] = useState<ordersApi.OrderQuote | null>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [paymentsMock, setPaymentsMock] = useState(false);
 
   const [fulfillment, setFulfillment] = useState<FulfillmentType>('delivery');
   const [shippingName, setShippingName] = useState('');
@@ -81,10 +39,6 @@ export function CheckoutPage() {
   const [postcode, setPostcode] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
   const [addressLine2, setAddressLine2] = useState('');
-
-  useEffect(() => {
-    ordersApi.getPaymentConfig().then((c) => setPaymentsMock(c.mock)).catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -150,7 +104,7 @@ export function CheckoutPage() {
 
     setPaying(true);
     try {
-      const { order, payment } = await ordersApi.createOrder({
+      const { payment } = await ordersApi.createOrder({
         product_id: pid,
         quantity,
         shipping_name: shippingName.trim(),
@@ -161,31 +115,10 @@ export function CheckoutPage() {
         fulfillment_type: fulfillment,
       });
 
-      if (payment.mock) {
-        await ordersApi.confirmMockPayment(order.id);
-        toast.success('결제가 완료되었습니다.');
-        navigate(`/orders/${order.id}`, { replace: true });
-        return;
+      if (!payment.inicis) {
+        throw new Error('이니시스 결제 정보를 만들지 못했습니다.');
       }
-
-      await requestPortOnePayment(payment);
-      setPaying(false);
-      setConfirming(true);
-      try {
-        await pollPaymentConfirmation(order.id);
-        toast.success('결제가 완료되었습니다.');
-        navigate(`/orders/${order.id}`, { replace: true });
-      } catch (error) {
-        const message = error instanceof Error && error.message === 'timeout'
-          ? '결제 확인 중입니다. 주문 내역에서 상태를 확인해주세요.'
-          : error instanceof Error
-            ? error.message
-            : '결제 확인에 실패했습니다.';
-        toast.error(message);
-        navigate(`/orders/${order.id}`, { replace: true });
-      } finally {
-        setConfirming(false);
-      }
+      await openInicisPayment(payment.inicis);
     } catch (error) {
       const message = isAxiosError(error)
         ? (typeof error.response?.data?.detail === 'string' ? error.response.data.detail : '주문에 실패했습니다.')
@@ -219,23 +152,7 @@ export function CheckoutPage() {
 
   return (
     <div className="max-w-[520px] mx-auto relative">
-      {confirming && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full text-center space-y-3">
-            <Spinner />
-            <p className="font-semibold">결제 확인 중...</p>
-            <p className="text-sm text-ig-text-secondary">잠시만 기다려주세요.</p>
-          </div>
-        </div>
-      )}
-
       <div className="feed-card p-6 space-y-6">
-        {paymentsMock && (
-          <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-            테스트 결제 모드입니다. 실제 카드 결제 없이 주문이 완료됩니다.
-          </p>
-        )}
-
         <div className="flex gap-4">
           {quote.image_url && (
             <div className="h-20 w-20 min-h-0 shrink-0 overflow-hidden rounded-lg bg-ig-secondary">
@@ -361,7 +278,7 @@ export function CheckoutPage() {
           </div>
         </div>
 
-        <Button type="button" fullWidth size="lg" loading={paying || confirming} onClick={handlePay}>
+        <Button type="button" fullWidth size="lg" loading={paying} onClick={handlePay}>
           {formatPrice(quote.total_amount)} 결제하기
         </Button>
 
