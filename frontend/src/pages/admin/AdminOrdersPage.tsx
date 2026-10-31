@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   cancelAdminOrder,
+  confirmAdminDeposit,
   getAdminOrders,
   updateAdminOrder,
   type AdminOrder,
@@ -62,6 +63,7 @@ function nextAction(order: AdminOrder): { status: 'preparing' | 'ready' | 'shipp
 }
 
 function statusLabel(order: AdminOrder) {
+  if (order.status === 'pending' && order.payment_method === 'bank') return '입금 대기';
   if (order.fulfillment_type === 'pickup') {
     if (order.status === 'preparing') return '포장 중';
     if (order.status === 'ready') return '포장 완료';
@@ -171,6 +173,7 @@ function OrderManage({
   onCarrierChange,
   onReadyChange,
   onAdvance,
+  onConfirmDeposit,
   onCancel,
   onSaveReady,
   onSaveTracking,
@@ -185,6 +188,7 @@ function OrderManage({
   onCarrierChange: (value: string) => void;
   onReadyChange: (value: string) => void;
   onAdvance: () => void;
+  onConfirmDeposit: () => void;
   onCancel: () => void;
   onSaveReady: () => void;
   onSaveTracking: () => void;
@@ -244,8 +248,13 @@ function OrderManage({
           ) : null}
         </div>
       ) : null}
-      {next || canCancel ? (
+      {next || canCancel || (order.payment_method === 'bank' && order.status === 'pending') ? (
         <div className="flex flex-wrap gap-2">
+          {order.payment_method === 'bank' && order.status === 'pending' ? (
+            <Button size="sm" disabled={updating} onClick={onConfirmDeposit}>
+              입금 확인
+            </Button>
+          ) : null}
           {next ? (
             <Button size="sm" disabled={updating} onClick={onAdvance}>
               {next.label}
@@ -363,6 +372,20 @@ export function AdminOrdersPage() {
     const minutes = Number(readyDrafts[order.id] ?? 20);
     if (!Number.isInteger(minutes) || minutes < 5 || minutes > 180) return null;
     return minutes;
+  };
+
+  const handleConfirmDeposit = async (order: AdminOrder) => {
+    if (!window.confirm(`주문 #${order.id} 입금을 확인하고 주문을 진행할까요?`)) return;
+    setUpdatingId(order.id);
+    try {
+      await confirmAdminDeposit(order.id);
+      toast.success('입금을 확인하고 주문을 진행합니다.');
+      load();
+    } catch {
+      toast.error('입금 확인에 실패했습니다.');
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   const handleAdvance = async (order: AdminOrder) => {
@@ -564,6 +587,7 @@ export function AdminOrdersPage() {
                       }
                       onReadyChange={(value) => setReadyDrafts((prev) => ({ ...prev, [order.id]: value }))}
                       onAdvance={() => handleAdvance(order)}
+                      onConfirmDeposit={() => handleConfirmDeposit(order)}
                       onCancel={() => handleCancel(order)}
                       onSaveReady={() => handleSaveReady(order)}
                       onSaveTracking={() => handleSaveTracking(order)}
@@ -644,6 +668,7 @@ export function AdminOrdersPage() {
                             }
                             onReadyChange={(value) => setReadyDrafts((prev) => ({ ...prev, [order.id]: value }))}
                             onAdvance={() => handleAdvance(order)}
+                            onConfirmDeposit={() => handleConfirmDeposit(order)}
                             onCancel={() => handleCancel(order)}
                             onSaveReady={() => handleSaveReady(order)}
                             onSaveTracking={() => handleSaveTracking(order)}

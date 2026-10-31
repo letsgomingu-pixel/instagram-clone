@@ -50,6 +50,7 @@ def checkout_cart(body: CartCheckoutCreate, current_user: CurrentUser, db: DbSes
         address_line1=body.address_line1,
         address_line2=body.address_line2,
         fulfillment_type=body.fulfillment_type,
+        payment_method=body.payment_method,
     )
     result = create_order(db, current_user, order_body)
     clear_cart(db, current_user)

@@ -118,6 +118,7 @@ export interface AdminOrder {
   shipping_fee: number;
   total_amount: number;
   status: string;
+  payment_method?: 'card' | 'bank';
   shipping_name: string;
   phone: string;
   postcode: string;
@@ -158,6 +159,11 @@ export async function updateAdminOrder(
   },
 ): Promise<AdminOrder> {
   const { data } = await api.patch<AdminOrder>(`/admin/orders/${orderId}`, payload);
+  return data;
+}
+
+export async function confirmAdminDeposit(orderId: number): Promise<AdminOrder> {
+  const { data } = await api.post<AdminOrder>(`/admin/orders/${orderId}/confirm-deposit`);
   return data;
 }
 

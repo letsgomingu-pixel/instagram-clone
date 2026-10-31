@@ -36,9 +36,9 @@ IDC_HOSTS = {
 
 _EMAIL_RE = re.compile(r"[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 
-# Card covers 신용카드 and 체크카드. DirectBank is 실시간 계좌이체.
-GOPAY_METHODS = "Card:DirectBank"
-_ALLOWED_PAY_METHODS = {"card", "vcard", "directbank", "idirectbank"}
+# Card covers 신용카드 and 체크카드. 계좌이체는 이니시스가 아니라 사업자 통장 입금이다.
+GOPAY_METHODS = "Card"
+_ALLOWED_PAY_METHODS = {"card", "vcard"}
 
 
 def sha256_hex(value: str) -> str:

@@ -25,6 +25,7 @@ export interface CartCheckoutPayload {
   address_line1?: string;
   address_line2?: string;
   fulfillment_type?: 'delivery' | 'pickup';
+  payment_method?: 'card' | 'bank';
 }
 
 export async function getCart(): Promise<Cart> {

@@ -49,6 +49,12 @@ export interface Order {
   pickup_ready_at?: string | null;
   packaged_at?: string | null;
   payment_id?: string | null;
+  payment_method?: 'card' | 'bank';
+  bank_account?: {
+    bank_name: string;
+    account_number: string;
+    account_holder: string;
+  } | null;
   created_at: string;
   paid_at?: string | null;
   shipped_at?: string | null;
@@ -82,6 +88,7 @@ export interface OrderCreatePayload {
   address_line1?: string;
   address_line2?: string;
   fulfillment_type?: FulfillmentType;
+  payment_method?: 'card' | 'bank';
 }
 
 export async function quoteOrder(

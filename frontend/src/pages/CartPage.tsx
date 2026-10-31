@@ -3,7 +3,9 @@ import { isAxiosError } from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { AddressFields } from '@/components/address/AddressFields';
+import { BankDepositNotice } from '@/components/order/BankDepositNotice';
 import { FulfillmentToggle, type FulfillmentType } from '@/components/order/FulfillmentToggle';
+import { PayMethodToggle, type PayMethod } from '@/components/order/PayMethodToggle';
 import { PickupPhoneAlertButton } from '@/components/order/PickupPhoneAlertButton';
 import { ShippingPolicyNote } from '@/components/order/ShippingPolicyNote';
 import { Button } from '@/components/common/Button';
@@ -12,6 +14,7 @@ import { Spinner } from '@/components/common/Spinner';
 import { formatPrice } from '@/components/post/ProductInfo';
 import * as cartApi from '@/api/cart';
 import { useAuth } from '@/hooks/useAuth';
+import { BUSINESS_BANK_ACCOUNT } from '@/payments/bankAccount';
 import { openInicisPayment } from '@/payments/inicis';
 import { getCheckoutShippingFields } from '@/utils/shipping';
 import {
@@ -28,6 +31,7 @@ export function CartPage() {
   const [cart, setCart] = useState<cartApi.Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  const [payMethod, setPayMethod] = useState<PayMethod>('card');
   const [showCheckout, setShowCheckout] = useState(false);
 
   const [fulfillment, setFulfillment] = useState<FulfillmentType>('delivery');
@@ -112,14 +116,21 @@ export function CartPage() {
 
     setPaying(true);
     try {
-      const { payment } = await cartApi.checkoutCart({
+      const { order, payment } = await cartApi.checkoutCart({
         shipping_name: shippingName.trim(),
         phone: phone.trim(),
         postcode: fulfillment === 'pickup' ? undefined : postcode.trim(),
         address_line1: fulfillment === 'pickup' ? undefined : addressLine1.trim(),
         address_line2: fulfillment === 'pickup' ? undefined : addressLine2.trim(),
         fulfillment_type: fulfillment,
+        payment_method: payMethod,
       });
+
+      if (payMethod === 'bank') {
+        toast.success('입금 계좌를 확인해 주세요.');
+        navigate(`/orders/${order.id}`, { replace: true });
+        return;
+      }
 
       if (!payment.inicis) {
         throw new Error('이니시스 결제 정보를 만들지 못했습니다.');
@@ -297,8 +308,25 @@ export function CartPage() {
                     onAddressLine2Change={setAddressLine2}
                   />
                 )}
+                <div>
+                  <h2 className="text-sm font-semibold mb-3">결제 수단</h2>
+                  <PayMethodToggle value={payMethod} onChange={setPayMethod} />
+                  {payMethod === 'bank' ? (
+                    <div className="mt-3">
+                      <BankDepositNotice
+                        account={BUSINESS_BANK_ACCOUNT}
+                        amount={fulfillment === 'pickup' ? cart.subtotal : cart.total_amount}
+                        depositorName={shippingName.trim() || undefined}
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-xs text-ig-text-secondary">신용카드와 체크카드로 결제합니다.</p>
+                  )}
+                </div>
                 <Button type="button" fullWidth size="lg" loading={paying} onClick={handlePay}>
-                  {formatPrice(fulfillment === 'pickup' ? cart.subtotal : cart.total_amount)} 결제하기
+                  {payMethod === 'bank'
+                    ? `${formatPrice(fulfillment === 'pickup' ? cart.subtotal : cart.total_amount)} 주문하기`
+                    : `${formatPrice(fulfillment === 'pickup' ? cart.subtotal : cart.total_amount)} 결제하기`}
                 </Button>
               </div>
             )}

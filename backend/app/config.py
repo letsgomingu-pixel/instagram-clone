@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     inicis_sign_key: str = ""
     inicis_js_url: str = "https://stdpay.inicis.com/stdjs/INIStdPay.js"
 
+    bank_name: str = "하나은행"
+    bank_account_number: str = "620-219765-699"
+    bank_account_holder: str = "김진라"
+
     @property
     def portone_enabled(self) -> bool:
         return bool(self.portone_store_id and self.portone_channel_key and self.portone_api_secret)

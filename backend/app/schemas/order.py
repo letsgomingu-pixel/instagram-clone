@@ -31,12 +31,19 @@ class OrderItemCreate(BaseModel):
     quantity: int = Field(ge=1, le=99)
 
 
+class BankAccountOut(BaseModel):
+    bank_name: str
+    account_number: str
+    account_holder: str
+
+
 class OrderCreate(ShippingFields):
     product_id: int | None = None
     quantity: int | None = Field(default=None, ge=1, le=99)
     items: list[OrderItemCreate] | None = None
     shipping_name: str = Field(min_length=1, max_length=100)
     fulfillment_type: Literal["delivery", "pickup"] = "delivery"
+    payment_method: Literal["card", "bank"] = "card"
 
     @model_validator(mode="before")
     @classmethod
@@ -92,6 +99,8 @@ class OrderOut(BaseModel):
     pickup_ready_at: str | None = None
     packaged_at: str | None = None
     payment_id: str | None = None
+    payment_method: Literal["card", "bank"] = "card"
+    bank_account: BankAccountOut | None = None
     created_at: str
     paid_at: str | None = None
     shipped_at: str | None = None

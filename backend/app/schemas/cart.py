@@ -34,6 +34,7 @@ class CartItemUpdate(BaseModel):
 class CartCheckoutCreate(ShippingFields):
     shipping_name: str = Field(min_length=1, max_length=100)
     fulfillment_type: Literal["delivery", "pickup"] = "delivery"
+    payment_method: Literal["card", "bank"] = "card"
 
     @model_validator(mode="before")
     @classmethod

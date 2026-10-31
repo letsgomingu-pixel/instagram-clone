@@ -239,6 +239,14 @@ def admin_update_order(
     return build_admin_order_out(db, order)
 
 
+@router.post("/orders/{order_id}/confirm-deposit", response_model=AdminOrderOut)
+def admin_confirm_deposit(order_id: int, _admin: AdminUser, db: DbSession):
+    from app.services.orders import confirm_bank_deposit
+
+    order = confirm_bank_deposit(db, order_id)
+    return build_admin_order_out(db, order)
+
+
 @router.post("/orders/{order_id}/cancel", response_model=AdminOrderOut)
 def admin_cancel_order(order_id: int, _admin: AdminUser, db: DbSession):
     order = cancel_order_for_admin(db, order_id)

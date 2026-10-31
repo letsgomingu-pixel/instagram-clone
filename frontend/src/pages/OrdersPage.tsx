@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { BankDepositNotice } from '@/components/order/BankDepositNotice';
 import { OrderTimeline } from '@/components/order/OrderTimeline';
 import { PickupReadyCard } from '@/components/order/PickupReadyCard';
 import { ProductInfo, formatPrice } from '@/components/post/ProductInfo';
@@ -22,7 +23,8 @@ const STATUS_LABELS: Record<string, string> = {
   failed: '결제 실패',
 };
 
-function statusLabel(status: string, fulfillment?: string) {
+function statusLabel(status: string, fulfillment?: string, paymentMethod?: string) {
+  if (status === 'pending' && paymentMethod === 'bank') return '입금 대기';
   if (fulfillment === 'pickup') {
     if (status === 'preparing') return '포장 중';
     if (status === 'ready') return '포장 완료';
@@ -34,13 +36,15 @@ function statusLabel(status: string, fulfillment?: string) {
 function OrderStatusBadge({
   status,
   fulfillment,
+  paymentMethod,
   onPress,
 }: {
   status: string;
   fulfillment?: string;
+  paymentMethod?: string;
   onPress?: () => void;
 }) {
-  const label = statusLabel(status, fulfillment);
+  const label = statusLabel(status, fulfillment, paymentMethod);
   if (!onPress) {
     return (
       <span className="text-xs font-semibold px-2 py-1 rounded bg-ig-secondary text-ig-text">
@@ -112,7 +116,11 @@ export function OrdersPage() {
                         <p className="text-xs text-ig-primary mt-1">포장 {order.pickup_ready_minutes}분</p>
                       )}
                     </div>
-                    <OrderStatusBadge status={order.status} fulfillment={order.fulfillment_type} />
+                    <OrderStatusBadge
+                      status={order.status}
+                      fulfillment={order.fulfillment_type}
+                      paymentMethod={order.payment_method}
+                    />
                   </div>
                 </Link>
               </li>
@@ -267,6 +275,7 @@ export function OrderDetailPage() {
           <OrderStatusBadge
             status={order.status}
             fulfillment={order.fulfillment_type}
+            paymentMethod={order.payment_method}
             onPress={
               order.status === 'cancelled' ? () => toast('이미 취소된 주문입니다.') : undefined
             }
@@ -297,6 +306,14 @@ export function OrderDetailPage() {
           </div>
         </div>
       </div>
+
+      {order.status === 'pending' && order.payment_method === 'bank' && order.bank_account ? (
+        <BankDepositNotice
+          account={order.bank_account}
+          amount={order.total_amount}
+          depositorName={order.shipping_name}
+        />
+      ) : null}
 
       {showPickupPanel && (
         <div className="feed-card p-6 space-y-3">

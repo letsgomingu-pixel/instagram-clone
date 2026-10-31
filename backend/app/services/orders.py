@@ -18,6 +18,7 @@ from app.schemas.order import (
     OrderItemOut,
     OrderOut,
     OrderQuoteOut,
+    BankAccountOut,
     PaymentPrepareOut,
 )
 from app.schemas.shipping import ShippingFields
@@ -161,6 +162,14 @@ def _build_order_items_out(order: Order) -> list[OrderItemOut]:
     return []
 
 
+def _bank_account_out() -> BankAccountOut:
+    return BankAccountOut(
+        bank_name=settings.bank_name,
+        account_number=settings.bank_account_number,
+        account_holder=settings.bank_account_holder,
+    )
+
+
 def build_order_out(
     db: Session,
     order: Order,
@@ -172,6 +181,8 @@ def build_order_out(
     product_out = build_product_out(order.product) if order.product else None
     items_out = _build_order_items_out(order)
     payment_id = order.payment.payment_id if order.payment else None
+    payment_method = order.payment.method if order.payment and order.payment.method in ("card", "bank") else "card"
+    bank_account = _bank_account_out() if payment_method == "bank" and order.status == "pending" else None
     if review_post_id is None and can_review is None:
         review_post_id, can_review = _review_info_for_orders(db, [order], viewer)[order.id]
     elif can_review is None:
@@ -204,6 +215,8 @@ def build_order_out(
         pickup_ready_at=to_iso(order.pickup_ready_at) if order.pickup_ready_at else None,
         packaged_at=to_iso(order.packaged_at) if order.packaged_at else None,
         payment_id=payment_id,
+        payment_method=payment_method,
+        bank_account=bank_account,
         created_at=to_iso(order.created_at),
         paid_at=to_iso(order.paid_at) if order.paid_at else None,
         shipped_at=to_iso(order.shipped_at) if order.shipped_at else None,
@@ -286,6 +299,7 @@ def create_order(db: Session, user: User, body: OrderCreate) -> OrderCreateRespo
         payment_id=payment_id,
         amount=total,
         status="pending",
+        method=body.payment_method,
     )
     db.add(payment)
     db.commit()
@@ -294,6 +308,17 @@ def create_order(db: Session, user: User, body: OrderCreate) -> OrderCreateRespo
     from app.services.inicis import build_inicis_checkout
 
     order_name = _order_name_from_lines(lines)
+    inicis = None
+    if body.payment_method == "card":
+        inicis = build_inicis_checkout(
+            payment_id=payment_id,
+            amount=total,
+            order_name=order_name,
+            buyer_name=body.shipping_name,
+            buyer_phone=body.phone,
+            buyer_email=user.email,
+            order_id=order.id,
+        )
     prepare = PaymentPrepareOut(
         order_id=order.id,
         payment_id=payment_id,
@@ -302,15 +327,7 @@ def create_order(db: Session, user: User, body: OrderCreate) -> OrderCreateRespo
         channel_key=None,
         mock=False,
         order_name=order_name,
-        inicis=build_inicis_checkout(
-            payment_id=payment_id,
-            amount=total,
-            order_name=order_name,
-            buyer_name=body.shipping_name,
-            buyer_phone=body.phone,
-            buyer_email=user.email,
-            order_id=order.id,
-        ),
+        inicis=inicis,
     )
     return OrderCreateResponse(order=build_order_out(db, order, user), payment=prepare)
 
@@ -452,6 +469,15 @@ def confirm_order_paid(db: Session, order: Order, *, portone_tx_id: str | None =
         )
 
     return order
+
+
+def confirm_bank_deposit(db: Session, order_id: int) -> Order:
+    order = get_order_for_admin(db, order_id)
+    if order.payment is None or order.payment.method != "bank":
+        raise HTTPException(status_code=400, detail="계좌이체 주문이 아닙니다.")
+    if order.status != "pending":
+        raise HTTPException(status_code=400, detail="입금 대기 중인 주문만 확인할 수 있습니다.")
+    return confirm_order_paid(db, order, portone_tx_id="bank")
 
 
 def confirm_mock_payment(db: Session, order_id: int, user: User) -> OrderOut:

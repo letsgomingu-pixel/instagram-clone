@@ -1300,7 +1300,7 @@ def test_order_quote_and_checkout(auth_headers):
     assert order["status"] == "pending"
     assert payment["mock"] is False
     inicis = payment["inicis"]
-    assert inicis["fields"]["gopaymethod"] == "Card:DirectBank"
+    assert inicis["fields"]["gopaymethod"] == "Card"
     assert inicis["fields"]["mid"] == "INIpayTest"
     assert inicis["fields"]["price"] == "34000"
     assert "stdpay.inicis.com/stdjs/INIStdPay.js" in inicis["js_url"]
@@ -1322,6 +1322,26 @@ def test_order_quote_and_checkout(auth_headers):
     my_orders = client.get("/api/v1/orders/me", headers=auth_headers)
     assert my_orders.status_code == 200
     assert any(o["id"] == order["id"] for o in my_orders.json()["items"])
+
+    bank_res = client.post(
+        "/api/v1/orders",
+        headers=auth_headers,
+        json={
+            "product_id": product_id,
+            "quantity": 1,
+            "shipping_name": "Test User",
+            "payment_method": "bank",
+            **SHIPPING_PAYLOAD,
+        },
+    )
+    assert bank_res.status_code == 201, bank_res.text
+    bank_order = bank_res.json()["order"]
+    assert bank_order["payment_method"] == "bank"
+    assert bank_order["status"] == "pending"
+    assert bank_order["bank_account"]["bank_name"] == "하나은행"
+    assert bank_order["bank_account"]["account_number"] == "620-219765-699"
+    assert bank_order["bank_account"]["account_holder"] == "김진라"
+    assert bank_res.json()["payment"]["inicis"] is None
 
 
 def _create_paid_order(auth_headers: dict, admin_headers: dict, *, name: str = "리뷰테스트") -> dict:
