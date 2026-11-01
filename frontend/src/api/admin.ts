@@ -58,6 +58,7 @@ export interface CreateProductPayload {
   price: number;
   unit: string;
   storage_type: Product['storage_type'];
+  origin?: Product['origin'];
   availability: Product['availability'];
   stock: number;
   season_start?: string;
@@ -73,6 +74,7 @@ export async function createAdminProduct(payload: CreateProductPayload): Promise
   form.append('price', String(payload.price));
   form.append('unit', payload.unit);
   form.append('storage_type', payload.storage_type);
+  if (payload.origin) form.append('origin', payload.origin);
   form.append('availability', payload.availability);
   form.append('stock', String(payload.stock));
   if (payload.season_start) form.append('season_start', payload.season_start);
@@ -96,6 +98,7 @@ export interface UpdateProductPayload {
   stock?: number;
   is_active?: boolean;
   storage_type?: Product['storage_type'];
+  origin?: Product['origin'];
   availability?: Product['availability'];
   season_start?: string;
   season_end?: string;

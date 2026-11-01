@@ -7,6 +7,7 @@ import { Button } from '@/components/common/Button';
 import { PostCoverMedia } from '@/components/post/PostCoverMedia';
 import { Spinner } from '@/components/common/Spinner';
 import { ProductInfo, formatPrice } from '@/components/post/ProductInfo';
+import { ORIGIN_OPTIONS, type ProductOrigin } from '@/constants/productOrigin';
 import type { Post, Product } from '@/types';
 import { useApp } from '@/contexts/AppContext';
 import { formatNumberInput, formatNumberValue, parseNumberInput } from '@/utils/formatNumber';
@@ -35,6 +36,7 @@ export function AdminProductsPage() {
   const [price, setPrice] = useState('');
   const [unit, setUnit] = useState('1kg');
   const [storageType, setStorageType] = useState<Product['storage_type']>('fresh');
+  const [origin, setOrigin] = useState<ProductOrigin>('domestic');
   const [availability, setAvailability] = useState<Product['availability']>('year_round');
   const [seasonStart, setSeasonStart] = useState('');
   const [seasonEnd, setSeasonEnd] = useState('');
@@ -46,6 +48,7 @@ export function AdminProductsPage() {
   const [editPrice, setEditPrice] = useState('');
   const [editStock, setEditStock] = useState('');
   const [editStorageType, setEditStorageType] = useState<Product['storage_type']>('fresh');
+  const [editOrigin, setEditOrigin] = useState<ProductOrigin>('domestic');
   const [editAvailability, setEditAvailability] = useState<Product['availability']>('year_round');
   const [editSeasonStart, setEditSeasonStart] = useState('');
   const [editSeasonEnd, setEditSeasonEnd] = useState('');
@@ -101,6 +104,7 @@ export function AdminProductsPage() {
     setPrice('');
     setUnit('1kg');
     setStorageType('fresh');
+    setOrigin('domestic');
     setAvailability('year_round');
     setSeasonStart('');
     setSeasonEnd('');
@@ -126,6 +130,7 @@ export function AdminProductsPage() {
         price: parseNumberInput(price),
         unit: unit.trim(),
         storage_type: storageType,
+        origin,
         availability,
         stock: parseNumberInput(stock),
         season_start: availability === 'seasonal' ? seasonStart : undefined,
@@ -151,6 +156,7 @@ export function AdminProductsPage() {
     setEditPrice(formatNumberValue(post.product.price));
     setEditStock(formatNumberValue(post.product.stock));
     setEditStorageType(post.product.storage_type);
+    setEditOrigin(post.product.origin ?? 'domestic');
     setEditAvailability(post.product.availability);
     setEditSeasonStart(post.product.season_start?.slice(0, 10) ?? '');
     setEditSeasonEnd(post.product.season_end?.slice(0, 10) ?? '');
@@ -173,6 +179,7 @@ export function AdminProductsPage() {
         stock: parseNumberInput(editStock),
         is_active: editActive,
         storage_type: editStorageType,
+        origin: editOrigin,
         availability: editAvailability,
         season_start: editAvailability === 'seasonal' ? editSeasonStart : undefined,
         season_end: editAvailability === 'seasonal' ? editSeasonEnd : undefined,
@@ -247,6 +254,18 @@ export function AdminProductsPage() {
               className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
             >
               {STORAGE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
+            <span className="text-sm font-medium">원산지</span>
+            <select
+              value={origin}
+              onChange={(e) => setOrigin(e.target.value as ProductOrigin)}
+              className="mt-1 w-full px-3 py-2 border border-ig-border rounded-lg bg-ig-secondary"
+            >
+              {ORIGIN_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
@@ -420,6 +439,20 @@ export function AdminProductsPage() {
                           className="mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
                         >
                           {STORAGE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="block text-xs">
+                        <span className="font-medium">원산지</span>
+                        <select
+                          value={editOrigin}
+                          onChange={(e) => setEditOrigin(e.target.value as ProductOrigin)}
+                          className="mt-1 w-full px-2 py-1.5 border border-ig-border rounded-lg bg-ig-secondary text-sm"
+                        >
+                          {ORIGIN_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
                               {opt.label}
                             </option>

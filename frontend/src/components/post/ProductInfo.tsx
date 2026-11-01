@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { isAxiosError } from 'axios';
+import { ORIGIN_LABELS, type ProductOrigin } from '@/constants/productOrigin';
 import type { Product } from '@/types';
 import * as cartApi from '@/api/cart';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
@@ -52,8 +53,9 @@ export function ProductInfo({
   };
   const badges = [
     STORAGE_LABELS[product.storage_type],
+    product.origin ? ORIGIN_LABELS[product.origin as ProductOrigin] : null,
     AVAILABILITY_LABELS[product.availability],
-  ];
+  ].filter((badge): badge is string => Boolean(badge));
 
   if (!product.is_in_season) badges.push('비제철');
   if (!product.is_available) badges.push('품절');

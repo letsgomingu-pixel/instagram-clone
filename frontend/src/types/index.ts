@@ -1,3 +1,5 @@
+import type { ProductOrigin } from '@/constants/productOrigin';
+
 export interface User {
   id: number;
   username: string;
@@ -34,6 +36,7 @@ export interface Product {
   price: number;
   unit: string;
   storage_type: 'fresh' | 'frozen' | 'dried' | 'smoked';
+  origin?: ProductOrigin | null;
   availability: 'year_round' | 'seasonal';
   season_start?: string | null;
   season_end?: string | null;
@@ -52,6 +55,7 @@ export interface ProductEditInput {
   stock: number;
   is_active: boolean;
   storage_type: Product['storage_type'];
+  origin?: ProductOrigin;
   availability: Product['availability'];
   season_start?: string;
   season_end?: string;

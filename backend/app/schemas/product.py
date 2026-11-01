@@ -2,7 +2,7 @@ from datetime import date
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.models.product import AVAILABILITY_TYPES, STORAGE_TYPES
+from app.models.product import AVAILABILITY_TYPES, ORIGIN_TYPES, STORAGE_TYPES
 
 
 class ProductOut(BaseModel):
@@ -11,6 +11,7 @@ class ProductOut(BaseModel):
     price: int
     unit: str
     storage_type: str
+    origin: str | None = None
     availability: str
     season_start: str | None = None
     season_end: str | None = None
@@ -27,6 +28,7 @@ class ProductCreate(BaseModel):
     price: int = Field(ge=0)
     unit: str = Field(min_length=1, max_length=50)
     storage_type: str
+    origin: str = "domestic"
     availability: str
     season_start: date | None = None
     season_end: date | None = None
@@ -44,6 +46,13 @@ class ProductCreate(BaseModel):
     def validate_availability(cls, v: str) -> str:
         if v not in AVAILABILITY_TYPES:
             raise ValueError(f"availability must be one of: {', '.join(AVAILABILITY_TYPES)}")
+        return v
+
+    @field_validator("origin")
+    @classmethod
+    def validate_origin(cls, v: str) -> str:
+        if v not in ORIGIN_TYPES:
+            raise ValueError(f"origin must be one of: {', '.join(ORIGIN_TYPES)}")
         return v
 
     @field_validator("season_end")
@@ -64,6 +73,7 @@ class ProductUpdate(BaseModel):
     stock: int | None = Field(default=None, ge=0)
     is_active: bool | None = None
     storage_type: str | None = None
+    origin: str | None = None
     availability: str | None = None
     season_start: date | None = None
     season_end: date | None = None
@@ -80,4 +90,11 @@ class ProductUpdate(BaseModel):
     def validate_availability(cls, v: str | None) -> str | None:
         if v is not None and v not in AVAILABILITY_TYPES:
             raise ValueError(f"availability must be one of: {', '.join(AVAILABILITY_TYPES)}")
+        return v
+
+    @field_validator("origin")
+    @classmethod
+    def validate_origin(cls, v: str | None) -> str | None:
+        if v is not None and v not in ORIGIN_TYPES:
+            raise ValueError(f"origin must be one of: {', '.join(ORIGIN_TYPES)}")
         return v

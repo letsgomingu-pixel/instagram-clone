@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { isAxiosError } from 'axios';
 import { Modal } from '@/components/common/Modal';
 import * as postsApi from '@/api/posts';
+import { ORIGIN_OPTIONS, type ProductOrigin } from '@/constants/productOrigin';
 import type { Post, PostEditInput, Product } from '@/types';
 import { formatNumberInput, formatNumberValue, parseNumberInput } from '@/utils/formatNumber';
 
@@ -40,6 +41,7 @@ function fillFromPost(
     setUnit: (value: string) => void;
     setStock: (value: string) => void;
     setStorageType: (value: Product['storage_type']) => void;
+    setOrigin: (value: ProductOrigin) => void;
     setAvailability: (value: Product['availability']) => void;
     setSeasonStart: (value: string) => void;
     setSeasonEnd: (value: string) => void;
@@ -57,6 +59,7 @@ function fillFromPost(
   setters.setUnit(product?.unit ?? '1kg');
   setters.setStock(product ? formatNumberValue(product.stock) : '0');
   setters.setStorageType(product?.storage_type ?? 'fresh');
+  setters.setOrigin(product?.origin ?? 'domestic');
   setters.setAvailability(product?.availability ?? 'year_round');
   setters.setSeasonStart(product?.season_start?.slice(0, 10) ?? '');
   setters.setSeasonEnd(product?.season_end?.slice(0, 10) ?? '');
@@ -73,6 +76,7 @@ export function PostEditModal({ post, isOpen, onClose, onSave }: PostEditModalPr
   const [unit, setUnit] = useState(post.product?.unit ?? '1kg');
   const [stock, setStock] = useState(post.product ? formatNumberValue(post.product.stock) : '0');
   const [storageType, setStorageType] = useState<Product['storage_type']>(post.product?.storage_type ?? 'fresh');
+  const [origin, setOrigin] = useState<ProductOrigin>(post.product?.origin ?? 'domestic');
   const [availability, setAvailability] = useState<Product['availability']>(post.product?.availability ?? 'year_round');
   const [seasonStart, setSeasonStart] = useState(post.product?.season_start?.slice(0, 10) ?? '');
   const [seasonEnd, setSeasonEnd] = useState(post.product?.season_end?.slice(0, 10) ?? '');
@@ -91,6 +95,7 @@ export function PostEditModal({ post, isOpen, onClose, onSave }: PostEditModalPr
       setUnit,
       setStock,
       setStorageType,
+      setOrigin,
       setAvailability,
       setSeasonStart,
       setSeasonEnd,
@@ -135,6 +140,7 @@ export function PostEditModal({ post, isOpen, onClose, onSave }: PostEditModalPr
                 stock: parseNumberInput(stock),
                 is_active: isActive,
                 storage_type: storageType,
+                origin,
                 availability,
                 ...(availability === 'seasonal'
                   ? { season_start: seasonStart, season_end: seasonEnd }
@@ -206,6 +212,17 @@ export function PostEditModal({ post, isOpen, onClose, onSave }: PostEditModalPr
                 className={fieldClass}
               >
                 {STORAGE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="원산지">
+              <select
+                value={origin}
+                onChange={(e) => setOrigin(e.target.value as ProductOrigin)}
+                className={fieldClass}
+              >
+                {ORIGIN_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>

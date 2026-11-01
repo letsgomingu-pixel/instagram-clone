@@ -30,6 +30,7 @@ def build_product_out(product: Product) -> ProductOut:
         price=product.price,
         unit=product.unit,
         storage_type=product.storage_type,
+        origin=product.origin,
         availability=product.availability,
         season_start=product.season_start.isoformat() if product.season_start else None,
         season_end=product.season_end.isoformat() if product.season_end else None,
@@ -83,6 +84,7 @@ def create_product_listing(
         price=data.price,
         unit=data.unit.strip(),
         storage_type=data.storage_type,
+        origin=data.origin,
         availability=data.availability,
         season_start=data.season_start,
         season_end=data.season_end,
@@ -119,6 +121,7 @@ def apply_post_product_edit(db: Session, post: Post, data: ProductUpdate) -> Non
             price=data.price,
             unit=data.unit,
             storage_type=data.storage_type,
+            origin=data.origin or "domestic",
             availability=data.availability,
             season_start=data.season_start,
             season_end=data.season_end,
@@ -155,6 +158,8 @@ def update_product(db: Session, product_id: int, data: ProductUpdate) -> Product
         product.is_active = data.is_active
     if data.storage_type is not None:
         product.storage_type = data.storage_type
+    if data.origin is not None:
+        product.origin = data.origin
     if data.availability is not None:
         product.availability = data.availability
     if data.season_start is not None:

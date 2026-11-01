@@ -7,6 +7,18 @@ from app.database import Base
 
 STORAGE_TYPES = ("fresh", "frozen", "dried", "smoked")
 AVAILABILITY_TYPES = ("year_round", "seasonal")
+ORIGIN_TYPES = (
+    "domestic",
+    "china",
+    "russia",
+    "norway",
+    "vietnam",
+    "japan",
+    "peru",
+    "chile",
+    "usa",
+    "other",
+)
 POST_TYPES = ("standard", "product", "review")
 FEED_TABS = ("products", "reviews", "daily")
 
@@ -21,6 +33,7 @@ class Product(Base):
     price: Mapped[int] = mapped_column(Integer, nullable=False)
     unit: Mapped[str] = mapped_column(String(50), nullable=False)
     storage_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    origin: Mapped[str | None] = mapped_column(String(30), nullable=True)
     availability: Mapped[str] = mapped_column(String(20), nullable=False)
     season_start: Mapped[date | None] = mapped_column(Date, nullable=True)
     season_end: Mapped[date | None] = mapped_column(Date, nullable=True)

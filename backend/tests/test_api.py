@@ -1125,6 +1125,7 @@ def test_admin_create_product():
     assert body["product"]["name"] == "광어회"
     assert body["product"]["price"] == 35000
     assert body["product"]["unit"] == "1kg"
+    assert body["product"]["origin"] == "domestic"
 
 
 def test_admin_create_product_with_video():
@@ -1729,6 +1730,7 @@ def test_admin_update_product():
             "price": 15000,
             "stock": 5,
             "storage_type": "frozen",
+            "origin": "norway",
             "availability": "seasonal",
             "season_start": "2026-03-01",
             "season_end": "2026-06-30",
@@ -1741,6 +1743,7 @@ def test_admin_update_product():
     assert body["price"] == 15000
     assert body["stock"] == 5
     assert body["storage_type"] == "frozen"
+    assert body["origin"] == "norway"
     assert body["availability"] == "seasonal"
     assert body["season_start"] == "2026-03-01"
     assert body["season_end"] == "2026-06-30"
