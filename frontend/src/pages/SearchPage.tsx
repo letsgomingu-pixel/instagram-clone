@@ -105,7 +105,7 @@ export function SearchPage() {
 
   return (
     <div className="md:pt-0">
-      <div className="sticky mobile-sticky-below-header md:top-8 bg-ig-bg z-10 pb-2 md:pb-4 pt-2 space-y-3">
+      <div className="sticky top-0 z-20 bg-ig-bg mobile-sticky-below-header pb-2 md:pb-4 pt-2 space-y-3">
         <div className="relative">
           <SearchIcon
             size={16}
